@@ -169,14 +169,33 @@ The DOM renderer is retired; the canvas is now **PixiJS v8 (WebGL)** per
 - React chrome talks to the renderer through `render/registry.ts` — camera changes are
   announced on an emitter, never routed through the store at 60Hz.
 
+## Interaction layer (Milestone 1.5 Phase B — implemented)
+
+- **Multi-select** end to end: marquee on empty space, `⇧`-click toggling, `⌘A`,
+  select-same via the right-click menu. Multi-stem operations batch into ONE undo step
+  (`batch` command in `domain/commands.ts`).
+- **Clusters** (`⌘G`): the wiring technique as a first-class object — members select and
+  transform together; double-click enters a cluster to edit one member; duplicated
+  clusters get a fresh shared identity.
+- **Transform handles**: corner handles scale (positions spread, each stem clamped to the
+  botanical ±15%), the top handle rotates around the binding point (single) or selection
+  centroid (multi) with `⇧` = 15° steps; live cursor readout.
+- **Snapping stack** (precedence): form-guide magnetism (head snaps onto the silhouette,
+  stem turns radial) → smart alignment guides (neighbour bindings + artboard axes) →
+  grid. `⌘` mid-drag suspends everything.
+- **Depth panel**: per-band hide (⌥ = solo) and lock; locked bands render dimmed and
+  ignore hits. Numeric precision fields (cm/°/%) in the selection toolbar.
+- Pure gesture maths lives in `render/transformGesture.ts` / `smartGuides.ts` /
+  `formGuide.ts` — all unit-tested without Pixi.
+
 ## Known limitations (deliberate, tracked)
 
 - **Sketch artwork, not photography.** Phase C replaces it with the high-fidelity
   illustration atlases; the photographic (AI-bridge) pipeline follows per the roadmap.
-- **Empty-space drag pans** as an interim gesture; Phase B replaces it with marquee
-  selection (pan remains on space/middle-drag/scroll).
-- **No transform handles yet** — rotate/scale live in the toolbar and keyboard until
-  Phase B's on-canvas handles.
+- **Multi-frame** (several artboards + per-frame recipes) deferred to Phase C — the
+  document schema is ready (`artboards[]`), but per-frame recipe scoping is product
+  design beyond canvas feel.
+- **Cluster recipe roll-up** (clusters shown as units in the recipe) deferred with it.
 - **Single design, local only.** Projects, accounts, and sharing are M3.
 - **`window.confirm`/`alert`** for destructive-action guards; replaced by proper dialogs
   when the design system grows.

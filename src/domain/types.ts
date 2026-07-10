@@ -18,6 +18,13 @@ export function bandRank(band: DepthBand): number {
   return DEPTH_BANDS.indexOf(band)
 }
 
+export const BAND_LABELS: Record<DepthBand, string> = {
+  background: 'Background',
+  body: 'Body',
+  focal: 'Focal',
+  accents: 'Accents',
+}
+
 /** Composite depth value: band first, fine order within band second. */
 export function depthValue(stem: { band: DepthBand; order: number }): number {
   return bandRank(stem.band) * 1_000_000 + stem.order
@@ -131,6 +138,11 @@ export interface PlacedStem {
   band: DepthBand
   /** Fine depth order within the band. */
   order: number
+  /**
+   * Cluster membership: stems wired together as one textural unit (the real
+   * floristry technique). Cluster members select and transform together.
+   */
+  clusterId?: string
 }
 
 export const STEM_SCALE_MIN = 0.85

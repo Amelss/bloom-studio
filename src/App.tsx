@@ -3,6 +3,9 @@ import { TopBar } from './components/TopBar'
 import { LibraryPanel } from './components/LibraryPanel'
 import { SidePanel } from './components/SidePanel'
 import { SelectionToolbar } from './components/SelectionToolbar'
+import { ContextMenu } from './components/ContextMenu'
+import { ShortcutsOverlay } from './components/ShortcutsOverlay'
+import { Announcer } from './components/Announcer'
 import { PixiStage } from './components/canvas/PixiStage'
 import { CanvasFooter } from './components/canvas/CanvasFooter'
 import { canvasRegistry } from './render/registry'
@@ -25,6 +28,9 @@ export default function App() {
         </main>
         <SidePanel />
       </div>
+      <ContextMenu />
+      <ShortcutsOverlay />
+      <Announcer />
     </div>
   )
 }
@@ -44,6 +50,19 @@ function useKeyboardShortcuts() {
 
       const store = useStudio.getState()
       const isModifier = e.metaKey || e.ctrlKey
+
+      // Escape works through the UI stack: overlay → menu → cluster → selection.
+      if (e.key === 'Escape') {
+        if (store.shortcutsOpen) store.setShortcutsOpen(false)
+        else if (store.contextMenu) store.setContextMenu(null)
+        else if (store.enteredClusterId) store.exitCluster()
+        else store.setSelection([])
+        return
+      }
+      if (e.key === '?') {
+        store.setShortcutsOpen(!store.shortcutsOpen)
+        return
+      }
 
       // Camera
       if (e.key === ' ') {
@@ -79,18 +98,27 @@ function useKeyboardShortcuts() {
         return
       }
 
-      // History
+      // History & selection-wide commands
       if (isModifier && e.key.toLowerCase() === 'z') {
         e.preventDefault()
         if (e.shiftKey) store.redo()
         else store.undo()
         return
       }
+      if (isModifier && e.key.toLowerCase() === 'a') {
+        e.preventDefault()
+        store.selectAll()
+        return
+      }
+      if (isModifier && e.key.toLowerCase() === 'g') {
+        e.preventDefault()
+        if (e.shiftKey) store.ungroupSelected()
+        else store.groupSelected()
+        return
+      }
 
       // Selected-stem operations
-      if (!store.selectedId) return
-      const stem = store.doc.stems.find((s) => s.id === store.selectedId)
-      if (!stem) return
+      if (!store.selectedIds.length) return
       const step = e.shiftKey ? 10 : 1 // mm
 
       if (isModifier && e.key === '[') {
@@ -143,16 +171,13 @@ function useKeyboardShortcuts() {
           break
         case 'f':
         case 'F':
-          store.updateSelected({ flipX: !stem.flipX })
+          store.flipSelected()
           break
         case 'r':
-          store.updateSelected({ rotation: stem.rotation + 15 })
+          store.rotateSelected(15)
           break
         case 'R':
-          store.updateSelected({ rotation: stem.rotation - 15 })
-          break
-        case 'Escape':
-          store.select(null)
+          store.rotateSelected(-15)
           break
       }
     }

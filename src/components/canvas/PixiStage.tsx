@@ -60,16 +60,48 @@ export function PixiStage() {
 
         const syncFromStore = () => {
           const s = useStudio.getState()
-          scene.sync(s.doc, s.selectedId, {
+          scene.sync(s.doc, s.selectedIds, {
             showFormGuide: s.showFormGuide,
             learningMode: s.learningMode,
             gridVisible: s.gridVisible,
             gridStepMm: s.gridStepMm,
+            hiddenBands: s.hiddenBands,
+            lockedBands: s.lockedBands,
           })
         }
         syncFromStore()
         cleanups.push(useStudio.subscribe(syncFromStore))
-        cleanups.push(attachInteractions(app.canvas, scene, useStudio))
+        cleanups.push(attachInteractions(app.canvas, scene, useStudio, host))
+
+        // Drag-and-drop from the flower library.
+        const onDragOver = (e: DragEvent) => {
+          if (e.dataTransfer?.types.includes('application/x-bloom-flower')) {
+            e.preventDefault()
+            e.dataTransfer.dropEffect = 'copy'
+          }
+        }
+        const onDrop = (e: DragEvent) => {
+          const data = e.dataTransfer?.getData('application/x-bloom-flower')
+          if (!data) return
+          e.preventDefault()
+          try {
+            const { varietyId, colorwayId } = JSON.parse(data) as {
+              varietyId: string
+              colorwayId?: string
+            }
+            const rect = host.getBoundingClientRect()
+            const world = scene.camera.worldFromScreen(e.clientX - rect.left, e.clientY - rect.top)
+            useStudio.getState().addStemAt(varietyId, colorwayId ?? undefined, world.x, world.y)
+          } catch {
+            // Not our payload; ignore.
+          }
+        }
+        host.addEventListener('dragover', onDragOver)
+        host.addEventListener('drop', onDrop)
+        cleanups.push(() => {
+          host.removeEventListener('dragover', onDragOver)
+          host.removeEventListener('drop', onDrop)
+        })
 
         scene.camera.onChange = (() => {
           const original = scene.camera.onChange
@@ -125,7 +157,7 @@ export function PixiStage() {
       ref={hostRef}
       role="application"
       aria-label="Design canvas"
-      className="h-full min-h-0 w-full overflow-hidden rounded-xl border border-bloom-200"
+      className="relative h-full min-h-0 w-full overflow-hidden rounded-xl border border-bloom-200"
     />
   )
 }

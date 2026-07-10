@@ -16,7 +16,9 @@ const TONE_STYLES: Record<InsightTone, { icon: string; className: string }> = {
  */
 export function LearnPanel() {
   const doc = useStudio((s) => s.doc)
-  const selectedStem = useStudio((s) => s.doc.stems.find((x) => x.id === s.selectedId))
+  const selectedStem = useStudio((s) =>
+    s.selectedIds.length === 1 ? s.doc.stems.find((x) => x.id === s.selectedIds[0]) : undefined,
+  )
   const [openPrincipleId, setOpenPrincipleId] = useState<string | null>(null)
 
   const insights = useMemo(() => analyzeDesign(doc), [doc])

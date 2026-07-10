@@ -2,8 +2,10 @@ import { Application, Container, Graphics, RenderTexture, Sprite } from 'pixi.js
 import {
   depthValue,
   type Artboard,
+  type DepthBand,
   type DesignDocument,
   type PaperOption,
+  type PlacedStem,
 } from '../domain/types'
 import {
   BINDING_ANCHOR,
@@ -14,6 +16,8 @@ import {
 import { FLOWER_INDEX, VESSEL_INDEX } from '../data/catalog'
 import { Camera } from './camera'
 import { gridSteps } from './grid'
+import { FORM_FOCAL_ZONE, formSilhouette } from './formGuide'
+import type { GuideLine } from './smartGuides'
 import {
   getStemTexture,
   getVesselTexture,
@@ -29,11 +33,32 @@ const PAPER_COLORS: Record<PaperOption, number> = {
   charcoal: 0x34322f,
 }
 
+const SELECTION_COLOR = 0x586950
+const GUIDE_COLOR = 0xb0715f
+const HANDLE_HIT_PX = 10
+
 export interface ScenePrefs {
   showFormGuide: boolean
   learningMode: boolean
   gridVisible: boolean
   gridStepMm: number
+  hiddenBands: DepthBand[]
+  lockedBands: DepthBand[]
+}
+
+export type HandleKind = 'rotate' | 'scale-tl' | 'scale-tr' | 'scale-bl' | 'scale-br'
+
+interface HandleLayout {
+  rect: { x: number; y: number; width: number; height: number }
+  rotate: { x: number; y: number }
+  corners: Record<'scale-tl' | 'scale-tr' | 'scale-bl' | 'scale-br', { x: number; y: number }>
+}
+
+export interface WorldRect {
+  x: number
+  y: number
+  width: number
+  height: number
 }
 
 /**
@@ -52,19 +77,27 @@ export class SceneManager {
   private readonly stems = new Container()
   private readonly vesselFront = new Container()
   private readonly overlayG = new Graphics()
+  private readonly guidesG = new Graphics()
+  private readonly marqueeG = new Graphics()
   private readonly selectionG = new Graphics()
 
   private readonly sprites = new Map<string, Sprite>()
   private readonly hitEntries = new Map<string, StemTextureEntry>()
 
   private doc: DesignDocument | null = null
-  private selectedId: string | null = null
+  private selectedIds: string[] = []
   private prefs: ScenePrefs = {
     showFormGuide: false,
     learningMode: true,
     gridVisible: false,
     gridStepMm: 10,
+    hiddenBands: [],
+    lockedBands: [],
   }
+
+  private guides: GuideLine[] = []
+  private marquee: WorldRect | null = null
+  private handleLayout: HandleLayout | null = null
 
   private renderQueued = false
   private destroyed = false
@@ -79,7 +112,9 @@ export class SceneManager {
       this.stems,
       this.vesselFront,
       this.overlayG,
+      this.guidesG,
       this.selectionG,
+      this.marqueeG,
     )
     app.stage.addChild(this.world)
     app.stage.eventMode = 'none'
@@ -90,7 +125,7 @@ export class SceneManager {
     }
     setOnTextureReady(() => {
       if (this.destroyed) return
-      if (this.doc) this.sync(this.doc, this.selectedId, this.prefs)
+      if (this.doc) this.sync(this.doc, this.selectedIds, this.prefs)
     })
   }
 
@@ -103,9 +138,9 @@ export class SceneManager {
     return this.doc?.artboards[0] ?? null
   }
 
-  sync(doc: DesignDocument, selectedId: string | null, prefs: ScenePrefs) {
+  sync(doc: DesignDocument, selectedIds: string[], prefs: ScenePrefs) {
     this.doc = doc
-    this.selectedId = selectedId
+    this.selectedIds = selectedIds
     this.prefs = prefs
 
     const artboard = doc.artboards[0]
@@ -113,6 +148,20 @@ export class SceneManager {
     this.syncStems(doc)
     this.syncVessel(doc, artboard)
     this.drawZoomDependent()
+    this.requestRender()
+  }
+
+  /* ------------------------- transient overlays ------------------------ */
+
+  setGuides(guides: GuideLine[]) {
+    this.guides = guides
+    this.drawGuides()
+    this.requestRender()
+  }
+
+  setMarquee(rect: WorldRect | null) {
+    this.marquee = rect
+    this.drawMarquee()
     this.requestRender()
   }
 
@@ -129,20 +178,24 @@ export class SceneManager {
   }
 
   fitSelection(animate = true) {
-    if (!this.doc || !this.selectedId) return
-    const stem = this.doc.stems.find((s) => s.id === this.selectedId)
-    const variety = stem && FLOWER_INDEX[stem.varietyId]
-    if (!stem || !variety) return
-    this.camera.fitBounds(stemBounds(stem, variety), 160, animate)
+    if (!this.doc || !this.selectedIds.length) return
+    const bounds = this.selectionBounds()
+    if (bounds) this.camera.fitBounds(bounds, 120, animate)
   }
 
   /* ---------------------------- hit testing --------------------------- */
 
-  /** Pixel-accurate pick: front-most stem with visible paint at the point. */
-  hitTest(worldX: number, worldY: number): string | null {
-    if (!this.doc) return null
+  private stemInteractive(stem: PlacedStem): boolean {
+    return !this.prefs.hiddenBands.includes(stem.band) && !this.prefs.lockedBands.includes(stem.band)
+  }
+
+  /** All stems with visible paint at the point, front-most first. */
+  hitTestAll(worldX: number, worldY: number): string[] {
+    if (!this.doc) return []
+    const hits: string[] = []
     const sorted = [...this.doc.stems].sort((a, b) => depthValue(b) - depthValue(a))
     for (const stem of sorted) {
+      if (!this.stemInteractive(stem)) continue
       const variety = FLOWER_INDEX[stem.varietyId]
       const entry = this.hitEntries.get(stem.id)
       if (!variety || !entry) continue
@@ -152,15 +205,72 @@ export class SceneManager {
       const sin = Math.sin(rad)
       const dx = worldX - stem.x
       const dy = worldY - stem.y
-      // Inverse-rotate into sprite-local space (origin at the binding anchor).
       let lx = dx * cos + dy * sin
       const ly = -dx * sin + dy * cos
       if (stem.flipX) lx = -lx
       const u = lx / width + BINDING_ANCHOR.x
       const v = ly / height + BINDING_ANCHOR.y
-      if (hitTestAlpha(entry, u, v)) return stem.id
+      if (hitTestAlpha(entry, u, v)) hits.push(stem.id)
+    }
+    return hits
+  }
+
+  hitTest(worldX: number, worldY: number): string | null {
+    return this.hitTestAll(worldX, worldY)[0] ?? null
+  }
+
+  /** Which transform handle (if any) sits at this world point. */
+  getHandleAt(worldX: number, worldY: number): HandleKind | null {
+    const layout = this.handleLayout
+    if (!layout) return null
+    const threshold = HANDLE_HIT_PX / this.camera.scale
+    if (Math.hypot(worldX - layout.rotate.x, worldY - layout.rotate.y) <= threshold) return 'rotate'
+    for (const kind of ['scale-tl', 'scale-tr', 'scale-bl', 'scale-br'] as const) {
+      const p = layout.corners[kind]
+      if (Math.hypot(worldX - p.x, worldY - p.y) <= threshold) return kind
     }
     return null
+  }
+
+  /** Stems whose bounds intersect the rect (marquee), cluster-unaware. */
+  stemsInRect(rect: WorldRect): string[] {
+    if (!this.doc) return []
+    const ids: string[] = []
+    for (const stem of this.doc.stems) {
+      if (!this.stemInteractive(stem)) continue
+      const variety = FLOWER_INDEX[stem.varietyId]
+      if (!variety) continue
+      const b = stemBounds(stem, variety)
+      if (
+        b.x < rect.x + rect.width &&
+        b.x + b.width > rect.x &&
+        b.y < rect.y + rect.height &&
+        b.y + b.height > rect.y
+      ) {
+        ids.push(stem.id)
+      }
+    }
+    return ids
+  }
+
+  selectionBounds(): WorldRect | null {
+    if (!this.doc || !this.selectedIds.length) return null
+    let minX = Infinity
+    let minY = Infinity
+    let maxX = -Infinity
+    let maxY = -Infinity
+    for (const id of this.selectedIds) {
+      const stem = this.doc.stems.find((s) => s.id === id)
+      const variety = stem && FLOWER_INDEX[stem.varietyId]
+      if (!stem || !variety) continue
+      const b = stemBounds(stem, variety)
+      minX = Math.min(minX, b.x)
+      minY = Math.min(minY, b.y)
+      maxX = Math.max(maxX, b.x + b.width)
+      maxY = Math.max(maxY, b.y + b.height)
+    }
+    if (!Number.isFinite(minX)) return null
+    return { x: minX, y: minY, width: maxX - minX, height: maxY - minY }
   }
 
   /* ------------------------------ export ------------------------------ */
@@ -181,10 +291,12 @@ export class SceneManager {
       grid: this.gridG.visible,
       overlay: this.overlayG.visible,
       selection: this.selectionG.visible,
+      guides: this.guidesG.visible,
     }
     this.gridG.visible = false
     this.overlayG.visible = false
     this.selectionG.visible = false
+    this.guidesG.visible = false
     this.world.scale.set(resolution)
     this.world.position.set(-artboard.x * resolution, -artboard.y * resolution)
     this.app.renderer.render({ container: this.world, target: renderTexture })
@@ -194,6 +306,7 @@ export class SceneManager {
     this.gridG.visible = prev.grid
     this.overlayG.visible = prev.overlay
     this.selectionG.visible = prev.selection
+    this.guidesG.visible = prev.guides
     renderTexture.destroy(true)
     this.requestRender()
     return canvas.toDataURL?.('image/png') ?? null
@@ -217,7 +330,6 @@ export class SceneManager {
   private drawArtboard(artboard: Artboard) {
     const g = this.artboardG
     g.clear()
-    // Soft drop shadow, then the paper.
     g.rect(artboard.x + 3, artboard.y + 5, artboard.width, artboard.height).fill({
       color: 0x000000,
       alpha: 0.08,
@@ -246,10 +358,11 @@ export class SceneManager {
         this.stems.addChild(sprite)
       }
       const entry = getStemTexture(stem.varietyId, stem.colorwayId)
+      const hidden = this.prefs.hiddenBands.includes(stem.band)
       if (entry) {
         this.hitEntries.set(stem.id, entry)
         if (sprite.texture !== entry.texture) sprite.texture = entry.texture
-        sprite.visible = true
+        sprite.visible = !hidden
         const { width, height } = spriteSize(variety, stem.scale)
         sprite.scale.set(
           ((stem.flipX ? -1 : 1) * width) / entry.texture.width,
@@ -258,6 +371,7 @@ export class SceneManager {
       } else {
         sprite.visible = false
       }
+      sprite.alpha = this.prefs.lockedBands.includes(stem.band) ? 0.55 : 1
       sprite.position.set(stem.x, stem.y)
       sprite.rotation = (stem.rotation * Math.PI) / 180
       sprite.zIndex = depthValue(stem)
@@ -286,10 +400,12 @@ export class SceneManager {
     ;(vessel.renderMode === 'front' ? this.vesselFront : this.vesselBehind).addChild(sprite)
   }
 
-  /** Grid, form guide, and selection ring depend on zoom for line weight. */
+  /** Grid, form guide, guides, and selection depend on zoom for line weight. */
   private drawZoomDependent() {
     this.drawGrid()
     this.drawFormGuide()
+    this.drawGuides()
+    this.drawMarquee()
     this.drawSelection()
   }
 
@@ -322,42 +438,105 @@ export class SceneManager {
     const artboard = this.artboard
     if (!artboard) return
     const px = 1 / this.camera.scale
-    const cx = artboard.x + artboard.width / 2
-    // Round-bouquet silhouette + focal zone, dashed by hand (Pixi has no dash).
-    dashedEllipse(g, cx, artboard.y + 210, 135, 85, 8, { color: 0x6f8161, alpha: 0.55, width: 1.5 * px })
-    dashedEllipse(g, cx, artboard.y + 222, 48, 48, 6, { color: 0xb0715f, alpha: 0.6, width: 1.5 * px })
+    const ellipse = formSilhouette(artboard)
+    dashedEllipse(g, ellipse.cx, ellipse.cy, ellipse.rx, ellipse.ry, 8, {
+      color: 0x6f8161,
+      alpha: 0.55,
+      width: 1.5 * px,
+    })
+    dashedEllipse(g, ellipse.cx, artboard.y + FORM_FOCAL_ZONE.cy, FORM_FOCAL_ZONE.r, FORM_FOCAL_ZONE.r, 6, {
+      color: GUIDE_COLOR,
+      alpha: 0.6,
+      width: 1.5 * px,
+    })
+  }
+
+  private drawGuides() {
+    const g = this.guidesG
+    g.clear()
+    const artboard = this.artboard
+    if (!artboard || !this.guides.length) return
+    const px = 1 / this.camera.scale
+    for (const guide of this.guides) {
+      if (guide.axis === 'v') {
+        g.moveTo(guide.position, artboard.y - 20)
+        g.lineTo(guide.position, artboard.y + artboard.height + 20)
+      } else {
+        g.moveTo(artboard.x - 20, guide.position)
+        g.lineTo(artboard.x + artboard.width + 20, guide.position)
+      }
+      g.stroke({ color: GUIDE_COLOR, alpha: 0.9, width: px })
+    }
+  }
+
+  private drawMarquee() {
+    const g = this.marqueeG
+    g.clear()
+    if (!this.marquee) return
+    const px = 1 / this.camera.scale
+    g.rect(this.marquee.x, this.marquee.y, this.marquee.width, this.marquee.height)
+      .fill({ color: SELECTION_COLOR, alpha: 0.07 })
+      .stroke({ color: SELECTION_COLOR, alpha: 0.7, width: px })
   }
 
   private drawSelection() {
     const g = this.selectionG
     g.clear()
-    if (!this.doc || !this.selectedId) return
-    const stem = this.doc.stems.find((s) => s.id === this.selectedId)
-    const variety = stem && FLOWER_INDEX[stem.varietyId]
-    if (!stem || !variety) return
-
-    const { width, height } = spriteSize(variety, stem.scale)
-    const rad = (stem.rotation * Math.PI) / 180
-    const cos = Math.cos(rad)
-    const sin = Math.sin(rad)
+    this.handleLayout = null
+    if (!this.doc || !this.selectedIds.length) return
     const px = 1 / this.camera.scale
 
-    // Rotated sprite corners around the binding anchor.
-    const local = [
-      { x: -width / 2, y: -BINDING_ANCHOR.y * height },
-      { x: width / 2, y: -BINDING_ANCHOR.y * height },
-      { x: width / 2, y: (1 - BINDING_ANCHOR.y) * height },
-      { x: -width / 2, y: (1 - BINDING_ANCHOR.y) * height },
-    ].map((p) => ({
-      x: stem.x + p.x * cos - p.y * sin,
-      y: stem.y + p.x * sin + p.y * cos,
-    }))
+    // Per-stem rotated outline + binding-point pivot dot.
+    for (const id of this.selectedIds) {
+      const stem = this.doc.stems.find((s) => s.id === id)
+      const variety = stem && FLOWER_INDEX[stem.varietyId]
+      if (!stem || !variety) continue
+      const { width, height } = spriteSize(variety, stem.scale)
+      const rad = (stem.rotation * Math.PI) / 180
+      const cos = Math.cos(rad)
+      const sin = Math.sin(rad)
+      const corners = [
+        { x: -width / 2, y: -BINDING_ANCHOR.y * height },
+        { x: width / 2, y: -BINDING_ANCHOR.y * height },
+        { x: width / 2, y: (1 - BINDING_ANCHOR.y) * height },
+        { x: -width / 2, y: (1 - BINDING_ANCHOR.y) * height },
+      ].map((p) => ({
+        x: stem.x + p.x * cos - p.y * sin,
+        y: stem.y + p.x * sin + p.y * cos,
+      }))
+      g.moveTo(corners[0].x, corners[0].y)
+      for (const p of [...corners.slice(1), corners[0]]) g.lineTo(p.x, p.y)
+      g.stroke({ color: SELECTION_COLOR, alpha: this.selectedIds.length > 1 ? 0.4 : 0.85, width: 1.5 * px })
+      g.circle(stem.x, stem.y, 3 * px).fill({ color: SELECTION_COLOR, alpha: 0.9 })
+    }
 
-    g.moveTo(local[0].x, local[0].y)
-    for (const p of [...local.slice(1), local[0]]) g.lineTo(p.x, p.y)
-    g.stroke({ color: 0x586950, alpha: 0.85, width: 1.5 * px })
-    // The binding point — the rotation pivot — made visible.
-    g.circle(stem.x, stem.y, 3 * px).fill({ color: 0x586950, alpha: 0.9 })
+    // Combined bounds + transform handles.
+    const bounds = this.selectionBounds()
+    if (!bounds) return
+    g.rect(bounds.x, bounds.y, bounds.width, bounds.height).stroke({
+      color: SELECTION_COLOR,
+      alpha: 0.55,
+      width: px,
+    })
+
+    const rotate = { x: bounds.x + bounds.width / 2, y: bounds.y - 26 * px }
+    const corners = {
+      'scale-tl': { x: bounds.x, y: bounds.y },
+      'scale-tr': { x: bounds.x + bounds.width, y: bounds.y },
+      'scale-bl': { x: bounds.x, y: bounds.y + bounds.height },
+      'scale-br': { x: bounds.x + bounds.width, y: bounds.y + bounds.height },
+    }
+    this.handleLayout = { rect: bounds, rotate, corners }
+
+    // Stem to the rotation handle, then the handles themselves.
+    g.moveTo(bounds.x + bounds.width / 2, bounds.y)
+    g.lineTo(rotate.x, rotate.y)
+    g.stroke({ color: SELECTION_COLOR, alpha: 0.55, width: px })
+    g.circle(rotate.x, rotate.y, 5 * px).fill(0xffffff).stroke({ color: SELECTION_COLOR, width: 1.5 * px })
+    for (const p of Object.values(corners)) {
+      const r = 4.5 * px
+      g.rect(p.x - r, p.y - r, r * 2, r * 2).fill(0xffffff).stroke({ color: SELECTION_COLOR, width: 1.5 * px })
+    }
   }
 }
 

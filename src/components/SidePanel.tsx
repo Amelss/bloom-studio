@@ -1,20 +1,22 @@
 import { useState } from 'react'
 import { useStudio } from '../domain/store'
 import { RecipePanel } from './panels/RecipePanel'
+import { DepthPanel } from './panels/DepthPanel'
 import { LearnPanel } from './panels/LearnPanel'
 
-type Tab = 'recipe' | 'learn'
+type Tab = 'recipe' | 'depth' | 'learn'
 
 export function SidePanel() {
   const learningMode = useStudio((s) => s.learningMode)
   const [selectedTab, setTab] = useState<Tab>('recipe')
   // The Learn tab only exists in learning mode; derive rather than sync.
-  const tab: Tab = learningMode ? selectedTab : 'recipe'
+  const tab: Tab = !learningMode && selectedTab === 'learn' ? 'recipe' : selectedTab
 
   return (
     <aside className="flex w-80 shrink-0 flex-col border-l border-bloom-200 bg-white/70">
       <div className="flex border-b border-bloom-200" role="tablist" aria-label="Design details">
         <TabButton id="recipe" label="Recipe" active={tab === 'recipe'} onSelect={() => setTab('recipe')} />
+        <TabButton id="depth" label="Depth" active={tab === 'depth'} onSelect={() => setTab('depth')} />
         {learningMode && (
           <TabButton id="learn" label="Learn" active={tab === 'learn'} onSelect={() => setTab('learn')} />
         )}
@@ -24,7 +26,7 @@ export function SidePanel() {
         role="tabpanel"
         aria-labelledby={`tab-${tab}`}
       >
-        {tab === 'recipe' ? <RecipePanel /> : <LearnPanel />}
+        {tab === 'recipe' ? <RecipePanel /> : tab === 'depth' ? <DepthPanel /> : <LearnPanel />}
       </div>
     </aside>
   )

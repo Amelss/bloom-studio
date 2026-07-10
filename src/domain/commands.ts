@@ -8,7 +8,10 @@ import type { DesignDocument, PlacedStem } from './types'
  */
 
 export type StemPatch = Partial<
-  Pick<PlacedStem, 'x' | 'y' | 'rotation' | 'scale' | 'flipX' | 'band' | 'order' | 'colorwayId'>
+  Pick<
+    PlacedStem,
+    'x' | 'y' | 'rotation' | 'scale' | 'flipX' | 'band' | 'order' | 'colorwayId' | 'clusterId'
+  >
 >
 
 export type Command =
@@ -19,6 +22,8 @@ export type Command =
   | { type: 'set_markup'; next: number; prev: number }
   | { type: 'set_price_override'; varietyId: string; next: number | null; prev: number | null }
   | { type: 'rename'; next: string; prev: string }
+  /** Several commands as ONE undo step (multi-select operations, gestures). */
+  | { type: 'batch'; commands: Command[] }
 
 export function applyCommand(doc: DesignDocument, cmd: Command): DesignDocument {
   switch (cmd.type) {
@@ -43,6 +48,8 @@ export function applyCommand(doc: DesignDocument, cmd: Command): DesignDocument 
     }
     case 'rename':
       return { ...doc, name: cmd.next }
+    case 'batch':
+      return cmd.commands.reduce(applyCommand, doc)
   }
 }
 
@@ -62,5 +69,12 @@ export function invertCommand(cmd: Command): Command {
       return { ...cmd, next: cmd.prev, prev: cmd.next }
     case 'rename':
       return { ...cmd, next: cmd.prev, prev: cmd.next }
+    case 'batch':
+      return { type: 'batch', commands: [...cmd.commands].reverse().map(invertCommand) }
   }
+}
+
+/** Collapses to the single command when there is only one — cleaner history. */
+export function batchOf(commands: Command[]): Command {
+  return commands.length === 1 ? commands[0] : { type: 'batch', commands }
 }

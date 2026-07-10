@@ -81,8 +81,16 @@ export function LibraryPanel() {
               <div
                 role="button"
                 tabIndex={0}
+                draggable
                 className="group flex w-full cursor-pointer flex-col items-center rounded-xl border border-bloom-200 bg-white p-2 text-center shadow-sm transition hover:border-bloom-500 hover:shadow"
                 onClick={() => addStem(flower.id)}
+                onDragStart={(e) => {
+                  e.dataTransfer.setData(
+                    'application/x-bloom-flower',
+                    JSON.stringify({ varietyId: flower.id }),
+                  )
+                  e.dataTransfer.effectAllowed = 'copy'
+                }}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault()
@@ -90,7 +98,11 @@ export function LibraryPanel() {
                   }
                 }}
                 aria-label={`Add ${flower.commonName} to the canvas`}
-                title={learningMode ? flower.education.role : flower.commonName}
+                title={
+                  learningMode
+                    ? `${flower.education.role} (drag onto the canvas to place)`
+                    : `${flower.commonName} — drag onto the canvas to place`
+                }
               >
                 <span className="h-16 w-12" aria-hidden>
                   {Sketch && (

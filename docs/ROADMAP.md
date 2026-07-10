@@ -26,14 +26,21 @@ from structured design data — needed proving before anything else is worth bui
 - [ ] Export PNG + .bloom.json; import the JSON back
 - [ ] Keyboard-only session is possible; panels readable at 1280×800
 
-## Milestone 1.5 — Canvas Excellence (proposed — see CANVAS.md)
+## Milestone 1.5 — Canvas Excellence (see CANVAS.md)
 
-Full canvas overhaul before any new product surface: PixiJS/WebGL renderer with infinite
-workspace + cm-true artboards, real-millimetre coordinates (document v2), adaptive grid +
-smart guides + form-guide snapping, alpha-accurate selection, transform handles, depth
-bands, high-fidelity illustration library with LOD atlases, and the on-canvas education
-overlay API. Three testable phases (engine → hands → eyes) specified in
-[CANVAS.md](CANVAS.md).
+Full canvas overhaul before any new product surface, in three phases:
+
+- **Phase A — the engine ✅**: PixiJS v8/WebGL renderer, real-millimetre coordinates
+  (document v2 + migration), infinite workspace + cm-true white artboard, adaptive grid +
+  snap, alpha-accurate picking, camera pan/zoom.
+- **Phase B — the hands ✅**: marquee + multi-select + clusters (batch undo), on-canvas
+  transform handles with bounded scaling, smart alignment guides + magnetic form-guide
+  snapping, Depth panel (hide/solo/lock per band), numeric precision fields, select-same
+  context menu, drag-from-library, searchable `?` shortcuts overlay, SR announcements.
+- **Phase C — the eyes**: high-fidelity illustration library (3 angles, LOD atlases),
+  AI-bridge photographic cutouts, paper options, filler brush, parallax tilt, on-canvas
+  insight overlays (balance marker, depth x-ray), multi-frame + per-frame recipes,
+  CI perf harness.
 
 ## Milestone 2 — Assets & Arrangement Fidelity
 

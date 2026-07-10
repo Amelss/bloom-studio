@@ -50,14 +50,25 @@ accents) rather than raw layers.
   `⌘2` fit selection · `+`/`−` step zoom.
 - **Grid**: toggle in the canvas footer (or `Shift+'`); adaptive 1–2–5 spacing; optional
   snap at 5/10/25/50 mm (hold `⌘` mid-drag to suspend snapping).
-- **Add flowers** by clicking a card (or a colour dot) in the library. New stems drop into
-  the bouquet's binding zone with natural outward lean; foliage and line material slot into
-  the background band automatically — the professional build order.
+- **Add flowers** by clicking a card — or **dragging it onto the canvas** to place it
+  exactly. Clicked stems drop into the bouquet's binding zone with natural outward lean;
+  foliage and line material slot into the background band automatically.
 - **Select** with a click (pixel-accurate — clicking between petals selects the flower
-  behind them). The context toolbar offers rotate, size (±15% botanical variation — flowers
-  never stretch), flip, depth within band, band moves, recolour, duplicate, delete.
-- **Keyboard**: arrows nudge 1mm (Shift = 10mm) · `R`/`Shift+R` rotate · `[` `]` depth
-  within band · `⌘[` `⌘]` move across bands · `D`/`⌘D` duplicate · `F` flip · `⌫` delete ·
+  behind them), **marquee** by dragging empty space, `⇧`-click to add/remove, `⌥`-click to
+  dig through overlaps, `⌘A` for all, or right-click → *Select all Blush Garden Roses*.
+- **Transform** with on-canvas handles: corners resize (±15% botanical variation — flowers
+  never stretch), the top handle rotates around the binding point (`⇧` = 15° steps), with a
+  live readout. The toolbar adds numeric precision fields (cm/°/%) and band controls.
+- **Clusters** (`⌘G`): wire stems into one unit, the real technique — a cluster moves,
+  rotates, and duplicates together; double-click enters it to edit one member.
+- **Snapping**: magnetic form guide (heads snap onto the silhouette and turn radially),
+  smart alignment guides against neighbours and the artboard axes, then the grid. Hold `⌘`
+  mid-drag to suspend all snapping.
+- **Depth panel** (side tab): four bands front-to-back with per-band hide (⌥-click = solo
+  — a structural x-ray) and lock.
+- **Keyboard**: press `?` for the searchable overlay. Highlights: arrows nudge 1mm
+  (`⇧` = 10mm) · `R`/`⇧R` rotate · `[` `]` depth within band · `⌘[` `⌘]` across bands ·
+  `D`/`⌘D` duplicate · `F` flip · `⌘G`/`⇧⌘G` cluster/uncluster · `⌫` delete ·
   `⌘Z`/`⇧⌘Z` undo/redo · `Esc` deselect.
 - **Recipe tab**: live stem counts and costing; edit wholesale prices, change the markup,
   download the recipe/shopping list as CSV.

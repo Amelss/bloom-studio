@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware'
 import type { StateCreator } from 'zustand'
 import {
   applyCommand,
+  batchOf,
   invertCommand,
   type Command,
   type StemPatch,
@@ -24,9 +25,21 @@ import { FLOWER_INDEX } from '../data/catalog'
 
 export type GridStepMm = 5 | 10 | 25 | 50
 
+export interface ContextMenuState {
+  x: number
+  y: number
+  stemId: string
+}
+
 export interface StudioState {
   doc: DesignDocument
-  selectedId: string | null
+  selectedIds: string[]
+  /** When set, clicks inside this cluster select individual members. */
+  enteredClusterId: string | null
+  hiddenBands: DepthBand[]
+  lockedBands: DepthBand[]
+  contextMenu: ContextMenuState | null
+  shortcutsOpen: boolean
   learningMode: boolean
   showFormGuide: boolean
   gridVisible: boolean
@@ -39,31 +52,53 @@ export interface StudioState {
   undo: () => void
   redo: () => void
 
+  // Selection (cluster-aware unless noted)
+  setSelection: (ids: string[]) => void
+  selectOne: (id: string | null) => void
+  toggleSelect: (id: string) => void
+  selectAll: () => void
+  selectSame: (varietyId: string, colorwayId?: string) => void
+  enterCluster: (clusterId: string, stemId: string) => void
+  exitCluster: () => void
+
+  // Stem operations (act on the whole selection; one undo step each)
   addStem: (varietyId: string, colorwayId?: string) => void
+  addStemAt: (varietyId: string, colorwayId: string | undefined, x: number, y: number) => void
   removeSelected: () => void
   duplicateSelected: () => void
   updateSelected: (patch: StemPatch) => void
+  updateStem: (stemId: string, patch: StemPatch) => void
   nudgeSelected: (dx: number, dy: number) => void
+  rotateSelected: (deltaDeg: number) => void
+  scaleSelected: (delta: number) => void
+  flipSelected: () => void
   layerSelected: (direction: 'forward' | 'backward') => void
   bandSelected: (direction: 'forward' | 'backward') => void
-  scaleSelected: (delta: number) => void
+  groupSelected: () => void
+  ungroupSelected: () => void
 
-  beginTransform: (stemId: string) => void
-  setStemTransient: (stemId: string, patch: StemPatch) => void
-  endTransform: (stemId: string) => void
+  // Transient gestures (drag/rotate/scale) — committed as one command
+  beginTransform: (stemIds: string[]) => void
+  setStemsTransient: (patches: Record<string, StemPatch>) => void
+  endTransform: () => void
 
-  select: (id: string | null) => void
   setVessel: (vesselId: string | null) => void
   setMarkup: (markup: number) => void
   setPriceOverride: (varietyId: string, price: number | null) => void
   renameDesign: (name: string) => void
   newDesign: (kind: 'starter' | 'blank') => void
   importDesign: (doc: DesignDocument) => void
+
   setLearningMode: (on: boolean) => void
   setShowFormGuide: (on: boolean) => void
   setGridVisible: (on: boolean) => void
   setGridSnap: (on: boolean) => void
   setGridStepMm: (step: GridStepMm) => void
+  toggleBandHidden: (band: DepthBand) => void
+  soloBand: (band: DepthBand) => void
+  toggleBandLocked: (band: DepthBand) => void
+  setContextMenu: (menu: ContextMenuState | null) => void
+  setShortcutsOpen: (open: boolean) => void
 }
 
 /**
@@ -83,11 +118,21 @@ const CATEGORY_MAX_ROTATION: Record<StemCategory, number> = {
 
 const HISTORY_LIMIT = 200
 
-// Snapshots taken at the start of a drag/transform so the whole gesture
-// commits as a single undoable command.
+// Snapshots taken at the start of a gesture so the whole gesture commits as
+// a single undoable command.
 const transformSnapshots = new Map<string, StemPatch>()
 
-const MUTABLE_KEYS = ['x', 'y', 'rotation', 'scale', 'flipX', 'band', 'order', 'colorwayId'] as const
+const MUTABLE_KEYS = [
+  'x',
+  'y',
+  'rotation',
+  'scale',
+  'flipX',
+  'band',
+  'order',
+  'colorwayId',
+  'clusterId',
+] as const
 
 function pickMutable(stem: PlacedStem): StemPatch {
   const patch: StemPatch = {}
@@ -110,252 +155,427 @@ function nextOrderInBand(doc: DesignDocument, band: DepthBand): number {
   return orders.length ? Math.max(...orders) + 1 : 0
 }
 
-const initializer: StateCreator<StudioState> = (set, get) => ({
-  doc: starterTemplate(),
-  selectedId: null,
-  learningMode: true,
-  showFormGuide: false,
-  gridVisible: false,
-  gridSnap: false,
-  gridStepMm: 10,
-  past: [],
-  future: [],
+/** A click on a cluster member selects the whole cluster — unless entered. */
+function expandToCluster(doc: DesignDocument, id: string, enteredClusterId: string | null): string[] {
+  const stem = doc.stems.find((s) => s.id === id)
+  if (!stem) return []
+  if (stem.clusterId && stem.clusterId !== enteredClusterId) {
+    return doc.stems.filter((s) => s.clusterId === stem.clusterId).map((s) => s.id)
+  }
+  return [id]
+}
 
-  run: (cmd) => {
-    set((state) => ({
-      doc: touch(applyCommand(state.doc, cmd)),
-      past: [...state.past.slice(-(HISTORY_LIMIT - 1)), cmd],
-      future: [],
-    }))
-  },
+function sanitizeSelection(doc: DesignDocument, ids: string[]): string[] {
+  const existing = new Set(doc.stems.map((s) => s.id))
+  return ids.filter((id) => existing.has(id))
+}
 
-  undo: () => {
-    const { past, doc } = get()
-    const cmd = past[past.length - 1]
-    if (!cmd) return
-    const nextDoc = touch(applyCommand(doc, invertCommand(cmd)))
-    set((state) => ({
-      doc: nextDoc,
-      past: state.past.slice(0, -1),
-      future: [cmd, ...state.future],
-      selectedId:
-        state.selectedId && nextDoc.stems.some((s) => s.id === state.selectedId)
-          ? state.selectedId
-          : null,
-    }))
-  },
+const initializer: StateCreator<StudioState> = (set, get) => {
+  const selectedStems = (): PlacedStem[] => {
+    const { doc, selectedIds } = get()
+    return doc.stems.filter((s) => selectedIds.includes(s.id))
+  }
 
-  redo: () => {
-    const { future, doc } = get()
-    const cmd = future[0]
-    if (!cmd) return
-    const nextDoc = touch(applyCommand(doc, cmd))
-    set((state) => ({
-      doc: nextDoc,
-      past: [...state.past, cmd],
-      future: state.future.slice(1),
-      selectedId:
-        state.selectedId && nextDoc.stems.some((s) => s.id === state.selectedId)
-          ? state.selectedId
-          : null,
-    }))
-  },
-
-  addStem: (varietyId, colorwayId) => {
-    const variety = FLOWER_INDEX[varietyId]
-    if (!variety) return
-    const { doc } = get()
-    const maxRot = CATEGORY_MAX_ROTATION[variety.category]
-    const rotation = Math.round((Math.random() * 2 - 1) * maxRot)
-    const band = CATEGORY_BAND[variety.category]
-
-    const stem: PlacedStem = {
-      id: generateId(),
-      varietyId,
-      colorwayId: colorwayId ?? variety.colorways[0].id,
-      x: Math.round(PLACEMENT.x + (Math.random() * 2 - 1) * PLACEMENT.xJitter),
-      y: Math.round(PLACEMENT.y + (Math.random() * 2 - 1) * PLACEMENT.yJitter),
-      rotation,
-      scale: 1,
-      flipX: rotation > 8 && Math.random() > 0.4,
-      band,
-      order: nextOrderInBand(doc, band),
-    }
-    get().run({ type: 'add_stem', stem })
-    set({ selectedId: stem.id })
-  },
-
-  removeSelected: () => {
-    const { doc, selectedId } = get()
-    const stem = doc.stems.find((s) => s.id === selectedId)
-    if (!stem) return
-    get().run({ type: 'remove_stem', stem })
-    set({ selectedId: null })
-  },
-
-  duplicateSelected: () => {
-    const { doc, selectedId } = get()
-    const source = doc.stems.find((s) => s.id === selectedId)
-    if (!source) return
-    const copy: PlacedStem = {
-      ...source,
-      id: generateId(),
-      x: source.x + 18,
-      y: source.y + 8,
-      rotation: source.rotation + Math.round(Math.random() * 12 - 6),
-      order: nextOrderInBand(doc, source.band),
-    }
-    get().run({ type: 'add_stem', stem: copy })
-    set({ selectedId: copy.id })
-  },
-
-  updateSelected: (patch) => {
-    const { doc, selectedId } = get()
-    const stem = doc.stems.find((s) => s.id === selectedId)
-    if (!stem) return
-    const prev: StemPatch = {}
-    for (const key of Object.keys(patch) as (keyof StemPatch)[]) {
-      ;(prev as Record<string, unknown>)[key] = stem[key]
-    }
-    get().run({ type: 'update_stem', stemId: stem.id, next: patch, prev })
-  },
-
-  nudgeSelected: (dx, dy) => {
-    const { doc, selectedId } = get()
-    const stem = doc.stems.find((s) => s.id === selectedId)
-    if (!stem) return
-    get().updateSelected({ x: stem.x + dx, y: stem.y + dy })
-  },
-
-  layerSelected: (direction) => {
-    const { doc, selectedId } = get()
-    const stem = doc.stems.find((s) => s.id === selectedId)
-    if (!stem) return
-    const orders = ordersInBand(doc, stem.band)
-    const order = direction === 'forward' ? Math.max(...orders) + 1 : Math.min(...orders) - 1
-    get().updateSelected({ order })
-  },
-
-  bandSelected: (direction) => {
-    const { doc, selectedId } = get()
-    const stem = doc.stems.find((s) => s.id === selectedId)
-    if (!stem) return
-    const rank = DEPTH_BANDS.indexOf(stem.band)
-    const nextRank = direction === 'forward' ? rank + 1 : rank - 1
-    if (nextRank < 0 || nextRank >= DEPTH_BANDS.length) return
-    const band = DEPTH_BANDS[nextRank]
-    const orders = ordersInBand(doc, band)
-    // Entering from behind lands at the band's back; from in front, its front.
-    const order =
-      direction === 'forward'
-        ? orders.length
-          ? Math.min(...orders) - 1
-          : 0
-        : orders.length
-          ? Math.max(...orders) + 1
-          : 0
-    get().updateSelected({ band, order })
-  },
-
-  scaleSelected: (delta) => {
-    const { doc, selectedId } = get()
-    const stem = doc.stems.find((s) => s.id === selectedId)
-    if (!stem) return
-    const scale = Math.min(STEM_SCALE_MAX, Math.max(STEM_SCALE_MIN, +(stem.scale + delta).toFixed(2)))
-    if (scale === stem.scale) return
-    get().updateSelected({ scale })
-  },
-
-  beginTransform: (stemId) => {
-    const stem = get().doc.stems.find((s) => s.id === stemId)
-    if (stem) transformSnapshots.set(stemId, pickMutable(stem))
-  },
-
-  setStemTransient: (stemId, patch) => {
-    // Live-drag update: mutates the doc without recording history. The whole
-    // gesture is committed as one command in endTransform.
-    set((state) => ({
-      doc: {
-        ...state.doc,
-        stems: state.doc.stems.map((s) => (s.id === stemId ? { ...s, ...patch } : s)),
-      },
-    }))
-  },
-
-  endTransform: (stemId) => {
-    const prevFull = transformSnapshots.get(stemId)
-    transformSnapshots.delete(stemId)
-    const stem = get().doc.stems.find((s) => s.id === stemId)
-    if (!prevFull || !stem) return
-    const next: StemPatch = {}
-    const prev: StemPatch = {}
-    for (const key of MUTABLE_KEYS) {
-      if (stem[key] !== prevFull[key]) {
-        ;(next as Record<string, unknown>)[key] = stem[key]
-        ;(prev as Record<string, unknown>)[key] = prevFull[key]
+  /** Build per-stem update commands for the current selection. */
+  const updateEach = (makePatch: (stem: PlacedStem) => StemPatch | null) => {
+    const commands: Command[] = []
+    for (const stem of selectedStems()) {
+      const next = makePatch(stem)
+      if (!next || Object.keys(next).length === 0) continue
+      const prev: StemPatch = {}
+      for (const key of Object.keys(next) as (keyof StemPatch)[]) {
+        ;(prev as Record<string, unknown>)[key] = stem[key]
       }
+      commands.push({ type: 'update_stem', stemId: stem.id, next, prev })
     }
-    if (Object.keys(next).length === 0) return
-    // The doc already reflects `next`; record the command for undo/redo.
-    set((state) => ({
-      doc: touch(state.doc),
-      past: [
-        ...state.past.slice(-(HISTORY_LIMIT - 1)),
-        { type: 'update_stem', stemId, next, prev },
-      ],
-      future: [],
-    }))
-  },
+    if (commands.length) get().run(batchOf(commands))
+  }
 
-  select: (id) => set({ selectedId: id }),
+  return {
+    doc: starterTemplate(),
+    selectedIds: [],
+    enteredClusterId: null,
+    hiddenBands: [],
+    lockedBands: [],
+    contextMenu: null,
+    shortcutsOpen: false,
+    learningMode: true,
+    showFormGuide: false,
+    gridVisible: false,
+    gridSnap: false,
+    gridStepMm: 10,
+    past: [],
+    future: [],
 
-  setVessel: (vesselId) => {
-    const { doc } = get()
-    if (doc.vesselId === vesselId) return
-    get().run({ type: 'set_vessel', next: vesselId, prev: doc.vesselId })
-  },
+    run: (cmd) => {
+      set((state) => ({
+        doc: touch(applyCommand(state.doc, cmd)),
+        past: [...state.past.slice(-(HISTORY_LIMIT - 1)), cmd],
+        future: [],
+      }))
+    },
 
-  setMarkup: (markup) => {
-    const { doc } = get()
-    get().run({ type: 'set_markup', next: markup, prev: doc.pricing.markup })
-  },
+    undo: () => {
+      const { past, doc } = get()
+      const cmd = past[past.length - 1]
+      if (!cmd) return
+      const nextDoc = touch(applyCommand(doc, invertCommand(cmd)))
+      set((state) => ({
+        doc: nextDoc,
+        past: state.past.slice(0, -1),
+        future: [cmd, ...state.future],
+        selectedIds: sanitizeSelection(nextDoc, state.selectedIds),
+      }))
+    },
 
-  setPriceOverride: (varietyId, price) => {
-    const { doc } = get()
-    get().run({
-      type: 'set_price_override',
-      varietyId,
-      next: price,
-      prev: doc.pricing.priceOverrides[varietyId] ?? null,
-    })
-  },
+    redo: () => {
+      const { future, doc } = get()
+      const cmd = future[0]
+      if (!cmd) return
+      const nextDoc = touch(applyCommand(doc, cmd))
+      set((state) => ({
+        doc: nextDoc,
+        past: [...state.past, cmd],
+        future: state.future.slice(1),
+        selectedIds: sanitizeSelection(nextDoc, state.selectedIds),
+      }))
+    },
 
-  renameDesign: (name) => {
-    const { doc } = get()
-    const trimmed = name.trim()
-    if (!trimmed || trimmed === doc.name) return
-    get().run({ type: 'rename', next: trimmed, prev: doc.name })
-  },
+    /* ---------------------------- selection ---------------------------- */
 
-  newDesign: (kind) => {
-    set({
-      doc: kind === 'starter' ? starterTemplate() : blankDocument(),
-      selectedId: null,
-      past: [],
-      future: [],
-    })
-  },
+    setSelection: (ids) => set((state) => ({ selectedIds: sanitizeSelection(state.doc, ids) })),
 
-  importDesign: (doc) => {
-    set({ doc: migrateDocument(doc), selectedId: null, past: [], future: [] })
-  },
+    selectOne: (id) => {
+      const { doc, enteredClusterId } = get()
+      if (!id) {
+        set({ selectedIds: [] })
+        return
+      }
+      const stem = doc.stems.find((s) => s.id === id)
+      // Leaving the entered cluster exits cluster-editing mode.
+      const stillInside = stem?.clusterId === enteredClusterId
+      set({
+        selectedIds: expandToCluster(doc, id, stillInside ? enteredClusterId : null),
+        enteredClusterId: stillInside ? enteredClusterId : null,
+      })
+    },
 
-  setLearningMode: (on) => set({ learningMode: on }),
-  setShowFormGuide: (on) => set({ showFormGuide: on }),
-  setGridVisible: (on) => set({ gridVisible: on }),
-  setGridSnap: (on) => set({ gridSnap: on }),
-  setGridStepMm: (step) => set({ gridStepMm: step }),
-})
+    toggleSelect: (id) => {
+      const { doc, selectedIds, enteredClusterId } = get()
+      const group = expandToCluster(doc, id, enteredClusterId)
+      const allIn = group.every((g) => selectedIds.includes(g))
+      set({
+        selectedIds: allIn
+          ? selectedIds.filter((s) => !group.includes(s))
+          : [...selectedIds, ...group.filter((g) => !selectedIds.includes(g))],
+      })
+    },
+
+    selectAll: () => {
+      const { doc, hiddenBands, lockedBands } = get()
+      set({
+        selectedIds: doc.stems
+          .filter((s) => !hiddenBands.includes(s.band) && !lockedBands.includes(s.band))
+          .map((s) => s.id),
+      })
+    },
+
+    selectSame: (varietyId, colorwayId) => {
+      const { doc, hiddenBands, lockedBands } = get()
+      set({
+        selectedIds: doc.stems
+          .filter(
+            (s) =>
+              s.varietyId === varietyId &&
+              (colorwayId == null || s.colorwayId === colorwayId) &&
+              !hiddenBands.includes(s.band) &&
+              !lockedBands.includes(s.band),
+          )
+          .map((s) => s.id),
+      })
+    },
+
+    enterCluster: (clusterId, stemId) =>
+      set({ enteredClusterId: clusterId, selectedIds: [stemId] }),
+
+    exitCluster: () => set({ enteredClusterId: null }),
+
+    /* -------------------------- stem operations ------------------------- */
+
+    addStem: (varietyId, colorwayId) => {
+      const variety = FLOWER_INDEX[varietyId]
+      if (!variety) return
+      const x = Math.round(PLACEMENT.x + (Math.random() * 2 - 1) * PLACEMENT.xJitter)
+      const y = Math.round(PLACEMENT.y + (Math.random() * 2 - 1) * PLACEMENT.yJitter)
+      get().addStemAt(varietyId, colorwayId, x, y)
+    },
+
+    addStemAt: (varietyId, colorwayId, x, y) => {
+      const variety = FLOWER_INDEX[varietyId]
+      if (!variety) return
+      const { doc } = get()
+      const maxRot = CATEGORY_MAX_ROTATION[variety.category]
+      const rotation = Math.round((Math.random() * 2 - 1) * maxRot)
+      const band = CATEGORY_BAND[variety.category]
+      const stem: PlacedStem = {
+        id: generateId(),
+        varietyId,
+        colorwayId: colorwayId ?? variety.colorways[0].id,
+        x: Math.round(x),
+        y: Math.round(y),
+        rotation,
+        scale: 1,
+        flipX: rotation > 8 && Math.random() > 0.4,
+        band,
+        order: nextOrderInBand(doc, band),
+      }
+      get().run({ type: 'add_stem', stem })
+      set({ selectedIds: [stem.id] })
+    },
+
+    removeSelected: () => {
+      const stems = selectedStems()
+      if (!stems.length) return
+      get().run(batchOf(stems.map((stem): Command => ({ type: 'remove_stem', stem }))))
+      set({ selectedIds: [] })
+    },
+
+    duplicateSelected: () => {
+      const { doc } = get()
+      const sources = selectedStems()
+      if (!sources.length) return
+      // Duplicated clusters stay clustered — with a fresh cluster identity.
+      const clusterMap = new Map<string, string>()
+      const orderCounters = new Map<DepthBand, number>()
+      const copies = sources.map((source): PlacedStem => {
+        let clusterId: string | undefined
+        if (source.clusterId) {
+          clusterId = clusterMap.get(source.clusterId) ?? generateId()
+          clusterMap.set(source.clusterId, clusterId)
+        }
+        const base = orderCounters.get(source.band) ?? nextOrderInBand(doc, source.band)
+        orderCounters.set(source.band, base + 1)
+        return {
+          ...source,
+          id: generateId(),
+          x: source.x + 18,
+          y: source.y + 8,
+          rotation: source.rotation + Math.round(Math.random() * 12 - 6),
+          order: base,
+          clusterId,
+        }
+      })
+      get().run(batchOf(copies.map((stem): Command => ({ type: 'add_stem', stem }))))
+      set({ selectedIds: copies.map((c) => c.id) })
+    },
+
+    updateSelected: (patch) => updateEach(() => patch),
+
+    updateStem: (stemId, patch) => {
+      const stem = get().doc.stems.find((s) => s.id === stemId)
+      if (!stem) return
+      const prev: StemPatch = {}
+      for (const key of Object.keys(patch) as (keyof StemPatch)[]) {
+        ;(prev as Record<string, unknown>)[key] = stem[key]
+      }
+      get().run({ type: 'update_stem', stemId, next: patch, prev })
+    },
+
+    nudgeSelected: (dx, dy) => updateEach((stem) => ({ x: stem.x + dx, y: stem.y + dy })),
+
+    rotateSelected: (deltaDeg) => updateEach((stem) => ({ rotation: stem.rotation + deltaDeg })),
+
+    scaleSelected: (delta) =>
+      updateEach((stem) => {
+        const scale = Math.min(
+          STEM_SCALE_MAX,
+          Math.max(STEM_SCALE_MIN, +(stem.scale + delta).toFixed(2)),
+        )
+        return scale === stem.scale ? null : { scale }
+      }),
+
+    flipSelected: () => updateEach((stem) => ({ flipX: !stem.flipX })),
+
+    layerSelected: (direction) => {
+      const { doc } = get()
+      const extremes = new Map<DepthBand, number>()
+      updateEach((stem) => {
+        const orders = ordersInBand(doc, stem.band)
+        const base =
+          extremes.get(stem.band) ??
+          (direction === 'forward' ? Math.max(...orders) : Math.min(...orders))
+        const order = direction === 'forward' ? base + 1 : base - 1
+        extremes.set(stem.band, order)
+        return { order }
+      })
+    },
+
+    bandSelected: (direction) => {
+      const { doc } = get()
+      const landing = new Map<DepthBand, number>()
+      updateEach((stem) => {
+        const rank = DEPTH_BANDS.indexOf(stem.band)
+        const nextRank = direction === 'forward' ? rank + 1 : rank - 1
+        if (nextRank < 0 || nextRank >= DEPTH_BANDS.length) return null
+        const band = DEPTH_BANDS[nextRank]
+        const orders = ordersInBand(doc, band)
+        const base =
+          landing.get(band) ??
+          (direction === 'forward'
+            ? orders.length
+              ? Math.min(...orders) - 1
+              : 0
+            : orders.length
+              ? Math.max(...orders) + 1
+              : 0)
+        landing.set(band, direction === 'forward' ? base - 1 : base + 1)
+        return { band, order: base }
+      })
+    },
+
+    groupSelected: () => {
+      const stems = selectedStems()
+      if (stems.length < 2) return
+      const clusterId = generateId()
+      updateEach(() => ({ clusterId }))
+      set({ enteredClusterId: null })
+    },
+
+    ungroupSelected: () => {
+      updateEach((stem) => (stem.clusterId ? { clusterId: undefined } : null))
+      set({ enteredClusterId: null })
+    },
+
+    /* ------------------------ transient gestures ------------------------ */
+
+    beginTransform: (stemIds) => {
+      transformSnapshots.clear()
+      const { doc } = get()
+      for (const id of stemIds) {
+        const stem = doc.stems.find((s) => s.id === id)
+        if (stem) transformSnapshots.set(id, pickMutable(stem))
+      }
+    },
+
+    setStemsTransient: (patches) => {
+      set((state) => ({
+        doc: {
+          ...state.doc,
+          stems: state.doc.stems.map((s) => (patches[s.id] ? { ...s, ...patches[s.id] } : s)),
+        },
+      }))
+    },
+
+    endTransform: () => {
+      const { doc } = get()
+      const commands: Command[] = []
+      for (const [stemId, prevFull] of transformSnapshots) {
+        const stem = doc.stems.find((s) => s.id === stemId)
+        if (!stem) continue
+        const next: StemPatch = {}
+        const prev: StemPatch = {}
+        for (const key of MUTABLE_KEYS) {
+          if (stem[key] !== prevFull[key]) {
+            ;(next as Record<string, unknown>)[key] = stem[key]
+            ;(prev as Record<string, unknown>)[key] = prevFull[key]
+          }
+        }
+        if (Object.keys(next).length) {
+          commands.push({ type: 'update_stem', stemId, next, prev })
+        }
+      }
+      transformSnapshots.clear()
+      if (!commands.length) return
+      // The doc already reflects `next`; record the batch for undo/redo.
+      set((state) => ({
+        doc: touch(state.doc),
+        past: [...state.past.slice(-(HISTORY_LIMIT - 1)), batchOf(commands)],
+        future: [],
+      }))
+    },
+
+    /* ------------------------------ misc ------------------------------- */
+
+    setVessel: (vesselId) => {
+      const { doc } = get()
+      if (doc.vesselId === vesselId) return
+      get().run({ type: 'set_vessel', next: vesselId, prev: doc.vesselId })
+    },
+
+    setMarkup: (markup) => {
+      const { doc } = get()
+      get().run({ type: 'set_markup', next: markup, prev: doc.pricing.markup })
+    },
+
+    setPriceOverride: (varietyId, price) => {
+      const { doc } = get()
+      get().run({
+        type: 'set_price_override',
+        varietyId,
+        next: price,
+        prev: doc.pricing.priceOverrides[varietyId] ?? null,
+      })
+    },
+
+    renameDesign: (name) => {
+      const { doc } = get()
+      const trimmed = name.trim()
+      if (!trimmed || trimmed === doc.name) return
+      get().run({ type: 'rename', next: trimmed, prev: doc.name })
+    },
+
+    newDesign: (kind) => {
+      set({
+        doc: kind === 'starter' ? starterTemplate() : blankDocument(),
+        selectedIds: [],
+        enteredClusterId: null,
+        past: [],
+        future: [],
+      })
+    },
+
+    importDesign: (doc) => {
+      set({
+        doc: migrateDocument(doc),
+        selectedIds: [],
+        enteredClusterId: null,
+        past: [],
+        future: [],
+      })
+    },
+
+    setLearningMode: (on) => set({ learningMode: on }),
+    setShowFormGuide: (on) => set({ showFormGuide: on }),
+    setGridVisible: (on) => set({ gridVisible: on }),
+    setGridSnap: (on) => set({ gridSnap: on }),
+    setGridStepMm: (step) => set({ gridStepMm: step }),
+
+    toggleBandHidden: (band) =>
+      set((state) => ({
+        hiddenBands: state.hiddenBands.includes(band)
+          ? state.hiddenBands.filter((b) => b !== band)
+          : [...state.hiddenBands, band],
+      })),
+
+    soloBand: (band) =>
+      set((state) => {
+        const others = DEPTH_BANDS.filter((b) => b !== band)
+        const isSolo =
+          !state.hiddenBands.includes(band) && others.every((b) => state.hiddenBands.includes(b))
+        return { hiddenBands: isSolo ? [] : others }
+      }),
+
+    toggleBandLocked: (band) =>
+      set((state) => ({
+        lockedBands: state.lockedBands.includes(band)
+          ? state.lockedBands.filter((b) => b !== band)
+          : [...state.lockedBands, band],
+      })),
+
+    setContextMenu: (menu) => set({ contextMenu: menu }),
+    setShortcutsOpen: (open) => set({ shortcutsOpen: open }),
+  }
+}
 
 /**
  * Factory used by tests (no persistence); the app uses the persisted
