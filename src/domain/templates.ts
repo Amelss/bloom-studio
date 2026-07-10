@@ -1,11 +1,13 @@
 import {
-  CANVAS_HEIGHT,
-  CANVAS_WIDTH,
+  CATEGORY_BAND,
+  DEFAULT_ARTBOARD,
   DESIGN_DOC_VERSION,
   generateId,
+  type DepthBand,
   type DesignDocument,
   type PlacedStem,
 } from './types'
+import { FLOWER_INDEX } from '../data/catalog'
 
 export function blankDocument(name = 'Untitled design'): DesignDocument {
   const now = new Date().toISOString()
@@ -15,7 +17,7 @@ export function blankDocument(name = 'Untitled design'): DesignDocument {
     name,
     createdAt: now,
     updatedAt: now,
-    canvas: { width: CANVAS_WIDTH, height: CANVAS_HEIGHT },
+    artboards: [{ id: 'main', ...DEFAULT_ARTBOARD }],
     vesselId: null,
     stems: [],
     pricing: { markup: 3, priceOverrides: {} },
@@ -25,6 +27,7 @@ export function blankDocument(name = 'Untitled design'): DesignDocument {
 interface StarterStem {
   varietyId: string
   colorwayId: string
+  /** Binding point, mm. */
   x: number
   y: number
   rotation: number
@@ -33,42 +36,49 @@ interface StarterStem {
 }
 
 /**
- * The first-run template: a blush hand-tied bouquet, built in the professional
- * order (foliage skeleton → mass → focal → filler) so its layer stack is
- * itself a teaching example.
+ * The first-run template: a blush hand-tied bouquet built as a TRUE SPIRAL —
+ * every binding point clustered where the hand would hold the bunch
+ * (~300, 320 mm), heads fanning outward through rotation alone. The layer
+ * stack follows the professional build order (foliage skeleton → secondary →
+ * focal → filler), so the template itself teaches both technique and depth.
  */
 export function starterTemplate(): DesignDocument {
   const doc = blankDocument('Blush hand-tied bouquet')
   doc.vesselId = 'kraft-wrap'
 
   const placements: StarterStem[] = [
-    // Foliage skeleton (back layers)
-    { varietyId: 'eucalyptus', colorwayId: 'silver', x: 300, y: 298, rotation: -26, scale: 1.2 },
-    { varietyId: 'eucalyptus', colorwayId: 'silver', x: 600, y: 302, rotation: 24, scale: 1.2, flipX: true },
-    { varietyId: 'eucalyptus', colorwayId: 'silver', x: 362, y: 226, rotation: -12, scale: 1.1 },
-    { varietyId: 'eucalyptus', colorwayId: 'silver', x: 545, y: 224, rotation: 12, scale: 1.1, flipX: true },
-    { varietyId: 'ruscus', colorwayId: 'green', x: 282, y: 372, rotation: -42, scale: 1.15 },
-    { varietyId: 'ruscus', colorwayId: 'green', x: 620, y: 376, rotation: 40, scale: 1.15, flipX: true },
-    // Secondary blooms (mid layers)
-    { varietyId: 'lisianthus', colorwayId: 'white', x: 368, y: 214, rotation: -14, scale: 0.9 },
-    { varietyId: 'lisianthus', colorwayId: 'white', x: 540, y: 212, rotation: 12, scale: 0.9, flipX: true },
-    { varietyId: 'ranunculus', colorwayId: 'cream', x: 318, y: 262, rotation: -18, scale: 0.85 },
-    { varietyId: 'ranunculus', colorwayId: 'cream', x: 588, y: 260, rotation: 16, scale: 0.85, flipX: true },
-    { varietyId: 'ranunculus', colorwayId: 'pink', x: 452, y: 238, rotation: 2, scale: 0.85 },
-    // Focal roses (front layers)
-    { varietyId: 'garden-rose', colorwayId: 'blush', x: 400, y: 300, rotation: -7 },
-    { varietyId: 'garden-rose', colorwayId: 'blush', x: 506, y: 296, rotation: 8, flipX: true },
-    { varietyId: 'garden-rose', colorwayId: 'cream', x: 452, y: 352, rotation: 0, scale: 1.05 },
-    { varietyId: 'garden-rose', colorwayId: 'blush', x: 356, y: 356, rotation: -15 },
-    { varietyId: 'garden-rose', colorwayId: 'cream', x: 550, y: 354, rotation: 14, flipX: true },
-    // Filler (floating slightly above)
-    { varietyId: 'gypsophila', colorwayId: 'white', x: 336, y: 300, rotation: -10, scale: 0.8 },
-    { varietyId: 'gypsophila', colorwayId: 'white', x: 574, y: 306, rotation: 10, scale: 0.8, flipX: true },
-    { varietyId: 'spray-rose', colorwayId: 'blush', x: 452, y: 200, rotation: 3, scale: 0.85 },
+    // Foliage skeleton — wide fan
+    { varietyId: 'eucalyptus', colorwayId: 'silver', x: 297, y: 320, rotation: -42, scale: 1.05 },
+    { varietyId: 'eucalyptus', colorwayId: 'silver', x: 303, y: 320, rotation: 42, scale: 1.05, flipX: true },
+    { varietyId: 'eucalyptus', colorwayId: 'silver', x: 298, y: 318, rotation: -18 },
+    { varietyId: 'eucalyptus', colorwayId: 'silver', x: 302, y: 318, rotation: 18, flipX: true },
+    { varietyId: 'eucalyptus', colorwayId: 'silver', x: 300, y: 316, rotation: 0, scale: 0.95 },
+    { varietyId: 'ruscus', colorwayId: 'green', x: 294, y: 326, rotation: -58, scale: 1.1 },
+    { varietyId: 'ruscus', colorwayId: 'green', x: 306, y: 328, rotation: 56, scale: 1.1, flipX: true },
+    // Secondary blooms — mid fan
+    { varietyId: 'lisianthus', colorwayId: 'white', x: 296, y: 316, rotation: -30, scale: 0.95 },
+    { varietyId: 'lisianthus', colorwayId: 'white', x: 304, y: 316, rotation: 30, scale: 0.95, flipX: true },
+    { varietyId: 'ranunculus', colorwayId: 'cream', x: 295, y: 318, rotation: -36, scale: 0.95 },
+    { varietyId: 'ranunculus', colorwayId: 'cream', x: 305, y: 316, rotation: 34, scale: 0.95, flipX: true },
+    { varietyId: 'ranunculus', colorwayId: 'pink', x: 302, y: 314, rotation: 4 },
+    // Focal roses — the heart, low and central
+    { varietyId: 'garden-rose', colorwayId: 'blush', x: 297, y: 322, rotation: -14 },
+    { varietyId: 'garden-rose', colorwayId: 'blush', x: 303, y: 321, rotation: 12, flipX: true },
+    { varietyId: 'garden-rose', colorwayId: 'cream', x: 300, y: 330, rotation: 0, scale: 1.05 },
+    { varietyId: 'garden-rose', colorwayId: 'blush', x: 296, y: 334, rotation: -26 },
+    { varietyId: 'garden-rose', colorwayId: 'cream', x: 298, y: 334, rotation: 24, flipX: true },
+    // Filler — floating slightly beyond the outline
+    { varietyId: 'gypsophila', colorwayId: 'white', x: 296, y: 318, rotation: -34, scale: 0.9 },
+    { varietyId: 'gypsophila', colorwayId: 'white', x: 304, y: 320, rotation: 34, scale: 0.9, flipX: true },
+    { varietyId: 'spray-rose', colorwayId: 'blush', x: 300, y: 317, rotation: 2, scale: 0.95 },
   ]
 
-  doc.stems = placements.map(
-    (p, i): PlacedStem => ({
+  const orderByBand: Partial<Record<DepthBand, number>> = {}
+  doc.stems = placements.map((p): PlacedStem => {
+    const category = FLOWER_INDEX[p.varietyId]?.category ?? 'filler'
+    const band = CATEGORY_BAND[category]
+    const order = (orderByBand[band] = (orderByBand[band] ?? 0) + 1)
+    return {
       id: generateId(),
       varietyId: p.varietyId,
       colorwayId: p.colorwayId,
@@ -77,9 +87,10 @@ export function starterTemplate(): DesignDocument {
       rotation: p.rotation,
       scale: p.scale ?? 1,
       flipX: p.flipX ?? false,
-      z: i + 1,
-    }),
-  )
+      band,
+      order,
+    }
+  })
 
   return doc
 }

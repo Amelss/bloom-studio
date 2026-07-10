@@ -1,15 +1,62 @@
 /**
  * The design document is Bloom Studio's core data structure. Every feature —
- * the canvas, the recipe, the learning feedback — derives from it. It is
- * explicitly versioned from day one so files remain openable as the format
- * evolves (see docs/ARCHITECTURE.md for migration rules).
+ * the canvas, the recipe, the learning feedback — derives from it.
+ *
+ * Format v2: the world unit is the REAL MILLIMETRE. Flowers have true sizes;
+ * proportion rules become measurable; recipes stay physically honest. Designs
+ * live on cm-true artboards inside an infinite workspace, and depth is
+ * organised in named bands (the florist's mental model) instead of raw z.
+ * Migration rules live in domain/migrate.ts.
  */
-export const DESIGN_DOC_VERSION = 1
+export const DESIGN_DOC_VERSION = 2
 
-export const CANVAS_WIDTH = 900
-export const CANVAS_HEIGHT = 640
+/** Depth bands, back → front. The florist's build order is the render order. */
+export const DEPTH_BANDS = ['background', 'body', 'focal', 'accents'] as const
+export type DepthBand = (typeof DEPTH_BANDS)[number]
+
+export function bandRank(band: DepthBand): number {
+  return DEPTH_BANDS.indexOf(band)
+}
+
+/** Composite depth value: band first, fine order within band second. */
+export function depthValue(stem: { band: DepthBand; order: number }): number {
+  return bandRank(stem.band) * 1_000_000 + stem.order
+}
+
+export type PaperOption = 'white' | 'ivory' | 'blush' | 'charcoal'
+
+export interface Artboard {
+  id: string
+  name: string
+  /** World position of the top-left corner, mm. */
+  x: number
+  y: number
+  /** Physical size, mm. */
+  width: number
+  height: number
+  paper: PaperOption
+}
+
+/** Default frame: a 600 × 450 mm presentation board. */
+export const DEFAULT_ARTBOARD: Omit<Artboard, 'id'> = {
+  name: 'Bouquet',
+  x: 0,
+  y: 0,
+  width: 600,
+  height: 450,
+  paper: 'white',
+}
 
 export type StemCategory = 'focal' | 'secondary' | 'filler' | 'line' | 'foliage'
+
+/** Default depth band per design role. Always overridable per stem. */
+export const CATEGORY_BAND: Record<StemCategory, DepthBand> = {
+  foliage: 'background',
+  line: 'background',
+  secondary: 'body',
+  focal: 'focal',
+  filler: 'accents',
+}
 
 export type Season = 'spring' | 'summer' | 'autumn' | 'winter' | 'year-round'
 
@@ -29,11 +76,8 @@ export interface Colorway {
 }
 
 export interface EducationNotes {
-  /** What job this flower does in a design (focal, mass, line…). */
   role: string
-  /** Real-world conditioning/handling guidance. */
   conditioning: string
-  /** A practical design tip specific to this variety. */
   designTip: string
 }
 
@@ -48,8 +92,10 @@ export interface FlowerVariety {
   seasons: Season[]
   stemLengthCm: number
   fragility: Fragility
-  /** Key into the sketch asset registry (placeholder art until the photo pipeline lands in M2). */
+  /** Key into the sketch asset registry. */
   sketch: string
+  /** Real visual width of the sprite (bloom + foliage spread) at scale 1, mm. */
+  widthMm: number
   education: EducationNotes
 }
 
@@ -58,7 +104,8 @@ export interface VesselDef {
   name: string
   priceGBP: number
   sketch: string
-  /** Suggested mechanics shown in the recipe output. */
+  /** Real width, mm. Height derives from the artwork's 1.3 aspect ratio. */
+  widthMm: number
   mechanics: string
   /** 'behind' = stems render in front (vases); 'front' = vessel overlaps stem bases (wraps). */
   renderMode: 'behind' | 'front'
@@ -69,21 +116,28 @@ export interface PlacedStem {
   id: string
   varietyId: string
   colorwayId: string
-  /** Design-space coordinates of the bloom head centre. */
+  /**
+   * World position of the BINDING POINT (where the hand/tie holds the stem),
+   * mm. Rotation pivots here, like a spiralled bunch. Head position derives —
+   * see domain/geometry.ts.
+   */
   x: number
   y: number
-  /** Degrees; pivots around the stem base ("binding point"), like a real spiral. */
+  /** Degrees, clockwise. */
   rotation: number
+  /** Bounded botanical variation of the real size: 0.85–1.15. */
   scale: number
   flipX: boolean
-  /** Depth: higher renders in front. Fractional values allowed. */
-  z: number
+  band: DepthBand
+  /** Fine depth order within the band. */
+  order: number
 }
 
+export const STEM_SCALE_MIN = 0.85
+export const STEM_SCALE_MAX = 1.15
+
 export interface DesignPricing {
-  /** Retail markup multiplier applied to material cost (2–4× is industry-typical). */
   markup: number
-  /** Per-variety wholesale price overrides, GBP per stem. */
   priceOverrides: Record<string, number>
 }
 
@@ -93,7 +147,7 @@ export interface DesignDocument {
   name: string
   createdAt: string
   updatedAt: string
-  canvas: { width: number; height: number }
+  artboards: Artboard[]
   vesselId: string | null
   stems: PlacedStem[]
   pricing: DesignPricing

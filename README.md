@@ -39,21 +39,33 @@ Open http://localhost:5174 — you land in a pre-populated starter bouquet, neve
 
 ## Using the studio
 
-- **Add flowers** by clicking a card (or a specific colour dot) in the library. Foliage and
-  line material automatically slot in *behind* existing stems — the professional build order.
-- **Move** stems by dragging. **Select** a stem to get the context toolbar: rotate, resize,
-  flip, recess/advance (depth), recolour, duplicate, delete.
-- **Keyboard**: arrows nudge (Shift = ×5) · `R`/`Shift+R` rotate · `[` `]` change depth ·
-  `D` duplicate · `F` flip · `⌫` delete · `⌘Z`/`⇧⌘Z` undo/redo · `Esc` deselect.
+The canvas is a WebGL workspace measured in **real millimetres**: designs live on a
+cm-true white artboard (600 × 450 mm by default) inside an infinite pannable workspace.
+Stems store their **binding point** (where the hand holds the bunch) and rotate around it,
+like a real spiral; depth is organised in florist **bands** (background → body → focal →
+accents) rather than raw layers.
+
+- **Camera**: space+drag (or middle-mouse / empty-space drag) pans · scroll pans ·
+  `⌘`+scroll or trackpad pinch zooms to the cursor · `⌘0` fit artboard · `⌘1` 100% ·
+  `⌘2` fit selection · `+`/`−` step zoom.
+- **Grid**: toggle in the canvas footer (or `Shift+'`); adaptive 1–2–5 spacing; optional
+  snap at 5/10/25/50 mm (hold `⌘` mid-drag to suspend snapping).
+- **Add flowers** by clicking a card (or a colour dot) in the library. New stems drop into
+  the bouquet's binding zone with natural outward lean; foliage and line material slot into
+  the background band automatically — the professional build order.
+- **Select** with a click (pixel-accurate — clicking between petals selects the flower
+  behind them). The context toolbar offers rotate, size (±15% botanical variation — flowers
+  never stretch), flip, depth within band, band moves, recolour, duplicate, delete.
+- **Keyboard**: arrows nudge 1mm (Shift = 10mm) · `R`/`Shift+R` rotate · `[` `]` depth
+  within band · `⌘[` `⌘]` move across bands · `D`/`⌘D` duplicate · `F` flip · `⌫` delete ·
+  `⌘Z`/`⇧⌘Z` undo/redo · `Esc` deselect.
 - **Recipe tab**: live stem counts and costing; edit wholesale prices, change the markup,
   download the recipe/shopping list as CSV.
-- **Learn tab** (Learning mode on): live design feedback computed from your canvas, notes on
-  the selected flower (role, conditioning, season), and the principles reference library.
-- **Learning mode toggle**: switch it off and Bloom Studio becomes the clean professional
-  tool — same canvas, same recipe, no tuition. This is the pro/student duality the product
-  is built around.
-- **Export**: PNG snapshot, or the design file itself (`.bloom.json`) — a versioned document
-  you can re-import, share, or hand in.
+- **Learn tab** (Learning mode on): live design feedback computed from the design's real
+  geometry, notes on the selected flower, and the principles reference library.
+- **Learning mode toggle**: off = the clean professional tool; on = the teaching layer.
+- **Export**: artboard PNG (rendered by the engine at 2 px/mm), or the design file itself
+  (`.bloom.json`, versioned — v1 files migrate automatically).
 
 ## Testing
 
@@ -82,23 +94,33 @@ bloom-studio/
     ├── App.tsx                     # Layout + global keyboard shortcuts
     ├── index.css                   # Tailwind + design tokens
     ├── domain/                     # Pure, renderer-agnostic core (fully unit-tested)
-    │   ├── types.ts                # Versioned design document + catalog types
+    │   ├── types.ts                # Design document v2: mm units, artboards, depth bands
+    │   ├── geometry.ts             # Physical geometry shared by renderer/insights/hit-test
     │   ├── commands.ts             # Invertible command pattern (undo/redo substrate)
-    │   ├── store.ts                # Zustand store, history, autosave, migrations
-    │   ├── templates.ts            # Blank + starter bouquet documents
+    │   ├── migrate.ts              # Format migrations (v1 px → v2 mm)
+    │   ├── store.ts                # Zustand store, history, autosave, grid prefs
+    │   ├── templates.ts            # Blank + starter spiral-bouquet documents
     │   └── recipe.ts               # Recipe/costing derivation + CSV export
+    ├── render/                     # The WebGL canvas engine (PixiJS v8)
+    │   ├── camera.ts               # World↔screen maths, zoom-to-cursor, animated fits
+    │   ├── grid.ts                 # Adaptive 1–2–5 grid maths + snapping
+    │   ├── scene.ts                # Scene graph, render-on-demand, alpha hit-test, export
+    │   ├── textures.ts             # SVG → GPU texture pipeline with alpha hit-maps
+    │   ├── interactions.ts         # Pointer/wheel/pinch gestures
+    │   └── registry.ts             # React ↔ renderer bridge
     ├── education/                  # The learning layer
-    │   ├── insights.ts             # Live feedback computed from the design data
+    │   ├── insights.ts             # Live feedback computed from real design geometry
     │   └── principles.ts           # Principles & studio-practice content library
-    ├── data/catalog.ts             # 12 varieties + vessels, with teaching metadata
-    ├── assets/sketches.tsx         # Placeholder botanical artwork (M2: photo pipeline)
+    ├── data/catalog.ts             # 12 varieties + vessels with real mm sizes
+    ├── assets/sketchSvg.ts         # Sketch artwork as SVG strings (Phase C: hi-fi set)
     ├── components/
     │   ├── TopBar.tsx              # Name, undo/redo, modes, new/export/import
     │   ├── LibraryPanel.tsx        # Searchable, role-filtered flower library
-    │   ├── SelectionToolbar.tsx    # Context controls for the selected stem
+    │   ├── SelectionToolbar.tsx    # Context controls incl. depth-band moves
     │   ├── SidePanel.tsx           # Recipe / Learn tabs
     │   ├── ErrorBoundary.tsx
-    │   ├── canvas/CanvasStage.tsx  # DOM renderer (the seam for WebGL later)
+    │   ├── canvas/PixiStage.tsx    # React host for the WebGL canvas
+    │   ├── canvas/CanvasFooter.tsx # Zoom, grid, snap, form-guide controls
     │   └── panels/{RecipePanel,LearnPanel}.tsx
     ├── utils/download.ts
     └── test/setup.ts

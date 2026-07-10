@@ -26,6 +26,15 @@ from structured design data — needed proving before anything else is worth bui
 - [ ] Export PNG + .bloom.json; import the JSON back
 - [ ] Keyboard-only session is possible; panels readable at 1280×800
 
+## Milestone 1.5 — Canvas Excellence (proposed — see CANVAS.md)
+
+Full canvas overhaul before any new product surface: PixiJS/WebGL renderer with infinite
+workspace + cm-true artboards, real-millimetre coordinates (document v2), adaptive grid +
+smart guides + form-guide snapping, alpha-accurate selection, transform handles, depth
+bands, high-fidelity illustration library with LOD atlases, and the on-canvas education
+overlay API. Three testable phases (engine → hands → eyes) specified in
+[CANVAS.md](CANVAS.md).
+
 ## Milestone 2 — Assets & Arrangement Fidelity
 
 The asset pipeline treated as infrastructure: photographic cutout workflow (shoot → cut →

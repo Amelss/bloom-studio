@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { createStudioStore } from './store'
+import { depthValue } from './types'
 
 // Fresh, non-persisted store per test.
 let store: ReturnType<typeof createStudioStore>
@@ -18,11 +19,13 @@ describe('studio store', () => {
     expect(selectedId).toBe(doc.stems[0].id)
   })
 
-  it('inserts foliage behind existing stems', () => {
+  it('assigns depth bands by design role: foliage recedes, focals advance', () => {
     store.getState().addStem('garden-rose')
     store.getState().addStem('eucalyptus')
     const [rose, euc] = store.getState().doc.stems
-    expect(euc.z).toBeLessThan(rose.z)
+    expect(rose.band).toBe('focal')
+    expect(euc.band).toBe('background')
+    expect(depthValue(euc)).toBeLessThan(depthValue(rose))
   })
 
   it('undo and redo round-trip an add', () => {
@@ -71,7 +74,7 @@ describe('studio store', () => {
     expect(store.getState().future).toHaveLength(0)
   })
 
-  it('duplicate offsets the copy and renders it in front', () => {
+  it('duplicate offsets the copy and renders it in front within its band', () => {
     store.getState().addStem('garden-rose')
     const original = store.getState().doc.stems[0]
     store.getState().duplicateSelected()
@@ -79,7 +82,33 @@ describe('studio store', () => {
     expect(stems).toHaveLength(2)
     const copy = stems.find((s) => s.id !== original.id)!
     expect(copy.x).toBeGreaterThan(original.x)
-    expect(copy.z).toBeGreaterThan(original.z)
+    expect(copy.band).toBe(original.band)
+    expect(copy.order).toBeGreaterThan(original.order)
+  })
+
+  it('layer moves stay inside the band; band moves cross it', () => {
+    store.getState().addStem('garden-rose')
+    const id = store.getState().doc.stems[0].id
+    store.getState().select(id)
+
+    store.getState().layerSelected('backward')
+    expect(store.getState().doc.stems[0].band).toBe('focal')
+
+    store.getState().bandSelected('forward')
+    expect(store.getState().doc.stems[0].band).toBe('accents')
+    store.getState().bandSelected('forward') // already at the front band
+    expect(store.getState().doc.stems[0].band).toBe('accents')
+
+    store.getState().bandSelected('backward')
+    expect(store.getState().doc.stems[0].band).toBe('focal')
+  })
+
+  it('clamps scale to the botanical-variation bounds', () => {
+    store.getState().addStem('garden-rose')
+    for (let i = 0; i < 10; i++) store.getState().scaleSelected(0.05)
+    expect(store.getState().doc.stems[0].scale).toBe(1.15)
+    for (let i = 0; i < 20; i++) store.getState().scaleSelected(-0.05)
+    expect(store.getState().doc.stems[0].scale).toBe(0.85)
   })
 
   it('markup and price overrides flow through undo', () => {
@@ -93,10 +122,18 @@ describe('studio store', () => {
     expect(store.getState().doc.pricing.markup).toBe(3)
   })
 
-  it('starter template is a complete, teachable design', () => {
+  it('starter template is a complete, teachable design in millimetres', () => {
     store.getState().newDesign('starter')
     const { doc } = store.getState()
     expect(doc.stems.length).toBeGreaterThanOrEqual(15)
     expect(doc.vesselId).toBe('kraft-wrap')
+    expect(doc.artboards[0].width).toBe(600)
+    // A true spiral: every binding point sits in the hand's grip zone.
+    for (const stem of doc.stems) {
+      expect(stem.x).toBeGreaterThan(280)
+      expect(stem.x).toBeLessThan(320)
+      expect(stem.y).toBeGreaterThan(305)
+      expect(stem.y).toBeLessThan(345)
+    }
   })
 })

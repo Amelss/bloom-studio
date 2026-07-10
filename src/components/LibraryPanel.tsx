@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { FLOWER_CATALOG, VESSEL_CATALOG } from '../data/catalog'
-import { SKETCHES } from '../assets/sketches'
+import { SKETCHES, svgToDataUrl } from '../assets/sketchSvg'
 import { useStudio } from '../domain/store'
 import type { StemCategory } from '../domain/types'
 
@@ -93,7 +93,13 @@ export function LibraryPanel() {
                 title={learningMode ? flower.education.role : flower.commonName}
               >
                 <span className="h-16 w-12" aria-hidden>
-                  {Sketch && <Sketch petal={preview.petal} accent={preview.accent} />}
+                  {Sketch && (
+                    <img
+                      className="h-full w-full"
+                      alt=""
+                      src={svgToDataUrl(Sketch({ petal: preview.petal, accent: preview.accent }))}
+                    />
+                  )}
                 </span>
                 <span className="mt-1 text-xs font-semibold leading-tight">{flower.commonName}</span>
                 <span className="text-[10px] italic text-bloom-ink/50">{flower.botanicalName}</span>

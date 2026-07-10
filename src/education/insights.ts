@@ -1,4 +1,5 @@
-import type { DesignDocument, StemCategory } from '../domain/types'
+import { depthValue, type DesignDocument, type StemCategory } from '../domain/types'
+import { headPosition, vesselRimY, VESSEL_ASPECT } from '../domain/geometry'
 import { FLOWER_INDEX, VESSEL_INDEX, getColorway } from '../data/catalog'
 
 /**
@@ -58,18 +59,21 @@ export function analyzeDesign(doc: DesignDocument): Insight[] {
     })
   }
 
-  // Visual balance: weighted horizontal centre of mass.
-  if (stems.length >= 5) {
-    const cx = doc.canvas.width / 2
+  // Visual balance: weighted horizontal centre of mass of the BLOOM HEADS
+  // (physical mm geometry — heads carry the visual weight, not stem bases).
+  const artboard = doc.artboards[0]
+  if (stems.length >= 5 && artboard) {
+    const cx = artboard.x + artboard.width / 2
     let weighted = 0
     let totalWeight = 0
     for (const stem of stems) {
-      const category = FLOWER_INDEX[stem.varietyId]?.category ?? 'filler'
-      const weight = VISUAL_WEIGHT[category] * stem.scale
-      weighted += weight * (stem.x - cx)
+      const variety = FLOWER_INDEX[stem.varietyId]
+      if (!variety) continue
+      const weight = VISUAL_WEIGHT[variety.category] * stem.scale
+      weighted += weight * (headPosition(stem, variety).x - cx)
       totalWeight += weight
     }
-    const lean = weighted / (totalWeight * (doc.canvas.width / 2))
+    const lean = weighted / (totalWeight * (artboard.width / 2))
     if (Math.abs(lean) <= 0.12) {
       insights.push({
         id: 'balance-good',
@@ -179,13 +183,18 @@ export function analyzeDesign(doc: DesignDocument): Insight[] {
   }
 
   // Proportion: arrangement height vs vessel height (upright vessels only).
+  // Physical mm geometry, shared with the renderer via domain/geometry.ts.
   const vessel = doc.vesselId ? VESSEL_INDEX[doc.vesselId] : null
-  if (vessel && vessel.renderMode === 'behind' && stems.length >= 3) {
-    // Vessel geometry constants match VesselSprite in the canvas renderer.
-    const vesselTop = doc.canvas.height - 150
-    const vesselHeight = 140
-    const highestBloom = Math.min(...stems.map((s) => s.y))
-    const arrangementHeight = Math.max(0, vesselTop - highestBloom)
+  if (vessel && vessel.renderMode === 'behind' && stems.length >= 3 && artboard) {
+    const rimY = vesselRimY(vessel, artboard)
+    const vesselHeight = vessel.widthMm / VESSEL_ASPECT
+    const highestBloom = Math.min(
+      ...stems.map((s) => {
+        const variety = FLOWER_INDEX[s.varietyId]
+        return variety ? headPosition(s, variety).y : s.y
+      }),
+    )
+    const arrangementHeight = Math.max(0, rimY - highestBloom)
     const ratio = arrangementHeight / vesselHeight
     if (ratio >= 1.3 && ratio <= 2.2) {
       insights.push({
@@ -215,8 +224,8 @@ export function analyzeDesign(doc: DesignDocument): Insight[] {
   }
 
   // Depth: foliage should sit behind focal blooms on average.
-  const focalZ = meanZ(doc, 'focal')
-  const foliageZ = meanZ(doc, 'foliage')
+  const focalZ = meanDepth(doc, 'focal')
+  const foliageZ = meanDepth(doc, 'foliage')
   if (focalZ != null && foliageZ != null) {
     if (foliageZ > focalZ) {
       insights.push({
@@ -279,10 +288,10 @@ function hasComplementaryPair(hues: number[]): boolean {
   return false
 }
 
-function meanZ(doc: DesignDocument, category: StemCategory): number | null {
-  const zs = doc.stems
+function meanDepth(doc: DesignDocument, category: StemCategory): number | null {
+  const depths = doc.stems
     .filter((s) => FLOWER_INDEX[s.varietyId]?.category === category)
-    .map((s) => s.z)
-  if (zs.length === 0) return null
-  return zs.reduce((a, b) => a + b, 0) / zs.length
+    .map(depthValue)
+  if (depths.length === 0) return null
+  return depths.reduce((a, b) => a + b, 0) / depths.length
 }

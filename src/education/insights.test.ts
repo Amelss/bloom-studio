@@ -3,6 +3,11 @@ import { analyzeDesign } from './insights'
 import { blankDocument, starterTemplate } from '../domain/templates'
 import { generateId, type DesignDocument, type PlacedStem } from '../domain/types'
 
+/**
+ * Fixtures are in v2 physical units: mm on a 600 × 450 artboard (centre
+ * x = 300). Stems store binding points; rotation 0 puts the head directly
+ * above the binding, so head x = binding x in these fixtures.
+ */
 function docWith(
   stems: Array<Partial<PlacedStem> & { varietyId: string }>,
   overrides: Partial<DesignDocument> = {},
@@ -12,12 +17,13 @@ function docWith(
     (s, i): PlacedStem => ({
       id: generateId(),
       colorwayId: 'default',
-      x: 450,
-      y: 300,
+      x: 300,
+      y: 320,
       rotation: 0,
       scale: 1,
       flipX: false,
-      z: i,
+      band: 'body',
+      order: i,
       ...s,
     }),
   )
@@ -42,22 +48,22 @@ describe('analyzeDesign', () => {
 
   it('reports symmetric weight as balanced', () => {
     const doc = docWith([
-      { varietyId: 'garden-rose', colorwayId: 'blush', x: 350 },
-      { varietyId: 'garden-rose', colorwayId: 'blush', x: 550 },
-      { varietyId: 'eucalyptus', colorwayId: 'silver', x: 300 },
-      { varietyId: 'eucalyptus', colorwayId: 'silver', x: 600 },
-      { varietyId: 'ranunculus', colorwayId: 'pink', x: 450 },
+      { varietyId: 'garden-rose', colorwayId: 'blush', x: 250, band: 'focal' },
+      { varietyId: 'garden-rose', colorwayId: 'blush', x: 350, band: 'focal' },
+      { varietyId: 'eucalyptus', colorwayId: 'silver', x: 200, band: 'background' },
+      { varietyId: 'eucalyptus', colorwayId: 'silver', x: 400, band: 'background' },
+      { varietyId: 'ranunculus', colorwayId: 'pink', x: 300 },
     ])
     expect(ids(doc)).toContain('balance-good')
   })
 
   it('flags a design leaning hard to one side', () => {
     const doc = docWith([
-      { varietyId: 'garden-rose', colorwayId: 'blush', x: 820 },
-      { varietyId: 'garden-rose', colorwayId: 'blush', x: 840 },
-      { varietyId: 'peony', colorwayId: 'pink', x: 860 },
-      { varietyId: 'eucalyptus', colorwayId: 'silver', x: 800 },
-      { varietyId: 'eucalyptus', colorwayId: 'silver', x: 830 },
+      { varietyId: 'garden-rose', colorwayId: 'blush', x: 520, band: 'focal' },
+      { varietyId: 'garden-rose', colorwayId: 'blush', x: 540, band: 'focal' },
+      { varietyId: 'peony', colorwayId: 'pink', x: 560, band: 'focal' },
+      { varietyId: 'eucalyptus', colorwayId: 'silver', x: 510, band: 'background' },
+      { varietyId: 'eucalyptus', colorwayId: 'silver', x: 530, band: 'background' },
     ])
     const insights = analyzeDesign(doc)
     const lean = insights.find((i) => i.id === 'balance-lean')
@@ -68,12 +74,12 @@ describe('analyzeDesign', () => {
   it('suggests odd focal counts for even numbers', () => {
     // 2 focal of 6 stems: under the focal-heavy threshold, but an even count.
     const doc = docWith([
-      { varietyId: 'garden-rose', colorwayId: 'blush', x: 400 },
-      { varietyId: 'garden-rose', colorwayId: 'blush', x: 500 },
-      { varietyId: 'eucalyptus', colorwayId: 'silver', x: 350 },
-      { varietyId: 'eucalyptus', colorwayId: 'silver', x: 550 },
-      { varietyId: 'eucalyptus', colorwayId: 'silver', x: 450 },
-      { varietyId: 'gypsophila', colorwayId: 'white', x: 450 },
+      { varietyId: 'garden-rose', colorwayId: 'blush', x: 270, band: 'focal' },
+      { varietyId: 'garden-rose', colorwayId: 'blush', x: 330, band: 'focal' },
+      { varietyId: 'eucalyptus', colorwayId: 'silver', x: 250, band: 'background' },
+      { varietyId: 'eucalyptus', colorwayId: 'silver', x: 350, band: 'background' },
+      { varietyId: 'eucalyptus', colorwayId: 'silver', x: 300, band: 'background' },
+      { varietyId: 'gypsophila', colorwayId: 'white', x: 300, band: 'accents' },
     ])
     expect(ids(doc)).toContain('focal-even')
   })
@@ -81,9 +87,9 @@ describe('analyzeDesign', () => {
   it('classifies an analogous palette', () => {
     // Blush rose (350°) + lilac lisianthus (280°): 70° apart — neighbours.
     const doc = docWith([
-      { varietyId: 'garden-rose', colorwayId: 'blush', x: 400 },
-      { varietyId: 'lisianthus', colorwayId: 'lilac', x: 500 },
-      { varietyId: 'eucalyptus', colorwayId: 'silver', x: 450 },
+      { varietyId: 'garden-rose', colorwayId: 'blush', x: 270 },
+      { varietyId: 'lisianthus', colorwayId: 'lilac', x: 330 },
+      { varietyId: 'eucalyptus', colorwayId: 'silver', x: 300, band: 'background' },
     ])
     expect(ids(doc)).toContain('colour-analogous')
   })
@@ -91,8 +97,8 @@ describe('analyzeDesign', () => {
   it('classifies a single-hue-family palette as monochromatic', () => {
     // Blush rose (350°) + coral peony (15°) are only 25° apart on the wheel.
     const doc = docWith([
-      { varietyId: 'garden-rose', colorwayId: 'blush', x: 400 },
-      { varietyId: 'peony', colorwayId: 'coral', x: 500 },
+      { varietyId: 'garden-rose', colorwayId: 'blush', x: 270 },
+      { varietyId: 'peony', colorwayId: 'coral', x: 330 },
     ])
     expect(ids(doc)).toContain('colour-mono')
   })
@@ -100,18 +106,32 @@ describe('analyzeDesign', () => {
   it('flags complementary contrast', () => {
     // Blue hydrangea (218°) vs coral peony (15°) — near-opposites.
     const doc = docWith([
-      { varietyId: 'hydrangea', colorwayId: 'dusty-blue', x: 400 },
-      { varietyId: 'peony', colorwayId: 'coral', x: 500 },
+      { varietyId: 'hydrangea', colorwayId: 'dusty-blue', x: 270 },
+      { varietyId: 'peony', colorwayId: 'coral', x: 330 },
     ])
     expect(ids(doc)).toContain('colour-complementary')
   })
 
   it('flags foliage rendered in front of focal blooms', () => {
     const doc = docWith([
-      { varietyId: 'garden-rose', colorwayId: 'blush', z: 1 },
-      { varietyId: 'eucalyptus', colorwayId: 'silver', z: 5 },
+      { varietyId: 'garden-rose', colorwayId: 'blush', band: 'focal', order: 1 },
+      // Foliage deliberately moved to the front band — covering the rose.
+      { varietyId: 'eucalyptus', colorwayId: 'silver', band: 'accents', order: 5 },
     ])
     expect(ids(doc)).toContain('depth-foliage-front')
+  })
+
+  it('measures proportion against the real vessel size', () => {
+    // Compote (behind-render): heads far above the rim → top-heavy warning.
+    const doc = docWith(
+      [
+        { varietyId: 'delphinium', colorwayId: 'blue', y: 40, band: 'background' },
+        { varietyId: 'garden-rose', colorwayId: 'blush', y: 320, band: 'focal' },
+        { varietyId: 'eucalyptus', colorwayId: 'silver', y: 330, band: 'background' },
+      ],
+      { vesselId: 'compote' },
+    )
+    expect(ids(doc)).toContain('proportion-tall')
   })
 
   it('praises the starter template (it is built to be exemplary)', () => {

@@ -8,20 +8,30 @@ import {
   type StemPatch,
 } from './commands'
 import { blankDocument, starterTemplate } from './templates'
+import { migrateDocument } from './migrate'
 import {
-  DESIGN_DOC_VERSION,
+  CATEGORY_BAND,
+  DEPTH_BANDS,
+  STEM_SCALE_MAX,
+  STEM_SCALE_MIN,
   generateId,
+  type DepthBand,
   type DesignDocument,
   type PlacedStem,
   type StemCategory,
 } from './types'
 import { FLOWER_INDEX } from '../data/catalog'
 
+export type GridStepMm = 5 | 10 | 25 | 50
+
 export interface StudioState {
   doc: DesignDocument
   selectedId: string | null
   learningMode: boolean
   showFormGuide: boolean
+  gridVisible: boolean
+  gridSnap: boolean
+  gridStepMm: GridStepMm
   past: Command[]
   future: Command[]
 
@@ -35,6 +45,8 @@ export interface StudioState {
   updateSelected: (patch: StemPatch) => void
   nudgeSelected: (dx: number, dy: number) => void
   layerSelected: (direction: 'forward' | 'backward') => void
+  bandSelected: (direction: 'forward' | 'backward') => void
+  scaleSelected: (delta: number) => void
 
   beginTransform: (stemId: string) => void
   setStemTransient: (stemId: string, patch: StemPatch) => void
@@ -49,19 +61,25 @@ export interface StudioState {
   importDesign: (doc: DesignDocument) => void
   setLearningMode: (on: boolean) => void
   setShowFormGuide: (on: boolean) => void
+  setGridVisible: (on: boolean) => void
+  setGridSnap: (on: boolean) => void
+  setGridStepMm: (step: GridStepMm) => void
 }
 
-/** Default scale and placement spread per design role. */
-const CATEGORY_DEFAULTS: Record<StemCategory, { scale: number; spread: number }> = {
-  focal: { scale: 1, spread: 90 },
-  secondary: { scale: 0.88, spread: 130 },
-  filler: { scale: 0.8, spread: 150 },
-  line: { scale: 1.1, spread: 170 },
-  foliage: { scale: 1.15, spread: 185 },
-}
+/**
+ * New stems drop INTO the bouquet: binding point near the spiral's hand
+ * position, heads fanned outward by rotation — the same construction as the
+ * starter template, so quick building stays "arranged", never "collaged".
+ */
+const PLACEMENT = { x: 300, y: 320, xJitter: 22, yJitter: 10 }
 
-/** Roles that should slot in behind existing material by default. */
-const INSERT_BEHIND: StemCategory[] = ['foliage', 'line']
+const CATEGORY_MAX_ROTATION: Record<StemCategory, number> = {
+  focal: 22,
+  secondary: 32,
+  filler: 38,
+  line: 45,
+  foliage: 45,
+}
 
 const HISTORY_LIMIT = 200
 
@@ -69,7 +87,7 @@ const HISTORY_LIMIT = 200
 // commits as a single undoable command.
 const transformSnapshots = new Map<string, StemPatch>()
 
-const MUTABLE_KEYS = ['x', 'y', 'rotation', 'scale', 'flipX', 'z', 'colorwayId'] as const
+const MUTABLE_KEYS = ['x', 'y', 'rotation', 'scale', 'flipX', 'band', 'order', 'colorwayId'] as const
 
 function pickMutable(stem: PlacedStem): StemPatch {
   const patch: StemPatch = {}
@@ -83,11 +101,23 @@ function touch(doc: DesignDocument): DesignDocument {
   return { ...doc, updatedAt: new Date().toISOString() }
 }
 
+function ordersInBand(doc: DesignDocument, band: DepthBand): number[] {
+  return doc.stems.filter((s) => s.band === band).map((s) => s.order)
+}
+
+function nextOrderInBand(doc: DesignDocument, band: DepthBand): number {
+  const orders = ordersInBand(doc, band)
+  return orders.length ? Math.max(...orders) + 1 : 0
+}
+
 const initializer: StateCreator<StudioState> = (set, get) => ({
   doc: starterTemplate(),
   selectedId: null,
   learningMode: true,
   showFormGuide: false,
+  gridVisible: false,
+  gridSnap: false,
+  gridStepMm: 10,
   past: [],
   future: [],
 
@@ -135,30 +165,21 @@ const initializer: StateCreator<StudioState> = (set, get) => ({
     const variety = FLOWER_INDEX[varietyId]
     if (!variety) return
     const { doc } = get()
-    const defaults = CATEGORY_DEFAULTS[variety.category]
-    const cx = doc.canvas.width / 2
-    const cy = doc.canvas.height / 2 - 30
-    const x = cx + (Math.random() * 2 - 1) * defaults.spread
-    const y = cy + (Math.random() * 2 - 1) * defaults.spread * 0.55
-    // Lean stems gently outward from the binding point, plus a little jitter —
-    // naive straight placement is what makes digital arrangements read as collage.
-    const rotation = ((x - cx) / defaults.spread) * 16 + (Math.random() * 10 - 5)
-
-    const zs = doc.stems.map((s) => s.z)
-    const z = INSERT_BEHIND.includes(variety.category)
-      ? (zs.length ? Math.min(...zs) : 0) - 1
-      : (zs.length ? Math.max(...zs) : 0) + 1
+    const maxRot = CATEGORY_MAX_ROTATION[variety.category]
+    const rotation = Math.round((Math.random() * 2 - 1) * maxRot)
+    const band = CATEGORY_BAND[variety.category]
 
     const stem: PlacedStem = {
       id: generateId(),
       varietyId,
       colorwayId: colorwayId ?? variety.colorways[0].id,
-      x: Math.round(x),
-      y: Math.round(y),
-      rotation: Math.round(rotation),
-      scale: defaults.scale,
-      flipX: x > cx && Math.random() > 0.4,
-      z,
+      x: Math.round(PLACEMENT.x + (Math.random() * 2 - 1) * PLACEMENT.xJitter),
+      y: Math.round(PLACEMENT.y + (Math.random() * 2 - 1) * PLACEMENT.yJitter),
+      rotation,
+      scale: 1,
+      flipX: rotation > 8 && Math.random() > 0.4,
+      band,
+      order: nextOrderInBand(doc, band),
     }
     get().run({ type: 'add_stem', stem })
     set({ selectedId: stem.id })
@@ -176,14 +197,13 @@ const initializer: StateCreator<StudioState> = (set, get) => ({
     const { doc, selectedId } = get()
     const source = doc.stems.find((s) => s.id === selectedId)
     if (!source) return
-    const maxZ = Math.max(...doc.stems.map((s) => s.z))
     const copy: PlacedStem = {
       ...source,
       id: generateId(),
-      x: source.x + 34,
-      y: source.y + 22,
-      rotation: source.rotation + (Math.random() * 12 - 6),
-      z: maxZ + 1,
+      x: source.x + 18,
+      y: source.y + 8,
+      rotation: source.rotation + Math.round(Math.random() * 12 - 6),
+      order: nextOrderInBand(doc, source.band),
     }
     get().run({ type: 'add_stem', stem: copy })
     set({ selectedId: copy.id })
@@ -204,19 +224,46 @@ const initializer: StateCreator<StudioState> = (set, get) => ({
     const { doc, selectedId } = get()
     const stem = doc.stems.find((s) => s.id === selectedId)
     if (!stem) return
-    get().updateSelected({
-      x: clamp(stem.x + dx, 0, doc.canvas.width),
-      y: clamp(stem.y + dy, 0, doc.canvas.height),
-    })
+    get().updateSelected({ x: stem.x + dx, y: stem.y + dy })
   },
 
   layerSelected: (direction) => {
     const { doc, selectedId } = get()
     const stem = doc.stems.find((s) => s.id === selectedId)
     if (!stem) return
-    const zs = doc.stems.map((s) => s.z)
-    const z = direction === 'forward' ? Math.max(...zs) + 1 : Math.min(...zs) - 1
-    get().updateSelected({ z })
+    const orders = ordersInBand(doc, stem.band)
+    const order = direction === 'forward' ? Math.max(...orders) + 1 : Math.min(...orders) - 1
+    get().updateSelected({ order })
+  },
+
+  bandSelected: (direction) => {
+    const { doc, selectedId } = get()
+    const stem = doc.stems.find((s) => s.id === selectedId)
+    if (!stem) return
+    const rank = DEPTH_BANDS.indexOf(stem.band)
+    const nextRank = direction === 'forward' ? rank + 1 : rank - 1
+    if (nextRank < 0 || nextRank >= DEPTH_BANDS.length) return
+    const band = DEPTH_BANDS[nextRank]
+    const orders = ordersInBand(doc, band)
+    // Entering from behind lands at the band's back; from in front, its front.
+    const order =
+      direction === 'forward'
+        ? orders.length
+          ? Math.min(...orders) - 1
+          : 0
+        : orders.length
+          ? Math.max(...orders) + 1
+          : 0
+    get().updateSelected({ band, order })
+  },
+
+  scaleSelected: (delta) => {
+    const { doc, selectedId } = get()
+    const stem = doc.stems.find((s) => s.id === selectedId)
+    if (!stem) return
+    const scale = Math.min(STEM_SCALE_MAX, Math.max(STEM_SCALE_MIN, +(stem.scale + delta).toFixed(2)))
+    if (scale === stem.scale) return
+    get().updateSelected({ scale })
   },
 
   beginTransform: (stemId) => {
@@ -305,29 +352,10 @@ const initializer: StateCreator<StudioState> = (set, get) => ({
 
   setLearningMode: (on) => set({ learningMode: on }),
   setShowFormGuide: (on) => set({ showFormGuide: on }),
+  setGridVisible: (on) => set({ gridVisible: on }),
+  setGridSnap: (on) => set({ gridSnap: on }),
+  setGridStepMm: (step) => set({ gridStepMm: step }),
 })
-
-/**
- * Validates and migrates an incoming design document. Currently v1 only; the
- * switch is where future format migrations will live.
- */
-export function migrateDocument(raw: unknown): DesignDocument {
-  if (!raw || typeof raw !== 'object') throw new Error('Not a design document')
-  const doc = raw as Partial<DesignDocument>
-  if (typeof doc.version !== 'number' || !Array.isArray(doc.stems) || !doc.canvas) {
-    throw new Error('Not a Bloom Studio design file')
-  }
-  if (doc.version > DESIGN_DOC_VERSION) {
-    throw new Error(
-      `This design was made with a newer version of Bloom Studio (format v${doc.version}).`,
-    )
-  }
-  return doc as DesignDocument
-}
-
-function clamp(n: number, min: number, max: number): number {
-  return Math.min(max, Math.max(min, n))
-}
 
 /**
  * Factory used by tests (no persistence); the app uses the persisted
@@ -338,13 +366,31 @@ export function createStudioStore(options: { persistKey?: string } = {}) {
   return create<StudioState>()(
     persist(initializer, {
       name: options.persistKey,
-      version: 1,
+      version: 2,
       partialize: (state) => ({
         doc: state.doc,
         learningMode: state.learningMode,
+        gridVisible: state.gridVisible,
+        gridSnap: state.gridSnap,
+        gridStepMm: state.gridStepMm,
       }),
+      migrate: (persisted) => {
+        // Format migrations run on the stored document (v1 px → v2 mm).
+        const state = persisted as Partial<StudioState>
+        if (state?.doc) {
+          try {
+            state.doc = migrateDocument(state.doc)
+          } catch {
+            state.doc = starterTemplate()
+          }
+        }
+        return state as StudioState
+      },
     }),
   )
 }
 
 export const useStudio = createStudioStore({ persistKey: 'bloom-studio-design-v1' })
+
+// Re-export for existing imports (TopBar) and tests.
+export { migrateDocument }

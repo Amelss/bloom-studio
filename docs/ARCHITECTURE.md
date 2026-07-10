@@ -153,12 +153,30 @@ create table submissions (
 
 Row-level security: students see their own rows; educators see rows for their courses.
 
-## Known Milestone-1 limitations (deliberate)
+## Canvas engine (Milestone 1.5 Phase A — implemented)
 
-- **Hit-testing is bounding-box, not pixel-accurate** — clicking overlapping stems selects
-  the front-most box. Fixed for free by the WebGL renderer (alpha-aware picking).
-- **Sketch artwork, not photography.** The placeholder style is consistent and honest, but
-  the M2 photo pipeline is what makes designs client-presentable.
+The DOM renderer is retired; the canvas is now **PixiJS v8 (WebGL)** per
+[CANVAS.md](CANVAS.md). Key properties as built:
+
+- **Real-millimetre world** (document v2): stems store binding points; artboards are
+  cm-true; migration v1→v2 lives in `domain/migrate.ts`.
+- **Render-on-demand**: the ticker is stopped; frames render only when the document,
+  camera, selection, or a texture arrival makes them necessary.
+- **Alpha-accurate picking** from low-res alpha maps kept beside each texture.
+- **Camera** (`render/camera.ts`) is Pixi-free pure maths, unit-tested; honours
+  `prefers-reduced-motion` by snapping instead of animating.
+- **Adaptive 1–2–5 grid** with optional snapping; `⌘` suspends snap mid-drag.
+- React chrome talks to the renderer through `render/registry.ts` — camera changes are
+  announced on an emitter, never routed through the store at 60Hz.
+
+## Known limitations (deliberate, tracked)
+
+- **Sketch artwork, not photography.** Phase C replaces it with the high-fidelity
+  illustration atlases; the photographic (AI-bridge) pipeline follows per the roadmap.
+- **Empty-space drag pans** as an interim gesture; Phase B replaces it with marquee
+  selection (pan remains on space/middle-drag/scroll).
+- **No transform handles yet** — rotate/scale live in the toolbar and keyboard until
+  Phase B's on-canvas handles.
 - **Single design, local only.** Projects, accounts, and sharing are M3.
 - **`window.confirm`/`alert`** for destructive-action guards; replaced by proper dialogs
-  when the design system grows in M2.
+  when the design system grows.

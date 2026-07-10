@@ -3,7 +3,9 @@ import { TopBar } from './components/TopBar'
 import { LibraryPanel } from './components/LibraryPanel'
 import { SidePanel } from './components/SidePanel'
 import { SelectionToolbar } from './components/SelectionToolbar'
-import { CanvasStage } from './components/canvas/CanvasStage'
+import { PixiStage } from './components/canvas/PixiStage'
+import { CanvasFooter } from './components/canvas/CanvasFooter'
+import { canvasRegistry } from './render/registry'
 import { useStudio } from './domain/store'
 
 export default function App() {
@@ -14,9 +16,12 @@ export default function App() {
       <TopBar />
       <div className="flex min-h-0 flex-1">
         <LibraryPanel />
-        <main className="flex min-w-0 flex-1 flex-col gap-1 p-3" aria-label="Design workspace">
+        <main className="flex min-w-0 flex-1 flex-col px-3 pb-1 pt-0" aria-label="Design workspace">
           <SelectionToolbar />
-          <CanvasStage />
+          <div className="min-h-0 flex-1">
+            <PixiStage />
+          </div>
+          <CanvasFooter />
         </main>
         <SidePanel />
       </div>
@@ -40,6 +45,41 @@ function useKeyboardShortcuts() {
       const store = useStudio.getState()
       const isModifier = e.metaKey || e.ctrlKey
 
+      // Camera
+      if (e.key === ' ') {
+        e.preventDefault() // stop page scroll; hold to pan
+        if (!e.repeat) canvasRegistry.api?.setSpacePan(true)
+        return
+      }
+      if (isModifier && e.key === '0') {
+        e.preventDefault()
+        canvasRegistry.api?.fitArtboard()
+        return
+      }
+      if (isModifier && e.key === '1') {
+        e.preventDefault()
+        canvasRegistry.api?.zoomTo100()
+        return
+      }
+      if (isModifier && e.key === '2') {
+        e.preventDefault()
+        canvasRegistry.api?.fitSelection()
+        return
+      }
+      if (!isModifier && (e.key === '+' || e.key === '=')) {
+        canvasRegistry.api?.zoomBy(1.25)
+        return
+      }
+      if (!isModifier && e.key === '-') {
+        canvasRegistry.api?.zoomBy(0.8)
+        return
+      }
+      if (e.key === '"') {
+        store.setGridVisible(!store.gridVisible)
+        return
+      }
+
+      // History
       if (isModifier && e.key.toLowerCase() === 'z') {
         e.preventDefault()
         if (e.shiftKey) store.redo()
@@ -47,10 +87,27 @@ function useKeyboardShortcuts() {
         return
       }
 
+      // Selected-stem operations
       if (!store.selectedId) return
       const stem = store.doc.stems.find((s) => s.id === store.selectedId)
       if (!stem) return
-      const step = e.shiftKey ? 10 : 2
+      const step = e.shiftKey ? 10 : 1 // mm
+
+      if (isModifier && e.key === '[') {
+        e.preventDefault()
+        store.bandSelected('backward')
+        return
+      }
+      if (isModifier && e.key === ']') {
+        e.preventDefault()
+        store.bandSelected('forward')
+        return
+      }
+      if (isModifier && e.key.toLowerCase() === 'd') {
+        e.preventDefault()
+        store.duplicateSelected()
+        return
+      }
 
       switch (e.key) {
         case 'Delete':
@@ -100,7 +157,15 @@ function useKeyboardShortcuts() {
       }
     }
 
+    const onKeyUp = (e: KeyboardEvent) => {
+      if (e.key === ' ') canvasRegistry.api?.setSpacePan(false)
+    }
+
     window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
+    window.addEventListener('keyup', onKeyUp)
+    return () => {
+      window.removeEventListener('keydown', onKeyDown)
+      window.removeEventListener('keyup', onKeyUp)
+    }
   }, [])
 }

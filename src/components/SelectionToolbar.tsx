@@ -1,16 +1,25 @@
 import { useStudio } from '../domain/store'
 import { FLOWER_INDEX } from '../data/catalog'
+import { DEPTH_BANDS, STEM_SCALE_MAX, STEM_SCALE_MIN, type DepthBand } from '../domain/types'
+
+const BAND_LABELS: Record<DepthBand, string> = {
+  background: 'Background',
+  body: 'Body',
+  focal: 'Focal',
+  accents: 'Accents',
+}
 
 /**
- * Context bar for the selected stem: rotate, scale, flip, depth, colour,
- * duplicate, delete. Every control maps to an invertible command, so the
- * whole toolbar is undo-safe.
+ * Context bar for the selected stem. Every control maps to an invertible
+ * command, so the whole toolbar is undo-safe. Scale is bounded botanical
+ * variation (±15%) — flowers never stretch.
  */
 export function SelectionToolbar() {
   const selectedId = useStudio((s) => s.selectedId)
   const stem = useStudio((s) => s.doc.stems.find((x) => x.id === s.selectedId))
   const updateSelected = useStudio((s) => s.updateSelected)
   const layerSelected = useStudio((s) => s.layerSelected)
+  const scaleSelected = useStudio((s) => s.scaleSelected)
   const duplicateSelected = useStudio((s) => s.duplicateSelected)
   const removeSelected = useStudio((s) => s.removeSelected)
 
@@ -18,7 +27,7 @@ export function SelectionToolbar() {
     return (
       <div className="flex h-11 items-center justify-center text-xs text-bloom-ink/50">
         Select a stem to adjust it — or click a flower in the library to add one. Keyboard:
-        arrows move · R rotates · [ ] change depth · D duplicates · F flips · ⌫ removes
+        arrows move · R rotates · [ ] depth · ⌘[ ⌘] band · D duplicates · F flips · ⌫ removes
       </div>
     )
   }
@@ -35,18 +44,35 @@ export function SelectionToolbar() {
       <button className="btn-icon" aria-label="Rotate right" title="Rotate right (R)"
         onClick={() => updateSelected({ rotation: stem.rotation + 15 })}>⟳</button>
 
-      <button className="btn-icon" aria-label="Smaller" title="Smaller"
-        onClick={() => updateSelected({ scale: Math.max(0.4, +(stem.scale - 0.1).toFixed(2)) })}>−</button>
-      <button className="btn-icon" aria-label="Larger" title="Larger"
-        onClick={() => updateSelected({ scale: Math.min(2, +(stem.scale + 0.1).toFixed(2)) })}>＋</button>
+      <button className="btn-icon" aria-label="Smaller" title="Smaller (real size −5%)"
+        disabled={stem.scale <= STEM_SCALE_MIN} onClick={() => scaleSelected(-0.05)}>−</button>
+      <button className="btn-icon" aria-label="Larger" title="Larger (real size +5%)"
+        disabled={stem.scale >= STEM_SCALE_MAX} onClick={() => scaleSelected(0.05)}>＋</button>
 
       <button className="btn-icon" aria-label="Flip horizontally" title="Flip (F)"
         onClick={() => updateSelected({ flipX: !stem.flipX })}>⇋</button>
 
-      <button className="btn-icon" aria-label="Send backward" title="Recess — send backward ( [ )"
+      <button className="btn-icon" aria-label="Send backward in band" title="Recess ( [ )"
         onClick={() => layerSelected('backward')}>▽</button>
-      <button className="btn-icon" aria-label="Bring forward" title="Advance — bring forward ( ] )"
+      <button className="btn-icon" aria-label="Bring forward in band" title="Advance ( ] )"
         onClick={() => layerSelected('forward')}>△</button>
+
+      <label className="ml-1 inline-flex items-center gap-1 text-xs text-bloom-ink/70">
+        Band
+        <select
+          className="rounded-lg border border-bloom-200 bg-white px-1.5 py-1 text-xs"
+          value={stem.band}
+          onChange={(e) => updateSelected({ band: e.target.value as DepthBand })}
+          aria-label="Depth band"
+          title="Depth band (⌘[ / ⌘] to move)"
+        >
+          {DEPTH_BANDS.map((band) => (
+            <option key={band} value={band}>
+              {BAND_LABELS[band]}
+            </option>
+          ))}
+        </select>
+      </label>
 
       {variety.colorways.length > 1 && (
         <span className="ml-1 inline-flex items-center gap-1" role="group" aria-label="Colourway">

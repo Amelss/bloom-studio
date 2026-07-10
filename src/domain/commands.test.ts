@@ -7,12 +7,13 @@ const stem = (overrides: Partial<PlacedStem> = {}): PlacedStem => ({
   id: 's1',
   varietyId: 'garden-rose',
   colorwayId: 'blush',
-  x: 450,
-  y: 300,
+  x: 300,
+  y: 320,
   rotation: 0,
   scale: 1,
   flipX: false,
-  z: 1,
+  band: 'focal',
+  order: 1,
   ...overrides,
 })
 
@@ -33,12 +34,14 @@ describe('applyCommand', () => {
     doc = applyCommand(doc, {
       type: 'update_stem',
       stemId: 's2',
-      next: { x: 200, rotation: 15 },
-      prev: { x: 100, rotation: 0 },
+      next: { x: 200, rotation: 15, band: 'accents' },
+      prev: { x: 100, rotation: 0, band: 'focal' },
     })
-    expect(doc.stems.find((s) => s.id === 's1')?.x).toBe(450)
-    expect(doc.stems.find((s) => s.id === 's2')?.x).toBe(200)
-    expect(doc.stems.find((s) => s.id === 's2')?.rotation).toBe(15)
+    expect(doc.stems.find((s) => s.id === 's1')?.x).toBe(300)
+    const patched = doc.stems.find((s) => s.id === 's2')
+    expect(patched?.x).toBe(200)
+    expect(patched?.rotation).toBe(15)
+    expect(patched?.band).toBe('accents')
   })
 
   it('sets and clears price overrides', () => {
@@ -54,7 +57,12 @@ describe('invertCommand', () => {
   const cases: Command[] = [
     { type: 'add_stem', stem: stem({ id: 's-new' }) },
     { type: 'remove_stem', stem: stem() },
-    { type: 'update_stem', stemId: 's1', next: { x: 10, scale: 1.2 }, prev: { x: 450, scale: 1 } },
+    {
+      type: 'update_stem',
+      stemId: 's1',
+      next: { x: 10, scale: 1.1, band: 'body' },
+      prev: { x: 300, scale: 1, band: 'focal' },
+    },
     { type: 'set_vessel', next: 'compote', prev: null },
     { type: 'set_markup', next: 4, prev: 3 },
     { type: 'set_price_override', varietyId: 'peony', next: 5, prev: null },

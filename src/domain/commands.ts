@@ -8,7 +8,7 @@ import type { DesignDocument, PlacedStem } from './types'
  */
 
 export type StemPatch = Partial<
-  Pick<PlacedStem, 'x' | 'y' | 'rotation' | 'scale' | 'flipX' | 'z' | 'colorwayId'>
+  Pick<PlacedStem, 'x' | 'y' | 'rotation' | 'scale' | 'flipX' | 'band' | 'order' | 'colorwayId'>
 >
 
 export type Command =

@@ -18,7 +18,8 @@ function docWith(
       rotation: 0,
       scale: 1,
       flipX: false,
-      z: i,
+      band: 'body',
+      order: i,
     }),
   )
   return { ...doc, ...overrides }

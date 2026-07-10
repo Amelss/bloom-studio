@@ -18,6 +18,7 @@ export const FLOWER_CATALOG: FlowerVariety[] = [
     stemLengthCm: 50,
     fragility: 'medium',
     sketch: 'rose',
+    widthMm: 105,
     colorways: [
       { id: 'blush', name: 'Blush', petal: '#e8b4bc', accent: '#d18a97', hue: 350 },
       { id: 'cream', name: 'Cream', petal: '#f4ecdb', accent: '#e3d3b3', hue: 45, neutral: true },
@@ -39,6 +40,7 @@ export const FLOWER_CATALOG: FlowerVariety[] = [
     stemLengthCm: 45,
     fragility: 'high',
     sketch: 'peony',
+    widthMm: 125,
     colorways: [
       { id: 'pink', name: 'Sarah Bernhardt Pink', petal: '#f2b8c6', accent: '#e08aa2', hue: 340 },
       { id: 'coral', name: 'Coral Charm', petal: '#f0937c', accent: '#dd6f55', hue: 15 },
@@ -60,6 +62,7 @@ export const FLOWER_CATALOG: FlowerVariety[] = [
     stemLengthCm: 35,
     fragility: 'high',
     sketch: 'ranunculus',
+    widthMm: 90,
     colorways: [
       { id: 'cream', name: 'Cream', petal: '#f5eedd', accent: '#dfd0ac', hue: 45, neutral: true },
       { id: 'pink', name: 'Pink Cloni', petal: '#eeb0bf', accent: '#d987a0', hue: 345 },
@@ -81,6 +84,7 @@ export const FLOWER_CATALOG: FlowerVariety[] = [
     stemLengthCm: 60,
     fragility: 'medium',
     sketch: 'lisianthus',
+    widthMm: 105,
     colorways: [
       { id: 'white', name: 'White', petal: '#f6f4ee', accent: '#e2ddcd', hue: 50, neutral: true },
       { id: 'lilac', name: 'Lilac', petal: '#cdb6dd', accent: '#a988c4', hue: 280 },
@@ -101,6 +105,7 @@ export const FLOWER_CATALOG: FlowerVariety[] = [
     stemLengthCm: 55,
     fragility: 'low',
     sketch: 'carnation',
+    widthMm: 95,
     colorways: [
       { id: 'dusty-pink', name: 'Dusty Pink', petal: '#dfa4ae', accent: '#c47f8e', hue: 350 },
       { id: 'antique', name: 'Antique Terracotta', petal: '#cf8a70', accent: '#b26a52', hue: 18 },
@@ -121,6 +126,7 @@ export const FLOWER_CATALOG: FlowerVariety[] = [
     stemLengthCm: 50,
     fragility: 'medium',
     sketch: 'hydrangea',
+    widthMm: 145,
     colorways: [
       { id: 'dusty-blue', name: 'Dusty Blue', petal: '#aebfd8', accent: '#8ba2c4', hue: 218 },
       { id: 'white', name: 'White', petal: '#f2f3ec', accent: '#dee1d2', hue: 80, neutral: true },
@@ -141,6 +147,7 @@ export const FLOWER_CATALOG: FlowerVariety[] = [
     stemLengthCm: 80,
     fragility: 'medium',
     sketch: 'delphinium',
+    widthMm: 115,
     colorways: [
       { id: 'blue', name: 'Volkerfrieden Blue', petal: '#7d95cf', accent: '#5a72b4', hue: 225 },
       { id: 'white', name: 'White', petal: '#f4f4ee', accent: '#dfdfd2', hue: 60, neutral: true },
@@ -161,6 +168,7 @@ export const FLOWER_CATALOG: FlowerVariety[] = [
     stemLengthCm: 60,
     fragility: 'low',
     sketch: 'gypsophila',
+    widthMm: 125,
     colorways: [{ id: 'white', name: 'White', petal: '#f7f6f1', accent: '#e4e2d6', hue: 55, neutral: true }],
     education: {
       role: 'A filler: airy clouds of tiny blooms that occupy space between flowers, soften transitions, and add air to a design.',
@@ -178,6 +186,7 @@ export const FLOWER_CATALOG: FlowerVariety[] = [
     stemLengthCm: 45,
     fragility: 'medium',
     sketch: 'spray-rose',
+    widthMm: 115,
     colorways: [
       { id: 'blush', name: 'Blush Bombastic', petal: '#eec3ca', accent: '#d99aa8', hue: 350 },
       { id: 'cream', name: 'Cream', petal: '#f4eddc', accent: '#e0d1ae', hue: 45, neutral: true },
@@ -198,6 +207,7 @@ export const FLOWER_CATALOG: FlowerVariety[] = [
     stemLengthCm: 60,
     fragility: 'low',
     sketch: 'eucalyptus',
+    widthMm: 140,
     colorways: [{ id: 'silver', name: 'Silver Green', petal: '#9fb39a', accent: '#7e947c', hue: 110, neutral: true }],
     education: {
       role: 'Foundation foliage: rounded silver leaves establish the base, shape, and colour temperature of the design before any flower is placed.',
@@ -215,6 +225,7 @@ export const FLOWER_CATALOG: FlowerVariety[] = [
     stemLengthCm: 70,
     fragility: 'low',
     sketch: 'ruscus',
+    widthMm: 135,
     colorways: [{ id: 'green', name: 'Deep Green', petal: '#5d7a52', accent: '#46603d', hue: 105, neutral: true }],
     education: {
       role: 'Line foliage: long arching stems that extend the silhouette, add movement, and trail beautifully from bouquets and compotes.',
@@ -232,6 +243,7 @@ export const FLOWER_CATALOG: FlowerVariety[] = [
     stemLengthCm: 50,
     fragility: 'high',
     sketch: 'astilbe',
+    widthMm: 105,
     colorways: [
       { id: 'pink', name: 'Feather Pink', petal: '#e6a9bb', accent: '#cf84a1', hue: 340 },
       { id: 'white', name: 'White', petal: '#f3f0e6', accent: '#ded8c4', hue: 50, neutral: true },
@@ -250,6 +262,7 @@ export const VESSEL_CATALOG: VesselDef[] = [
     name: 'Hand-Tied Wrap',
     priceGBP: 2.5,
     sketch: 'wrap',
+    widthMm: 240,
     mechanics: 'Hand-tied spiral, twine bind, kraft wrap',
     renderMode: 'front',
     education:
@@ -260,6 +273,7 @@ export const VESSEL_CATALOG: VesselDef[] = [
     name: 'Footed Compote Bowl',
     priceGBP: 8,
     sketch: 'compote',
+    widthMm: 210,
     mechanics: 'Chicken-wire pillow + pot tape (foam-free)',
     renderMode: 'behind',
     education:

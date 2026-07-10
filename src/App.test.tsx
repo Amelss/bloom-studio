@@ -1,26 +1,26 @@
-import { describe, expect, it, beforeAll } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import App from './App'
 
-beforeAll(() => {
-  // jsdom lacks ResizeObserver, which the canvas uses to scale.
-  globalThis.ResizeObserver = class {
-    observe() {}
-    unobserve() {}
-    disconnect() {}
-  }
-})
+// jsdom has no WebGL: stub the canvas host. The scene itself is covered by
+// the camera/grid/geometry unit tests and browser verification.
+vi.mock('./components/canvas/PixiStage', () => ({
+  PixiStage: () => <div role="application" aria-label="Design canvas" />,
+}))
 
 describe('App', () => {
-  it('renders the studio with the starter bouquet', () => {
+  it('renders the studio with the starter bouquet document', () => {
     render(<App />)
     expect(screen.getByText('Bloom Studio')).toBeInTheDocument()
     expect(screen.getByRole('application', { name: 'Design canvas' })).toBeInTheDocument()
-    // Starter template stems are on the canvas…
-    expect(screen.getAllByRole('button', { name: /Garden Rose, Blush/ }).length).toBeGreaterThan(0)
-    // …the library is populated…
+    // The library is populated…
     expect(screen.getByRole('button', { name: 'Add Peony to the canvas' })).toBeInTheDocument()
-    // …and the recipe panel is live.
+    // …the recipe panel is live and counting the starter template…
     expect(screen.getByText('Suggested retail')).toBeInTheDocument()
+    // "Garden Rose" appears in the library card AND the live recipe rows.
+    expect(screen.getAllByText('Garden Rose').length).toBeGreaterThanOrEqual(2)
+    // …and the canvas footer exposes zoom and grid controls.
+    expect(screen.getByRole('button', { name: /Zoom in/ })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Grid' })).toBeInTheDocument()
   })
 })

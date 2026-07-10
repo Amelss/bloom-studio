@@ -1,6 +1,6 @@
 import { useRef, type MouseEvent } from 'react'
-import { toPng } from 'html-to-image'
 import { useStudio, migrateDocument } from '../domain/store'
+import { canvasRegistry } from '../render/registry'
 import { downloadFile, downloadUrl } from '../utils/download'
 
 export function TopBar() {
@@ -13,8 +13,6 @@ export function TopBar() {
   const canRedo = useStudio((s) => s.future.length > 0)
   const learningMode = useStudio((s) => s.learningMode)
   const setLearningMode = useStudio((s) => s.setLearningMode)
-  const showFormGuide = useStudio((s) => s.showFormGuide)
-  const setShowFormGuide = useStudio((s) => s.setShowFormGuide)
   const newDesign = useStudio((s) => s.newDesign)
   const importDesign = useStudio((s) => s.importDesign)
 
@@ -35,10 +33,8 @@ export function TopBar() {
   }
 
   const exportPng = async () => {
-    const node = document.getElementById('bloom-canvas')
-    if (!node) return
-    const dataUrl = await toPng(node, { pixelRatio: 2 })
-    downloadUrl(`${doc.name}.png`, dataUrl)
+    const dataUrl = await canvasRegistry.api?.exportPng()
+    if (dataUrl) downloadUrl(`${doc.name}.png`, dataUrl)
   }
 
   const onImportFile = async (file: File) => {
@@ -77,16 +73,6 @@ export function TopBar() {
         <button className="btn-icon" onClick={redo} disabled={!canRedo} aria-label="Redo" title="Redo (⇧⌘Z)">
           ↪
         </button>
-
-        {learningMode && (
-          <button
-            className={`btn ${showFormGuide ? 'bg-bloom-100 ring-1 ring-bloom-500' : ''}`}
-            aria-pressed={showFormGuide}
-            onClick={() => setShowFormGuide(!showFormGuide)}
-          >
-            Form guide
-          </button>
-        )}
 
         <label className="btn cursor-pointer select-none" title="Show live feedback and flower notes while you design">
           <input
