@@ -31,6 +31,40 @@ const VISUAL_WEIGHT: Record<StemCategory, number> = {
   foliage: 1,
 }
 
+export interface BalancePoint {
+  /** Weighted centre of visual mass (bloom heads), world mm. */
+  x: number
+  y: number
+  /** Signed horizontal lean, normalised to the artboard half-width. */
+  lean: number
+}
+
+/**
+ * The centre of visual weight — shared by the balance insight and the
+ * on-canvas balance overlay, so the text and the marker never disagree.
+ */
+export function computeBalancePoint(doc: DesignDocument): BalancePoint | null {
+  const artboard = doc.artboards[0]
+  if (!artboard || doc.stems.length === 0) return null
+  let weightedX = 0
+  let weightedY = 0
+  let totalWeight = 0
+  for (const stem of doc.stems) {
+    const variety = FLOWER_INDEX[stem.varietyId]
+    if (!variety) continue
+    const weight = VISUAL_WEIGHT[variety.category] * stem.scale
+    const head = headPosition(stem, variety)
+    weightedX += weight * head.x
+    weightedY += weight * head.y
+    totalWeight += weight
+  }
+  if (totalWeight === 0) return null
+  const x = weightedX / totalWeight
+  const y = weightedY / totalWeight
+  const cx = artboard.x + artboard.width / 2
+  return { x, y, lean: (x - cx) / (artboard.width / 2) }
+}
+
 export function analyzeDesign(doc: DesignDocument): Insight[] {
   const insights: Insight[] = []
   const stems = doc.stems
@@ -62,18 +96,9 @@ export function analyzeDesign(doc: DesignDocument): Insight[] {
   // Visual balance: weighted horizontal centre of mass of the BLOOM HEADS
   // (physical mm geometry — heads carry the visual weight, not stem bases).
   const artboard = doc.artboards[0]
-  if (stems.length >= 5 && artboard) {
-    const cx = artboard.x + artboard.width / 2
-    let weighted = 0
-    let totalWeight = 0
-    for (const stem of stems) {
-      const variety = FLOWER_INDEX[stem.varietyId]
-      if (!variety) continue
-      const weight = VISUAL_WEIGHT[variety.category] * stem.scale
-      weighted += weight * (headPosition(stem, variety).x - cx)
-      totalWeight += weight
-    }
-    const lean = weighted / (totalWeight * (artboard.width / 2))
+  const balance = computeBalancePoint(doc)
+  if (stems.length >= 5 && artboard && balance) {
+    const lean = balance.lean
     if (Math.abs(lean) <= 0.12) {
       insights.push({
         id: 'balance-good',

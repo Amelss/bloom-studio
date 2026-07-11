@@ -18,6 +18,7 @@ import {
   generateId,
   type DepthBand,
   type DesignDocument,
+  type PaperOption,
   type PlacedStem,
   type StemCategory,
 } from './types'
@@ -25,10 +26,17 @@ import { FLOWER_INDEX } from '../data/catalog'
 
 export type GridStepMm = 5 | 10 | 25 | 50
 
+export type AssetMode = 'sketch' | 'photo'
+
 export interface ContextMenuState {
   x: number
   y: number
   stemId: string
+}
+
+export interface BrushState {
+  varietyId: string
+  colorwayId: string
 }
 
 export interface StudioState {
@@ -45,6 +53,16 @@ export interface StudioState {
   gridVisible: boolean
   gridSnap: boolean
   gridStepMm: GridStepMm
+  /** 'photo' prefers AI-bridge photographic cutouts, per variety, when present. */
+  assetMode: AssetMode
+  /** On-canvas balance overlay (learning mode). */
+  balanceVisible: boolean
+  /** Parallax depth tilt. */
+  tiltEnabled: boolean
+  /** Depth x-ray: bands fan apart (hold X). */
+  xrayActive: boolean
+  /** Filler brush: paint strokes of the chosen variety. */
+  brush: BrushState | null
   past: Command[]
   future: Command[]
 
@@ -94,6 +112,21 @@ export interface StudioState {
   setGridVisible: (on: boolean) => void
   setGridSnap: (on: boolean) => void
   setGridStepMm: (step: GridStepMm) => void
+  setAssetMode: (mode: AssetMode) => void
+  setBalanceVisible: (on: boolean) => void
+  setTiltEnabled: (on: boolean) => void
+  setXrayActive: (on: boolean) => void
+  setPaper: (paper: PaperOption) => void
+  setBrush: (brush: BrushState | null) => void
+  /** Brush stroke lifecycle: stems land live, commit as ONE batch on release. */
+  brushAddTransient: (placement: {
+    x: number
+    y: number
+    rotation: number
+    scale: number
+    flipX: boolean
+  }) => string | null
+  endBrushStroke: (stemIds: string[]) => void
   toggleBandHidden: (band: DepthBand) => void
   soloBand: (band: DepthBand) => void
   toggleBandLocked: (band: DepthBand) => void
@@ -204,6 +237,11 @@ const initializer: StateCreator<StudioState> = (set, get) => {
     gridVisible: false,
     gridSnap: false,
     gridStepMm: 10,
+    assetMode: 'sketch',
+    balanceVisible: false,
+    tiltEnabled: false,
+    xrayActive: false,
+    brush: null,
     past: [],
     future: [],
 
@@ -549,6 +587,52 @@ const initializer: StateCreator<StudioState> = (set, get) => {
     setGridVisible: (on) => set({ gridVisible: on }),
     setGridSnap: (on) => set({ gridSnap: on }),
     setGridStepMm: (step) => set({ gridStepMm: step }),
+    setAssetMode: (mode) => set({ assetMode: mode }),
+    setBalanceVisible: (on) => set({ balanceVisible: on }),
+    setTiltEnabled: (on) => set({ tiltEnabled: on }),
+    setXrayActive: (on) => set({ xrayActive: on }),
+
+    setPaper: (paper) => {
+      const { doc } = get()
+      const artboard = doc.artboards[0]
+      if (!artboard || artboard.paper === paper) return
+      get().run({ type: 'set_paper', artboardId: artboard.id, next: paper, prev: artboard.paper })
+    },
+
+    setBrush: (brush) => set({ brush, selectedIds: brush ? [] : get().selectedIds }),
+
+    brushAddTransient: (placement) => {
+      const { brush, doc } = get()
+      const variety = brush && FLOWER_INDEX[brush.varietyId]
+      if (!brush || !variety) return null
+      const band = CATEGORY_BAND[variety.category]
+      const stem: PlacedStem = {
+        id: generateId(),
+        varietyId: brush.varietyId,
+        colorwayId: brush.colorwayId,
+        band,
+        order: nextOrderInBand(doc, band),
+        ...placement,
+      }
+      // Live placement without history; endBrushStroke records the batch.
+      set((state) => ({ doc: { ...state.doc, stems: [...state.doc.stems, stem] } }))
+      return stem.id
+    },
+
+    endBrushStroke: (stemIds) => {
+      const { doc } = get()
+      const stems = doc.stems.filter((s) => stemIds.includes(s.id))
+      if (!stems.length) return
+      // The doc already contains the stems; record ONE batch for undo/redo.
+      set((state) => ({
+        doc: touch(state.doc),
+        past: [
+          ...state.past.slice(-(HISTORY_LIMIT - 1)),
+          batchOf(stems.map((stem): Command => ({ type: 'add_stem', stem }))),
+        ],
+        future: [],
+      }))
+    },
 
     toggleBandHidden: (band) =>
       set((state) => ({
@@ -593,6 +677,7 @@ export function createStudioStore(options: { persistKey?: string } = {}) {
         gridVisible: state.gridVisible,
         gridSnap: state.gridSnap,
         gridStepMm: state.gridStepMm,
+        assetMode: state.assetMode,
       }),
       migrate: (persisted) => {
         // Format migrations run on the stored document (v1 px → v2 mm).

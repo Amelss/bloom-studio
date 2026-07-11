@@ -65,7 +65,16 @@ accents) rather than raw layers.
   smart alignment guides against neighbours and the artboard axes, then the grid. Hold `⌘`
   mid-drag to suspend all snapping.
 - **Depth panel** (side tab): four bands front-to-back with per-band hide (⌥-click = solo
-  — a structural x-ray) and lock.
+  — a structural x-ray) and lock. **Hold `X`** on the canvas for the animated depth x-ray
+  (bands fan apart); the footer's **Tilt** enables a pointer-driven parallax preview.
+- **Balance overlay** (footer, learning mode): the design's centre of visual weight drawn
+  live on the canvas — watch it move as you drag a rose; colour reads the verdict.
+- **Filler brush**: the 🖌 on any library card; paint a stroke and stems scatter along it
+  with natural variation, committed as a single undo step. `Esc` exits.
+- **Artwork**: generative botanical illustrations (3 seeded variants per variety — no two
+  stems identical), atlas-packed for performance. The footer's **Sketch/Photo** toggle
+  switches to photographic cutouts once produced (see docs/ASSET-PIPELINE.md); **Paper**
+  changes the artboard ground. `?perf=1500` + the console benchmark measure frame times.
 - **Keyboard**: press `?` for the searchable overlay. Highlights: arrows nudge 1mm
   (`⇧` = 10mm) · `R`/`⇧R` rotate · `[` `]` depth within band · `⌘[` `⌘]` across bands ·
   `D`/`⌘D` duplicate · `F` flip · `⌘G`/`⇧⌘G` cluster/uncluster · `⌫` delete ·
@@ -122,8 +131,8 @@ bloom-studio/
     ├── education/                  # The learning layer
     │   ├── insights.ts             # Live feedback computed from real design geometry
     │   └── principles.ts           # Principles & studio-practice content library
-    ├── data/catalog.ts             # 12 varieties + vessels with real mm sizes
-    ├── assets/sketchSvg.ts         # Sketch artwork as SVG strings (Phase C: hi-fi set)
+    ├── data/catalog.ts             # 13 varieties + vessels with real mm sizes
+    ├── assets/sketchSvg.ts         # Flat botanical illustration generators (13 varieties)
     ├── components/
     │   ├── TopBar.tsx              # Name, undo/redo, modes, new/export/import
     │   ├── LibraryPanel.tsx        # Searchable, role-filtered flower library

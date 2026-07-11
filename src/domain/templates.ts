@@ -53,6 +53,8 @@ export function starterTemplate(): DesignDocument {
     { varietyId: 'eucalyptus', colorwayId: 'silver', x: 298, y: 318, rotation: -18 },
     { varietyId: 'eucalyptus', colorwayId: 'silver', x: 302, y: 318, rotation: 18, flipX: true },
     { varietyId: 'eucalyptus', colorwayId: 'silver', x: 300, y: 316, rotation: 0, scale: 0.95 },
+    { varietyId: 'leatherleaf', colorwayId: 'green', x: 295, y: 330, rotation: -66, scale: 1.05 },
+    { varietyId: 'leatherleaf', colorwayId: 'green', x: 305, y: 331, rotation: 64, scale: 1.05, flipX: true },
     { varietyId: 'ruscus', colorwayId: 'green', x: 294, y: 326, rotation: -58, scale: 1.1 },
     { varietyId: 'ruscus', colorwayId: 'green', x: 306, y: 328, rotation: 56, scale: 1.1, flipX: true },
     // Secondary blooms — mid fan
@@ -92,5 +94,37 @@ export function starterTemplate(): DesignDocument {
     }
   })
 
+  return doc
+}
+
+/**
+ * Synthetic document for performance benchmarking (`?perf=N`): N stems of
+ * mixed varieties spread across the artboard. Deterministic layout so runs
+ * are comparable.
+ */
+export function perfDocument(stemCount: number): DesignDocument {
+  const doc = blankDocument(`Perf — ${stemCount} stems`)
+  const varieties = Object.values(FLOWER_INDEX)
+  const orderByBand: Partial<Record<DepthBand, number>> = {}
+  for (let i = 0; i < stemCount; i++) {
+    const variety = varieties[i % varieties.length]
+    const band = CATEGORY_BAND[variety.category]
+    const order = (orderByBand[band] = (orderByBand[band] ?? 0) + 1)
+    // Deterministic pseudo-random spread (low-discrepancy-ish).
+    const fx = ((i * 0.754877666) % 1)
+    const fy = ((i * 0.569840296) % 1)
+    doc.stems.push({
+      id: `perf-${i}`,
+      varietyId: variety.id,
+      colorwayId: variety.colorways[i % variety.colorways.length].id,
+      x: Math.round(30 + fx * 540),
+      y: Math.round(60 + fy * 360),
+      rotation: Math.round(((i * 37) % 90) - 45),
+      scale: 0.85 + ((i * 13) % 7) * 0.05,
+      flipX: i % 3 === 0,
+      band,
+      order,
+    })
+  }
   return doc
 }

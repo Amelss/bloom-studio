@@ -3,6 +3,8 @@ import { Application } from 'pixi.js'
 import { SceneManager } from '../../render/scene'
 import { attachInteractions, interactionSpaceHook } from '../../render/interactions'
 import { CAMERA_CHANGE_EVENT, canvasRegistry } from '../../render/registry'
+import { loadPhotoManifest } from '../../render/textures'
+import { perfDocument } from '../../domain/templates'
 import { useStudio } from '../../domain/store'
 
 /**
@@ -67,8 +69,13 @@ export function PixiStage() {
             gridStepMm: s.gridStepMm,
             hiddenBands: s.hiddenBands,
             lockedBands: s.lockedBands,
+            assetMode: s.assetMode,
+            xrayActive: s.xrayActive,
+            balanceVisible: s.balanceVisible,
           })
+          if (!s.tiltEnabled) scene.setTilt(0, 0)
         }
+        void loadPhotoManifest()
         syncFromStore()
         cleanups.push(useStudio.subscribe(syncFromStore))
         cleanups.push(attachInteractions(app.canvas, scene, useStudio, host))
@@ -120,10 +127,18 @@ export function PixiStage() {
           getZoomPercent: () => Math.round(scene.camera.scale * 100),
           setSpacePan: (down) => interactionSpaceHook.current?.(down),
           exportPng: () => scene.exportPng(),
+          runBenchmark: (frames) => scene.runBenchmark(frames),
         }
         cleanups.push(() => {
           canvasRegistry.api = null
         })
+
+        // Performance harness: ?perf=N loads a synthetic N-stem document.
+        const perfParam = new URLSearchParams(window.location.search).get('perf')
+        if (perfParam) {
+          const count = Math.max(1, Math.min(5000, parseInt(perfParam, 10) || 1500))
+          useStudio.getState().importDesign(perfDocument(count))
+        }
       })
       .catch((err: unknown) => {
         console.error('Canvas failed to start:', err)

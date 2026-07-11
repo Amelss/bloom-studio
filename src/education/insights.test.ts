@@ -32,6 +32,33 @@ function docWith(
 
 const ids = (doc: DesignDocument) => analyzeDesign(doc).map((i) => i.id)
 
+describe('computeBalancePoint', () => {
+  it('returns null for an empty design', async () => {
+    const { computeBalancePoint } = await import('./insights')
+    expect(computeBalancePoint(blankDocument())).toBeNull()
+  })
+
+  it('sits on the axis for a symmetric design and leans with the weight', async () => {
+    const { computeBalancePoint } = await import('./insights')
+    const symmetric = docWith([
+      { varietyId: 'garden-rose', colorwayId: 'blush', x: 250 },
+      { varietyId: 'garden-rose', colorwayId: 'blush', x: 350 },
+    ])
+    const balanced = computeBalancePoint(symmetric)!
+    expect(balanced.x).toBeCloseTo(300)
+    expect(Math.abs(balanced.lean)).toBeLessThan(0.01)
+
+    const heavy = docWith([
+      { varietyId: 'garden-rose', colorwayId: 'blush', x: 450 },
+      { varietyId: 'gypsophila', colorwayId: 'white', x: 250 },
+    ])
+    const leaning = computeBalancePoint(heavy)!
+    // The rose (weight 3) drags the balance point toward its side.
+    expect(leaning.x).toBeGreaterThan(350)
+    expect(leaning.lean).toBeGreaterThan(0.15)
+  })
+})
+
 describe('analyzeDesign', () => {
   it('guides an empty canvas toward the professional build order', () => {
     expect(ids(blankDocument())).toEqual(['empty-canvas'])

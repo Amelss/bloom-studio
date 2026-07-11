@@ -51,12 +51,19 @@ function useKeyboardShortcuts() {
       const store = useStudio.getState()
       const isModifier = e.metaKey || e.ctrlKey
 
-      // Escape works through the UI stack: overlay → menu → cluster → selection.
+      // Escape works through the UI stack: overlay → menu → brush → cluster → selection.
       if (e.key === 'Escape') {
         if (store.shortcutsOpen) store.setShortcutsOpen(false)
         else if (store.contextMenu) store.setContextMenu(null)
+        else if (store.brush) store.setBrush(null)
         else if (store.enteredClusterId) store.exitCluster()
         else store.setSelection([])
+        return
+      }
+
+      // Hold X for the depth x-ray (bands fan apart).
+      if (e.key.toLowerCase() === 'x' && !isModifier) {
+        if (!e.repeat) store.setXrayActive(true)
         return
       }
       if (e.key === '?') {
@@ -184,6 +191,7 @@ function useKeyboardShortcuts() {
 
     const onKeyUp = (e: KeyboardEvent) => {
       if (e.key === ' ') canvasRegistry.api?.setSpacePan(false)
+      if (e.key.toLowerCase() === 'x') useStudio.getState().setXrayActive(false)
     }
 
     window.addEventListener('keydown', onKeyDown)

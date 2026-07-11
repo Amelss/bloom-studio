@@ -13,6 +13,7 @@ import {
   type GestureSnapshot,
 } from './transformGesture'
 import type { StemPatch } from '../domain/commands'
+import { BrushSampler } from './brush'
 import type { StoreApi, UseBoundStore } from 'zustand'
 
 type Store = UseBoundStore<StoreApi<StudioState>>
@@ -29,6 +30,7 @@ type Gesture =
       moved: boolean
     }
   | { kind: 'marquee'; startWorld: { x: number; y: number }; rect: WorldRect | null }
+  | { kind: 'brush'; sampler: BrushSampler; placedIds: string[] }
   | { kind: 'rotate'; center: { x: number; y: number }; startAngle: number; start: GestureSnapshot[] }
   | { kind: 'scale'; center: { x: number; y: number }; startDist: number; start: GestureSnapshot[] }
 
@@ -187,6 +189,26 @@ export function attachInteractions(
     const world = scene.camera.worldFromScreen(p.x, p.y)
     const state = store.getState()
 
+    // Filler brush: paint placements; everything else waits.
+    if (state.brush) {
+      const variety = FLOWER_INDEX[state.brush.varietyId]
+      const sampler = new BrushSampler(
+        {
+          spacingMm: (variety?.widthMm ?? 100) * 0.45,
+          spreadMm: 14,
+          rotationJitterDeg: 20,
+        },
+        (Date.now() % 100000) + 1,
+      )
+      const placedIds: string[] = []
+      for (const placement of sampler.addPoint(world.x, world.y)) {
+        const id = state.brushAddTransient(placement)
+        if (id) placedIds.push(id)
+      }
+      gesture = { kind: 'brush', sampler, placedIds }
+      return
+    }
+
     // Transform handles take priority over stems.
     if (state.selectedIds.length && !e.altKey && !e.shiftKey) {
       const handle = scene.getHandleAt(world.x, world.y)
@@ -253,6 +275,17 @@ export function attachInteractions(
         gesture.rect = rect
         scene.setMarquee(rect)
       }
+      return
+    }
+
+    if (gesture.kind === 'brush') {
+      const world = scene.camera.worldFromScreen(p.x, p.y)
+      const state = store.getState()
+      for (const placement of gesture.sampler.addPoint(world.x, world.y)) {
+        const id = state.brushAddTransient(placement)
+        if (id) gesture.placedIds.push(id)
+      }
+      showReadout(`${gesture.placedIds.length} stems`, e.clientX, e.clientY)
       return
     }
 
@@ -359,7 +392,10 @@ export function attachInteractions(
   const onPointerEnd = (e: PointerEvent) => {
     pointers.delete(e.pointerId)
 
-    if (gesture.kind === 'dragStems') {
+    if (gesture.kind === 'brush') {
+      store.getState().endBrushStroke(gesture.placedIds)
+      hideReadout()
+    } else if (gesture.kind === 'dragStems') {
       store.getState().endTransform()
       scene.setGuides([])
       hideReadout()
@@ -391,8 +427,20 @@ export function attachInteractions(
   }
 
   const updateHoverCursor = (e: PointerEvent) => {
+    const state = store.getState()
+    if (state.tiltEnabled) {
+      const rect = canvas.getBoundingClientRect()
+      scene.setTilt(
+        ((e.clientX - rect.left) / rect.width) * 2 - 1,
+        ((e.clientY - rect.top) / rect.height) * 2 - 1,
+      )
+    }
     if (spaceDown) {
       setCursor('grab')
+      return
+    }
+    if (state.brush) {
+      setCursor('crosshair')
       return
     }
     const world = worldPoint(e)

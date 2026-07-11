@@ -67,6 +67,7 @@ describe('invertCommand', () => {
     { type: 'set_markup', next: 4, prev: 3 },
     { type: 'set_price_override', varietyId: 'peony', next: 5, prev: null },
     { type: 'rename', next: 'Renamed design', prev: 'Untitled design' },
+    { type: 'set_paper', artboardId: 'main', next: 'charcoal', prev: 'white' },
     {
       type: 'batch',
       commands: [

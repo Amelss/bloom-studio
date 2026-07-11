@@ -13,6 +13,8 @@ export interface CanvasApi {
   getZoomPercent: () => number
   setSpacePan: (down: boolean) => void
   exportPng: () => Promise<string | null>
+  /** Synchronous render benchmark (frame-time stats over a camera orbit). */
+  runBenchmark: (frames?: number) => { avgMs: number; maxMs: number; stems: number } | null
 }
 
 export const canvasRegistry: {

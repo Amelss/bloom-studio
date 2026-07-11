@@ -188,14 +188,34 @@ The DOM renderer is retired; the canvas is now **PixiJS v8 (WebGL)** per
 - Pure gesture maths lives in `render/transformGesture.ts` / `smartGuides.ts` /
   `formGuide.ts` — all unit-tested without Pixi.
 
+## Assets & performance (Milestone 1.5 Phase C — implemented)
+
+- **Generative illustration library** (`assets/sketchSvg.ts`): every variety built from
+  layered petal geometry (golden-angle rosettes, floret domes, spikes, plumes) with
+  per-petal gradients, occlusion shading, and seeded jitter — 3 variants per
+  variety+colorway, picked per stem by id hash, so repeats never look stamped.
+- **Texture atlas** (`render/textures.ts`): all rasters shelf-pack into shared 2048²
+  pages with gutter padding, so sprites share texture sources and the batcher keeps
+  draw calls low. Measured on the `?perf=1500` document: **1.96 ms avg/frame** (was
+  ~27 ms with per-flower textures). `canvasRegistry.api.runBenchmark()` reproduces it.
+- **Photographic assets (AI-bridge)**: `/flowers/manifest.json` lists alpha-cutout PNGs
+  normalised to the standard sprite layout; the footer's Sketch/Photo toggle prefers
+  them per variety with illustration fallback. Production guide: ASSET-PIPELINE.md.
+- **On-canvas education overlays**: live balance marker (shares
+  `computeBalancePoint()` with the insight, so text and marker never disagree) and
+  hold-X depth x-ray (band containers fan apart — bands are real containers now, which
+  also powers the pointer-parallax Tilt preview).
+- **Filler brush** (`render/brush.ts`): stroke-sampled scatter placement, committed as
+  one undoable batch.
+
 ## Known limitations (deliberate, tracked)
 
-- **Sketch artwork, not photography.** Phase C replaces it with the high-fidelity
-  illustration atlases; the photographic (AI-bridge) pipeline follows per the roadmap.
-- **Multi-frame** (several artboards + per-frame recipes) deferred to Phase C — the
-  document schema is ready (`artboards[]`), but per-frame recipe scoping is product
-  design beyond canvas feel.
+- **Multi-frame** (several artboards + per-frame recipes): schema ready
+  (`artboards[]`), needs its own product-design slot before M2/M3.
 - **Cluster recipe roll-up** (clusters shown as units in the recipe) deferred with it.
+- **Photographic assets not yet produced** — pipeline is live, content is an external
+  workstream (ASSET-PIPELINE.md); Photo mode falls back to illustration per variety.
+- **Perf benchmark is in-app**, not CI-automated (needs headless-browser infra).
 - **Single design, local only.** Projects, accounts, and sharing are M3.
 - **`window.confirm`/`alert`** for destructive-action guards; replaced by proper dialogs
   when the design system grows.

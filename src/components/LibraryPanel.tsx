@@ -28,6 +28,8 @@ export function LibraryPanel() {
   const setVessel = useStudio((s) => s.setVessel)
   const vesselId = useStudio((s) => s.doc.vesselId)
   const learningMode = useStudio((s) => s.learningMode)
+  const brush = useStudio((s) => s.brush)
+  const setBrush = useStudio((s) => s.setBrush)
 
   const flowers = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -118,7 +120,7 @@ export function LibraryPanel() {
                 <span className="mt-0.5 text-[10px] text-bloom-ink/60">
                   £{flower.guidePriceGBP.toFixed(2)} · {CATEGORY_LABELS[flower.category]}
                 </span>
-                <span className="mt-1 flex gap-1">
+                <span className="mt-1 flex items-center gap-1">
                   {flower.colorways.map((c) => (
                     <button
                       key={c.id}
@@ -133,6 +135,26 @@ export function LibraryPanel() {
                       }}
                     />
                   ))}
+                  <button
+                    type="button"
+                    aria-label={`Paint ${flower.commonName} with the brush`}
+                    title="Brush: paint a stroke of these on the canvas (Esc exits)"
+                    className={`ml-0.5 rounded px-1 text-[11px] leading-4 ${
+                      brush?.varietyId === flower.id
+                        ? 'bg-bloom-600 text-white'
+                        : 'text-bloom-ink/40 hover:bg-bloom-100 hover:text-bloom-ink'
+                    }`}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setBrush(
+                        brush?.varietyId === flower.id
+                          ? null
+                          : { varietyId: flower.id, colorwayId: flower.colorways[0].id },
+                      )
+                    }}
+                  >
+                    🖌
+                  </button>
                 </span>
               </div>
             </li>

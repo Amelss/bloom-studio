@@ -254,6 +254,24 @@ export const FLOWER_CATALOG: FlowerVariety[] = [
       designTip: 'Contrast textures deliberately: feathery astilbe against a smooth rose makes both read more strongly.',
     },
   },
+  {
+    id: 'leatherleaf',
+    commonName: 'Leatherleaf Fern',
+    botanicalName: 'Rumohra adiantiformis',
+    category: 'foliage',
+    guidePriceGBP: 0.6,
+    seasons: ['year-round'],
+    stemLengthCm: 45,
+    fragility: 'low',
+    sketch: 'leatherleaf',
+    widthMm: 150,
+    colorways: [{ id: 'green', name: 'Deep Green', petal: '#4a6847', accent: '#324a30', hue: 120, neutral: true }],
+    education: {
+      role: 'The classic base foliage: flat, triangular serrated fronds that skirt a design, cover mechanics, and frame the flowers from beneath.',
+      conditioning: 'Extremely long-lasting and robust — often the last thing standing. Store cool and dry.',
+      designTip: 'Lay leatherleaf flat under the bouquet base with tips pointing outward — it defines the outline and hides every stem end.',
+    },
+  },
 ]
 
 export const VESSEL_CATALOG: VesselDef[] = [

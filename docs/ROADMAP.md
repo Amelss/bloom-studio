@@ -37,10 +37,17 @@ Full canvas overhaul before any new product surface, in three phases:
   transform handles with bounded scaling, smart alignment guides + magnetic form-guide
   snapping, Depth panel (hide/solo/lock per band), numeric precision fields, select-same
   context menu, drag-from-library, searchable `?` shortcuts overlay, SR announcements.
-- **Phase C — the eyes**: high-fidelity illustration library (3 angles, LOD atlases),
-  AI-bridge photographic cutouts, paper options, filler brush, parallax tilt, on-canvas
-  insight overlays (balance marker, depth x-ray), multi-frame + per-frame recipes,
-  CI perf harness.
+- **Phase C — the eyes ✅**: generative high-fidelity illustration library (layered petal
+  geometry, gradients, occlusion shading, 3 seeded variants per variety — no two stems
+  identical) packed into shared 2048² texture atlases (measured: **1.96 ms/frame at
+  1,500 stems**, was 27 ms unatlased); AI-bridge photographic pipeline (manifest loader +
+  Sketch/Photo mode + docs/ASSET-PIPELINE.md — asset production is Ameley's workstream);
+  paper options per artboard; filler brush (one-batch-undo strokes); parallax tilt;
+  on-canvas insight overlays (live balance marker, hold-X depth x-ray); in-app perf
+  benchmark (`?perf=N` + `runBenchmark`).
+  *Deferred out of 1.5: multi-frame + per-frame recipes (product design, needs its own
+  slot — schema ready); true multi-angle head variants (photographic pipeline's job);
+  CI-automated perf runs (benchmark exists in-app; CI needs headless-browser infra).*
 
 ## Milestone 2 — Assets & Arrangement Fidelity
 
