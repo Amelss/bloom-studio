@@ -2,7 +2,7 @@
   "name": "bloom-studio",
   "private": true,
   "version": "0.1.0",
-  "description": "Bloom Studio — Student Edition. A floral design canvas that teaches while you design.",
+  "description": "Bloom Studio \u2014 Student Edition. A floral design canvas that teaches while you design.",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -10,7 +10,9 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "assets:fetch": "node scripts/pexels-assets.mjs fetch",
+    "assets:process": "node scripts/pexels-assets.mjs process"
   },
   "dependencies": {
     "pixi.js": "^8.6.0",
@@ -32,6 +34,7 @@
     "globals": "^16.5.0",
     "jsdom": "^26.1.0",
     "postcss": "^8.5.14",
+    "sharp": "^0.35.3",
     "tailwindcss": "^3.4.19",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.46.4",

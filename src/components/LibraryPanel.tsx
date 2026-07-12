@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { FLOWER_CATALOG, VESSEL_CATALOG } from '../data/catalog'
 import { SKETCHES, svgToDataUrl } from '../assets/sketchSvg'
+import { photoThumbSrc } from '../render/textures'
 import { useStudio } from '../domain/store'
 import type { StemCategory } from '../domain/types'
 
@@ -28,6 +29,7 @@ export function LibraryPanel() {
   const setVessel = useStudio((s) => s.setVessel)
   const vesselId = useStudio((s) => s.doc.vesselId)
   const learningMode = useStudio((s) => s.learningMode)
+  const photoAssetsReady = useStudio((s) => s.photoAssetsReady)
   const brush = useStudio((s) => s.brush)
   const setBrush = useStudio((s) => s.setBrush)
 
@@ -78,6 +80,8 @@ export function LibraryPanel() {
         {flowers.map((flower) => {
           const Sketch = SKETCHES[flower.sketch]
           const preview = flower.colorways[0]
+          // Prefer the supplied production asset's thumbnail; else vector sketch.
+          const photo = photoAssetsReady ? photoThumbSrc(flower.id, preview.id) : null
           return (
             <li key={flower.id}>
               <div
@@ -106,13 +110,17 @@ export function LibraryPanel() {
                     : `${flower.commonName} — drag onto the canvas to place`
                 }
               >
-                <span className="h-16 w-12" aria-hidden>
-                  {Sketch && (
-                    <img
-                      className="h-full w-full"
-                      alt=""
-                      src={svgToDataUrl(Sketch({ petal: preview.petal, accent: preview.accent }))}
-                    />
+                <span className="flex h-16 w-14 items-end justify-center" aria-hidden>
+                  {photo ? (
+                    <img className="max-h-full max-w-full object-contain" alt="" src={photo} />
+                  ) : (
+                    Sketch && (
+                      <img
+                        className="h-full w-full"
+                        alt=""
+                        src={svgToDataUrl(Sketch({ petal: preview.petal, accent: preview.accent }))}
+                      />
+                    )
                   )}
                 </span>
                 <span className="mt-1 text-xs font-semibold leading-tight">{flower.commonName}</span>

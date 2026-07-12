@@ -75,7 +75,7 @@ export function PixiStage() {
           })
           if (!s.tiltEnabled) scene.setTilt(0, 0)
         }
-        void loadPhotoManifest()
+        void loadPhotoManifest().then(() => useStudio.getState().setPhotoAssetsReady(true))
         syncFromStore()
         cleanups.push(useStudio.subscribe(syncFromStore))
         cleanups.push(attachInteractions(app.canvas, scene, useStudio, host))

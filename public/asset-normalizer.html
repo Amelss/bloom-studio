@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Bloom Studio — Asset Normalizer</title>
+<style>
+  :root { color-scheme: light; }
+  body { font-family: ui-sans-serif, system-ui, sans-serif; margin: 0; background: #f3ede2; color: #2f2a26; display: flex; min-height: 100vh; }
+  .stage-wrap { flex: 1; display: flex; align-items: center; justify-content: center; padding: 24px; }
+  .stage { position: relative; width: 480px; height: 768px; background:
+    repeating-conic-gradient(#e9e2d2 0% 25%, #f7f3ea 0% 50%) 0 0 / 24px 24px;
+    border: 1px solid #cfc7b4; border-radius: 8px; overflow: hidden; cursor: grab; touch-action: none; }
+  .stage.dragging { cursor: grabbing; }
+  .stage img { position: absolute; transform-origin: top left; pointer-events: none; user-select: none; }
+  .guides { position: absolute; inset: 0; pointer-events: none; }
+  aside { width: 340px; background: #fff; border-left: 1px solid #cfc7b4; padding: 20px; box-sizing: border-box; }
+  h1 { font-size: 16px; margin: 0 0 4px; }
+  p { font-size: 12px; color: #6b645a; line-height: 1.5; }
+  label { display: block; font-size: 12px; font-weight: 600; margin: 12px 0 4px; }
+  input, select, button, textarea { font: inherit; }
+  input[type=text], select { width: 100%; padding: 6px 8px; border: 1px solid #cfc7b4; border-radius: 6px; box-sizing: border-box; }
+  input[type=range] { width: 100%; }
+  button { background: #6f8161; color: #fff; border: 0; border-radius: 8px; padding: 10px 14px; font-weight: 600; cursor: pointer; margin-top: 14px; width: 100%; }
+  button.secondary { background: #fff; color: #2f2a26; border: 1px solid #cfc7b4; }
+  textarea { width: 100%; height: 110px; font-family: ui-monospace, monospace; font-size: 11px; border: 1px solid #cfc7b4; border-radius: 6px; box-sizing: border-box; margin-top: 8px; }
+  .hint { font-size: 11px; color: #8a8378; }
+  .drop { border: 2px dashed #cfc7b4; border-radius: 8px; padding: 14px; text-align: center; font-size: 12px; color: #6b645a; margin-top: 8px; }
+  .drop.over { border-color: #6f8161; background: #f0f4ec; }
+</style>
+</head>
+<body>
+  <div class="stage-wrap">
+    <div class="stage" id="stage">
+      <img id="art" alt="" hidden />
+      <svg class="guides" viewBox="0 0 480 768" xmlns="http://www.w3.org/2000/svg">
+        <!-- Head centre: 26.25% height -->
+        <line x1="0" y1="201.6" x2="480" y2="201.6" stroke="#b0715f" stroke-width="1" stroke-dasharray="6 5"/>
+        <circle cx="240" cy="201.6" r="7" fill="none" stroke="#b0715f" stroke-width="1.5"/>
+        <line x1="233" y1="201.6" x2="247" y2="201.6" stroke="#b0715f" stroke-width="1"/>
+        <line x1="240" y1="194.6" x2="240" y2="208.6" stroke="#b0715f" stroke-width="1"/>
+        <text x="8" y="196" font-size="11" fill="#b0715f">head centre</text>
+        <!-- Binding point: 93.75% height -->
+        <line x1="0" y1="720" x2="480" y2="720" stroke="#586950" stroke-width="1" stroke-dasharray="6 5"/>
+        <circle cx="240" cy="720" r="5" fill="#586950"/>
+        <text x="8" y="714" font-size="11" fill="#586950">binding point (stem base)</text>
+        <!-- Vertical axis -->
+        <line x1="240" y1="0" x2="240" y2="768" stroke="#8a8378" stroke-width="0.75" stroke-dasharray="3 6" opacity="0.6"/>
+      </svg>
+    </div>
+  </div>
+  <aside>
+    <h1>Asset Normalizer</h1>
+    <p>Fits a cutout PNG to Bloom Studio's sprite layout (100:160; head centre at
+       26.25%, binding at 93.75%). Drop an image, drag to position, scroll to scale:
+       put the bloom's centre on the <b style="color:#b0715f">rose crosshair</b> and the
+       stem's end on the <b style="color:#586950">green dot</b>. Export saves the
+       normalized 1280×2048 PNG + a manifest line.</p>
+    <div class="drop" id="drop">Drop a cutout PNG here — or click to choose<input type="file" id="file" accept="image/png,image/webp" hidden /></div>
+    <label for="variety">Variety ID</label>
+    <input type="text" id="variety" placeholder="garden-rose" list="varieties" />
+    <datalist id="varieties">
+      <option>garden-rose</option><option>peony</option><option>ranunculus</option>
+      <option>lisianthus</option><option>carnation</option><option>hydrangea</option>
+      <option>delphinium</option><option>gypsophila</option><option>spray-rose</option>
+      <option>astilbe</option><option>eucalyptus</option><option>ruscus</option><option>leatherleaf</option>
+    </datalist>
+    <label for="colorway">Colorway ID</label>
+    <input type="text" id="colorway" placeholder="blush" />
+    <label for="variant">Variant</label>
+    <select id="variant"><option>0</option><option>1</option><option>2</option></select>
+    <label for="scale">Scale <span class="hint" id="scaleLabel">100%</span></label>
+    <input type="range" id="scale" min="5" max="400" value="100" />
+    <button id="export">Export normalized PNG</button>
+    <button class="secondary" id="center">Centre horizontally</button>
+    <label>Manifest entry (append to public/flowers/manifest.json)</label>
+    <textarea id="manifest" readonly spellcheck="false"></textarea>
+    <p class="hint">QA before shipping: alpha edges clean at 200% · colour matches the
+       catalog swatch · consistent lighting with the rest of the set · recognisable at
+       thumbnail size. Full guide: docs/ASSET-PIPELINE.md.</p>
+  </aside>
+
+<script>
+(() => {
+  const stage = document.getElementById('stage')
+  const art = document.getElementById('art')
+  const drop = document.getElementById('drop')
+  const fileInput = document.getElementById('file')
+  const scaleInput = document.getElementById('scale')
+  const scaleLabel = document.getElementById('scaleLabel')
+  const varietyInput = document.getElementById('variety')
+  const colorwayInput = document.getElementById('colorway')
+  const variantInput = document.getElementById('variant')
+  const manifestOut = document.getElementById('manifest')
+
+  const EXPORT_W = 1280
+  const EXPORT_H = 2048
+  const K = EXPORT_W / 480 // preview → export scale
+
+  let img = null
+  const view = { x: 40, y: 40, scale: 1 }
+
+  function render() {
+    if (!img) return
+    art.hidden = false
+    art.src = img.src
+    art.style.left = view.x + 'px'
+    art.style.top = view.y + 'px'
+    art.style.width = img.naturalWidth * view.scale + 'px'
+    art.style.height = img.naturalHeight * view.scale + 'px'
+    scaleLabel.textContent = Math.round(view.scale * 100) + '%'
+    updateManifest()
+  }
+
+  function updateManifest() {
+    const v = varietyInput.value.trim() || 'variety'
+    const c = colorwayInput.value.trim() || 'colorway'
+    const n = variantInput.value
+    manifestOut.value = JSON.stringify(
+      { varietyId: v, colorwayId: c, variant: Number(n), src: `/flowers/${v}-${c}-${n}.png` },
+      null, 2,
+    ) + ','
+  }
+
+  function loadFile(file) {
+    if (!file) return
+    const url = URL.createObjectURL(file)
+    const image = new Image()
+    image.onload = () => {
+      img = image
+      // Initial fit: 70% of stage height.
+      view.scale = (768 * 0.7) / image.naturalHeight
+      view.x = 240 - (image.naturalWidth * view.scale) / 2
+      view.y = 60
+      scaleInput.value = String(Math.max(5, Math.min(400, Math.round(view.scale * 100))))
+      render()
+    }
+    image.src = url
+  }
+
+  drop.addEventListener('click', () => fileInput.click())
+  fileInput.addEventListener('change', () => loadFile(fileInput.files[0]))
+  ;['dragover', 'dragleave', 'drop'].forEach((type) => {
+    drop.addEventListener(type, (e) => {
+      e.preventDefault()
+      drop.classList.toggle('over', type === 'dragover')
+      if (type === 'drop') loadFile(e.dataTransfer.files[0])
+    })
+    stage.addEventListener(type, (e) => {
+      e.preventDefault()
+      if (type === 'drop') loadFile(e.dataTransfer.files[0])
+    })
+  })
+
+  let dragging = null
+  stage.addEventListener('pointerdown', (e) => {
+    stage.setPointerCapture(e.pointerId)
+    stage.classList.add('dragging')
+    dragging = { px: e.clientX, py: e.clientY, x: view.x, y: view.y }
+  })
+  stage.addEventListener('pointermove', (e) => {
+    if (!dragging) return
+    view.x = dragging.x + (e.clientX - dragging.px)
+    view.y = dragging.y + (e.clientY - dragging.py)
+    render()
+  })
+  stage.addEventListener('pointerup', () => {
+    dragging = null
+    stage.classList.remove('dragging')
+  })
+  stage.addEventListener('wheel', (e) => {
+    e.preventDefault()
+    if (!img) return
+    const rect = stage.getBoundingClientRect()
+    const mx = e.clientX - rect.left
+    const my = e.clientY - rect.top
+    const factor = Math.exp(-e.deltaY * 0.0015)
+    const next = Math.max(0.05, Math.min(4, view.scale * factor))
+    // Zoom around the cursor.
+    view.x = mx - ((mx - view.x) * next) / view.scale
+    view.y = my - ((my - view.y) * next) / view.scale
+    view.scale = next
+    scaleInput.value = String(Math.round(next * 100))
+    render()
+  }, { passive: false })
+  scaleInput.addEventListener('input', () => {
+    if (!img) return
+    const next = Number(scaleInput.value) / 100
+    // Keep the image centre fixed while slider-scaling.
+    const cx = view.x + (img.naturalWidth * view.scale) / 2
+    const cy = view.y + (img.naturalHeight * view.scale) / 2
+    view.scale = next
+    view.x = cx - (img.naturalWidth * next) / 2
+    view.y = cy - (img.naturalHeight * next) / 2
+    render()
+  })
+  document.getElementById('center').addEventListener('click', () => {
+    if (!img) return
+    view.x = 240 - (img.naturalWidth * view.scale) / 2
+    render()
+  })
+  ;[varietyInput, colorwayInput, variantInput].forEach((el) =>
+    el.addEventListener('input', updateManifest),
+  )
+
+  document.getElementById('export').addEventListener('click', () => {
+    if (!img) { alert('Load an image first.'); return }
+    const canvas = document.createElement('canvas')
+    canvas.width = EXPORT_W
+    canvas.height = EXPORT_H
+    const ctx = canvas.getContext('2d')
+    ctx.imageSmoothingQuality = 'high'
+    ctx.drawImage(
+      img,
+      view.x * K,
+      view.y * K,
+      img.naturalWidth * view.scale * K,
+      img.naturalHeight * view.scale * K,
+    )
+    const v = varietyInput.value.trim() || 'variety'
+    const c = colorwayInput.value.trim() || 'colorway'
+    const n = variantInput.value
+    const a = document.createElement('a')
+    a.download = `${v}-${c}-${n}.png`
+    a.href = canvas.toDataURL('image/png')
+    a.click()
+  })
+
+  updateManifest()
+})()
+</script>
+</body>
+</html>

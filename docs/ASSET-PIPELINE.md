@@ -33,18 +33,39 @@ across the set so lighting/style match):
 > isolated on transparent background, entire stem visible, photographed
 > straight-on, hyper-detailed petals, no vase, no hands, no text.
 
+Per-variety descriptors to splice into the skeleton (form words a florist would
+use — these are what stop the generator producing "generic pink flower"):
+
+| Variety | Descriptors |
+| --- | --- |
+| garden-rose | fully open quartered garden rose, densely ruffled swirled centre, broad reflexed guard petals |
+| peony | Sarah Bernhardt / bomb-form peony, dense ruffled dome of layered petals, broad guard petals |
+| ranunculus | Cloni ranunculus, hundreds of tightly packed paper-thin concentric petals, small green button eye |
+| lisianthus | double lisianthus, ruffled rose-like open cup, two spiralled pointed buds on branching stem |
+| carnation | fringed serrated-edge ruffled petals, prominent tubular green calyx below the bloom |
+| hydrangea | mophead hydrangea, dense dome of dozens of four-petalled florets |
+| delphinium | tall delphinium raceme, open florets with pale central bee, pointed buds at the tip |
+| gypsophila | fine wiry branching stems, cloud of tiny double white blooms |
+| spray-rose | branched spray rose, several small open rosettes plus pointed sepalled buds on one stem |
+| astilbe | feathery tapering astilbe plumes on fine branching stems |
+| eucalyptus | silver dollar eucalyptus, rounded glaucous blue-grey coin leaves on short petioles, reddish stem |
+| ruscus | Italian ruscus, arching stem of alternating glossy lance-shaped leaves |
+| leatherleaf | leatherleaf fern, flat triangular bipinnate frond, glossy serrated pinnae |
+
 Then per image:
 
 1. **Cut out** (if the generator can't output alpha): any background-removal
    tool; check petal edges at 200% — halos and hard clip edges are what make
    assets read as pasted.
-2. **Normalise** to the layout contract above (canvas 1280 × 2048, position
-   head/binding on the anchor lines).
+2. **Normalise** with the built-in tool: run the app and open
+   **`/asset-normalizer.html`** — drop the cutout, drag/scroll until the bloom
+   centre sits on the crosshair and the stem end on the binding dot, fill in
+   variety/colorway/variant, and export. It saves the correctly-sized PNG with
+   the correct filename AND gives you the manifest entry to paste.
 3. **Colour-check** against the colorway swatch in `data/catalog.ts` — the
    recipe promises the client that colour.
-4. Export PNG. Name it `{varietyId}-{colorwayId}-{variant}.png`
-   (e.g. `garden-rose-blush-0.png`). 2–3 variants per colorway prevent the
-   "stamped" look; variants are picked per stem automatically.
+4. 2–3 variants per colorway prevent the "stamped" look; variants are picked
+   per stem automatically.
 
 ## Installing
 

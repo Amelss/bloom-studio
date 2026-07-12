@@ -1,0 +1,138 @@
+{
+  "version": 1,
+  "assets": [
+    {
+      "varietyId": "delphinium",
+      "colorwayId": "blue",
+      "variant": 0,
+      "src": "/flowers/delphinium-blue-0.png",
+      "thumb": "/flowers/delphinium-blue-0-thumb.png"
+    },
+    {
+      "varietyId": "garden-rose",
+      "colorwayId": "blush",
+      "variant": 0,
+      "src": "/flowers/garden-rose-blush-0.png",
+      "thumb": "/flowers/garden-rose-blush-0-thumb.png"
+    },
+    {
+      "varietyId": "astilbe",
+      "colorwayId": "pink",
+      "variant": 0,
+      "src": "/flowers/astilbe-pink-0.png",
+      "thumb": "/flowers/astilbe-pink-0-thumb.png"
+    },
+    {
+      "varietyId": "dahlia",
+      "colorwayId": "burgundy",
+      "variant": 0,
+      "src": "/flowers/dahlia-burgundy-0.png",
+      "thumb": "/flowers/dahlia-burgundy-0-thumb.png"
+    },
+    {
+      "varietyId": "eucalyptus",
+      "colorwayId": "silver",
+      "variant": 0,
+      "src": "/flowers/eucalyptus-silver-0.png",
+      "thumb": "/flowers/eucalyptus-silver-0-thumb.png"
+    },
+    {
+      "varietyId": "leatherleaf",
+      "colorwayId": "green",
+      "variant": 0,
+      "src": "/flowers/leatherleaf-green-0.png",
+      "thumb": "/flowers/leatherleaf-green-0-thumb.png"
+    },
+    {
+      "varietyId": "gerbera",
+      "colorwayId": "coral",
+      "variant": 0,
+      "src": "/flowers/gerbera-coral-0.png",
+      "thumb": "/flowers/gerbera-coral-0-thumb.png"
+    },
+    {
+      "varietyId": "gypsophila",
+      "colorwayId": "white",
+      "variant": 0,
+      "src": "/flowers/gypsophila-white-0.png",
+      "thumb": "/flowers/gypsophila-white-0-thumb.png"
+    },
+    {
+      "varietyId": "hydrangea",
+      "colorwayId": "dusty-blue",
+      "variant": 0,
+      "src": "/flowers/hydrangea-dusty-blue-0.png",
+      "thumb": "/flowers/hydrangea-dusty-blue-0-thumb.png"
+    },
+    {
+      "varietyId": "ruscus",
+      "colorwayId": "green",
+      "variant": 0,
+      "src": "/flowers/ruscus-green-0.png",
+      "thumb": "/flowers/ruscus-green-0-thumb.png"
+    },
+    {
+      "varietyId": "lily",
+      "colorwayId": "white",
+      "variant": 0,
+      "src": "/flowers/lily-white-0.png",
+      "thumb": "/flowers/lily-white-0-thumb.png"
+    },
+    {
+      "varietyId": "lisianthus",
+      "colorwayId": "lilac",
+      "variant": 0,
+      "src": "/flowers/lisianthus-lilac-0.png",
+      "thumb": "/flowers/lisianthus-lilac-0-thumb.png"
+    },
+    {
+      "varietyId": "carnation",
+      "colorwayId": "dusty-pink",
+      "variant": 0,
+      "src": "/flowers/carnation-dusty-pink-0.png",
+      "thumb": "/flowers/carnation-dusty-pink-0-thumb.png"
+    },
+    {
+      "varietyId": "peony",
+      "colorwayId": "pink",
+      "variant": 0,
+      "src": "/flowers/peony-pink-0.png",
+      "thumb": "/flowers/peony-pink-0-thumb.png"
+    },
+    {
+      "varietyId": "ranunculus",
+      "colorwayId": "pink",
+      "variant": 0,
+      "src": "/flowers/ranunculus-pink-0.png",
+      "thumb": "/flowers/ranunculus-pink-0-thumb.png"
+    },
+    {
+      "varietyId": "snapdragon",
+      "colorwayId": "pink",
+      "variant": 0,
+      "src": "/flowers/snapdragon-pink-0.png",
+      "thumb": "/flowers/snapdragon-pink-0-thumb.png"
+    },
+    {
+      "varietyId": "stock",
+      "colorwayId": "lavender",
+      "variant": 0,
+      "src": "/flowers/stock-lavender-0.png",
+      "thumb": "/flowers/stock-lavender-0-thumb.png"
+    },
+    {
+      "varietyId": "sunflower",
+      "colorwayId": "yellow",
+      "variant": 0,
+      "src": "/flowers/sunflower-yellow-0.png",
+      "thumb": "/flowers/sunflower-yellow-0-thumb.png"
+    },
+    {
+      "varietyId": "sunflower",
+      "colorwayId": "yellow",
+      "variant": 1,
+      "src": "/flowers/sunflower-yellow-1.png",
+      "thumb": "/flowers/sunflower-yellow-1-thumb.png"
+    }
+  ]
+}

@@ -28,11 +28,23 @@ const VESSEL_TEXTURE_WIDTH = 512
 
 export type AssetMode = 'sketch' | 'photo'
 
+/**
+ * Every imported photographic frame represents the SAME real-world box, so a
+ * flower scaled to its true millimetre size inside that box automatically
+ * renders at correct proportions relative to every other flower. The importer
+ * scales each asset at a matching pixels-per-mm (see scripts/import-assets.mjs).
+ */
+export const PHOTO_FRAME_MM = 340
+
 export interface StemTextureEntry {
   texture: Texture
   alpha: Uint8ClampedArray
   alphaWidth: number
   alphaHeight: number
+  /** Real-world width the sprite frame represents, mm. */
+  mmWidth: number
+  /** Tight bounding box of the visible art within the frame, as 0–1 fractions. */
+  content: { x: number; y: number; w: number; h: number }
 }
 
 interface ManifestAsset {
@@ -40,6 +52,7 @@ interface ManifestAsset {
   colorwayId: string
   variant?: number
   src: string
+  thumb?: string
 }
 
 const stemCache = new Map<string, StemTextureEntry>()
@@ -48,6 +61,10 @@ const pending = new Set<string>()
 
 /** varietyId:colorwayId → available photographic sources. */
 const photoIndex = new Map<string, string[]>()
+/** varietyId → every source for the variety (colourway-agnostic fallback). */
+const varietyPhotoIndex = new Map<string, string[]>()
+/** varietyId:colorwayId → tightly-cropped thumbnail for the library panel. */
+const thumbIndex = new Map<string, string>()
 let manifestLoaded = false
 
 let onTextureReady: (() => void) | null = null
@@ -63,6 +80,28 @@ export function variantForStem(stemId: string): number {
 
 export function hasPhotoAssets(): boolean {
   return photoIndex.size > 0
+}
+
+/** The image URL to show for a variety (exact colourway first, else any). */
+export function photoAssetSrc(varietyId: string, colorwayId?: string): string | null {
+  if (colorwayId) {
+    const exact = photoIndex.get(`${varietyId}:${colorwayId}`)
+    if (exact?.length) return exact.find(Boolean) ?? null
+  }
+  const any = varietyPhotoIndex.get(varietyId)
+  return any?.[0] ?? null
+}
+
+/** Tightly-cropped thumbnail for the library (exact colourway first, else any). */
+export function photoThumbSrc(varietyId: string, colorwayId?: string): string | null {
+  if (colorwayId) {
+    const exact = thumbIndex.get(`${varietyId}:${colorwayId}`)
+    if (exact) return exact
+  }
+  for (const [key, src] of thumbIndex) {
+    if (key.startsWith(`${varietyId}:`)) return src
+  }
+  return null
 }
 
 /**
@@ -81,6 +120,10 @@ export async function loadPhotoManifest(): Promise<void> {
       const list = photoIndex.get(key) ?? []
       list[asset.variant ?? list.length] = asset.src
       photoIndex.set(key, list)
+      const vList = varietyPhotoIndex.get(asset.varietyId) ?? []
+      if (!vList.includes(asset.src)) vList.push(asset.src)
+      varietyPhotoIndex.set(asset.varietyId, vList)
+      if (asset.thumb && !thumbIndex.has(key)) thumbIndex.set(key, asset.thumb)
     }
     if (photoIndex.size) onTextureReady?.()
   } catch {
@@ -98,9 +141,12 @@ export function getStemTexture(
   const colorway = getColorway(varietyId, colorwayId)
   if (!variety || !colorway) return null
 
-  // Photographic source, when requested and available.
+  // Photographic source, when requested and available. Prefer the exact
+  // colourway; fall back to any asset for the variety (one asset per flower
+  // covers all its colourways) before falling back to the illustration.
   if (mode === 'photo') {
-    const sources = photoIndex.get(`${varietyId}:${colorway.id}`)
+    const exact = photoIndex.get(`${varietyId}:${colorway.id}`)
+    const sources = exact?.length ? exact : varietyPhotoIndex.get(varietyId)
     if (sources?.length) {
       const src = sources[variant % sources.length] ?? sources[0]
       const key = `photo:${src}`
@@ -108,7 +154,7 @@ export function getStemTexture(
       if (cached) return cached
       if (!pending.has(key)) {
         pending.add(key)
-        void rasterizeStemFromUrl(key, src)
+        void rasterizeStemFromUrl(key, src, PHOTO_FRAME_MM)
       }
       return null
     }
@@ -126,6 +172,7 @@ export function getStemTexture(
   void rasterizeStemFromSvg(
     key,
     sketch({ petal: colorway.petal, accent: colorway.accent }, variant + 1),
+    variety.widthMm,
   )
   return null
 }
@@ -152,20 +199,20 @@ export function hitTestAlpha(entry: StemTextureEntry, u: number, v: number): boo
 
 /* ------------------------------ internals ------------------------------ */
 
-async function rasterizeStemFromSvg(key: string, svg: string) {
+async function rasterizeStemFromSvg(key: string, svg: string, mmWidth: number) {
   try {
     const image = await loadImage(svgToDataUrl(svg))
-    stemCache.set(key, buildStemEntry(image))
+    stemCache.set(key, buildStemEntry(image, mmWidth))
   } finally {
     pending.delete(key)
     onTextureReady?.()
   }
 }
 
-async function rasterizeStemFromUrl(key: string, src: string) {
+async function rasterizeStemFromUrl(key: string, src: string, mmWidth: number) {
   try {
     const image = await loadImage(src)
-    stemCache.set(key, buildStemEntry(image))
+    stemCache.set(key, buildStemEntry(image, mmWidth))
   } catch {
     // Broken asset reference: leave uncached; illustration fallback shows
     // next sync because the photo lookup keeps failing over.
@@ -175,7 +222,7 @@ async function rasterizeStemFromUrl(key: string, src: string) {
   }
 }
 
-function buildStemEntry(image: HTMLImageElement): StemTextureEntry {
+function buildStemEntry(image: HTMLImageElement, mmWidth: number): StemTextureEntry {
   const width = STEM_TEXTURE_WIDTH
   const height = Math.round(width * SPRITE_ASPECT)
   const texture = drawToTexture(image, width, height)
@@ -189,9 +236,30 @@ function buildStemEntry(image: HTMLImageElement): StemTextureEntry {
   ctx.drawImage(image, 0, 0, hitWidth, hitHeight)
   const data = ctx.getImageData(0, 0, hitWidth, hitHeight).data
   const alpha = new Uint8ClampedArray(hitWidth * hitHeight)
-  for (let i = 0; i < alpha.length; i++) alpha[i] = data[i * 4 + 3]
+  let minX = hitWidth, maxX = -1, minY = hitHeight, maxY = -1
+  for (let iy = 0; iy < hitHeight; iy++) {
+    for (let ix = 0; ix < hitWidth; ix++) {
+      const a = data[(iy * hitWidth + ix) * 4 + 3]
+      alpha[iy * hitWidth + ix] = a
+      if (a > 25) {
+        if (ix < minX) minX = ix
+        if (ix > maxX) maxX = ix
+        if (iy < minY) minY = iy
+        if (iy > maxY) maxY = iy
+      }
+    }
+  }
+  const content =
+    maxX < 0
+      ? { x: 0, y: 0, w: 1, h: 1 }
+      : {
+          x: minX / hitWidth,
+          y: minY / hitHeight,
+          w: (maxX - minX + 1) / hitWidth,
+          h: (maxY - minY + 1) / hitHeight,
+        }
 
-  return { texture, alpha, alphaWidth: hitWidth, alphaHeight: hitHeight }
+  return { texture, alpha, alphaWidth: hitWidth, alphaHeight: hitHeight, mmWidth, content }
 }
 
 async function rasterizeVessel(key: string, svg: string) {

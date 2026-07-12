@@ -10,11 +10,11 @@ import {
 } from '../domain/types'
 import {
   BINDING_ANCHOR,
-  spriteSize,
-  stemBounds,
+  SPRITE_ASPECT,
   vesselRect,
 } from '../domain/geometry'
 import { FLOWER_INDEX, VESSEL_INDEX } from '../data/catalog'
+import type { FlowerVariety } from '../domain/types'
 import { computeBalancePoint } from '../education/insights'
 import { Camera } from './camera'
 import { gridSteps } from './grid'
@@ -227,6 +227,55 @@ export class SceneManager {
     return !this.prefs.hiddenBands.includes(stem.band) && !this.prefs.lockedBands.includes(stem.band)
   }
 
+  /**
+   * Sprite frame size in world mm. The frame's real width comes from the
+   * loaded asset (every photographic frame is the same real box, so flowers
+   * scaled to true size render at correct relative proportions); the vector
+   * fallback uses the variety's catalog width.
+   */
+  private frameSize(stem: PlacedStem, variety: FlowerVariety): { width: number; height: number } {
+    const entry = this.hitEntries.get(stem.id)
+    const width = (entry?.mmWidth ?? variety.widthMm) * stem.scale
+    return { width, height: width * SPRITE_ASPECT }
+  }
+
+  /** World-space corners of the TIGHT visible-content rectangle (for bounds). */
+  private contentCorners(stem: PlacedStem, variety: FlowerVariety): Array<{ x: number; y: number }> {
+    const { width, height } = this.frameSize(stem, variety)
+    const c = this.hitEntries.get(stem.id)?.content ?? { x: 0, y: 0, w: 1, h: 1 }
+    const flip = stem.flipX ? -1 : 1
+    const l = (c.x - BINDING_ANCHOR.x) * width
+    const r = (c.x + c.w - BINDING_ANCHOR.x) * width
+    const t = (c.y - BINDING_ANCHOR.y) * height
+    const b = (c.y + c.h - BINDING_ANCHOR.y) * height
+    const rad = (stem.rotation * Math.PI) / 180
+    const cos = Math.cos(rad)
+    const sin = Math.sin(rad)
+    return [
+      [l, t],
+      [r, t],
+      [r, b],
+      [l, b],
+    ].map(([x, y]) => {
+      const fx = x * flip
+      return { x: stem.x + fx * cos - y * sin, y: stem.y + fx * sin + y * cos }
+    })
+  }
+
+  private contentAABB(stem: PlacedStem, variety: FlowerVariety): WorldRect {
+    let minX = Infinity
+    let minY = Infinity
+    let maxX = -Infinity
+    let maxY = -Infinity
+    for (const p of this.contentCorners(stem, variety)) {
+      minX = Math.min(minX, p.x)
+      minY = Math.min(minY, p.y)
+      maxX = Math.max(maxX, p.x)
+      maxY = Math.max(maxY, p.y)
+    }
+    return { x: minX, y: minY, width: maxX - minX, height: maxY - minY }
+  }
+
   /** All stems with visible paint at the point, front-most first. */
   hitTestAll(worldX: number, worldY: number): string[] {
     if (!this.doc) return []
@@ -236,7 +285,7 @@ export class SceneManager {
       const variety = FLOWER_INDEX[stem.varietyId]
       const entry = this.hitEntries.get(stem.id)
       if (!variety || !entry) continue
-      const { width, height } = spriteSize(variety, stem.scale)
+      const { width, height } = this.frameSize(stem, variety)
       const rad = (stem.rotation * Math.PI) / 180
       const cos = Math.cos(rad)
       const sin = Math.sin(rad)
@@ -279,7 +328,7 @@ export class SceneManager {
       if (!this.stemInteractive(stem)) continue
       const variety = FLOWER_INDEX[stem.varietyId]
       if (!variety) continue
-      const b = stemBounds(stem, variety)
+      const b = this.contentAABB(stem, variety)
       if (
         b.x < rect.x + rect.width &&
         b.x + b.width > rect.x &&
@@ -302,7 +351,7 @@ export class SceneManager {
       const stem = this.doc.stems.find((s) => s.id === id)
       const variety = stem && FLOWER_INDEX[stem.varietyId]
       if (!stem || !variety) continue
-      const b = stemBounds(stem, variety)
+      const b = this.contentAABB(stem, variety)
       minX = Math.min(minX, b.x)
       minY = Math.min(minY, b.y)
       maxX = Math.max(maxX, b.x + b.width)
@@ -476,7 +525,7 @@ export class SceneManager {
         this.hitEntries.set(stem.id, entry)
         if (sprite.texture !== entry.texture) sprite.texture = entry.texture
         sprite.visible = !hidden
-        const { width, height } = spriteSize(variety, stem.scale)
+        const { width, height } = this.frameSize(stem, variety)
         sprite.scale.set(
           ((stem.flipX ? -1 : 1) * width) / entry.texture.width,
           height / entry.texture.height,
@@ -644,19 +693,7 @@ export class SceneManager {
       const stem = this.doc.stems.find((s) => s.id === id)
       const variety = stem && FLOWER_INDEX[stem.varietyId]
       if (!stem || !variety) continue
-      const { width, height } = spriteSize(variety, stem.scale)
-      const rad = (stem.rotation * Math.PI) / 180
-      const cos = Math.cos(rad)
-      const sin = Math.sin(rad)
-      const corners = [
-        { x: -width / 2, y: -BINDING_ANCHOR.y * height },
-        { x: width / 2, y: -BINDING_ANCHOR.y * height },
-        { x: width / 2, y: (1 - BINDING_ANCHOR.y) * height },
-        { x: -width / 2, y: (1 - BINDING_ANCHOR.y) * height },
-      ].map((p) => ({
-        x: stem.x + p.x * cos - p.y * sin,
-        y: stem.y + p.x * sin + p.y * cos,
-      }))
+      const corners = this.contentCorners(stem, variety)
       g.moveTo(corners[0].x, corners[0].y)
       for (const p of [...corners.slice(1), corners[0]]) g.lineTo(p.x, p.y)
       g.stroke({ color: SELECTION_COLOR, alpha: this.selectedIds.length > 1 ? 0.4 : 0.85, width: 1.5 * px })

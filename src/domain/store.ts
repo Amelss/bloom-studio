@@ -53,8 +53,10 @@ export interface StudioState {
   gridVisible: boolean
   gridSnap: boolean
   gridStepMm: GridStepMm
-  /** 'photo' prefers AI-bridge photographic cutouts, per variety, when present. */
+  /** 'photo' prefers supplied production photo/render assets; 'sketch' the vectors. */
   assetMode: AssetMode
+  /** Flips true once the asset manifest has loaded (library re-renders thumbnails). */
+  photoAssetsReady: boolean
   /** On-canvas balance overlay (learning mode). */
   balanceVisible: boolean
   /** Parallax depth tilt. */
@@ -113,6 +115,7 @@ export interface StudioState {
   setGridSnap: (on: boolean) => void
   setGridStepMm: (step: GridStepMm) => void
   setAssetMode: (mode: AssetMode) => void
+  setPhotoAssetsReady: (ready: boolean) => void
   setBalanceVisible: (on: boolean) => void
   setTiltEnabled: (on: boolean) => void
   setXrayActive: (on: boolean) => void
@@ -237,7 +240,8 @@ const initializer: StateCreator<StudioState> = (set, get) => {
     gridVisible: false,
     gridSnap: false,
     gridStepMm: 10,
-    assetMode: 'sketch',
+    assetMode: 'photo',
+    photoAssetsReady: false,
     balanceVisible: false,
     tiltEnabled: false,
     xrayActive: false,
@@ -588,6 +592,7 @@ const initializer: StateCreator<StudioState> = (set, get) => {
     setGridSnap: (on) => set({ gridSnap: on }),
     setGridStepMm: (step) => set({ gridStepMm: step }),
     setAssetMode: (mode) => set({ assetMode: mode }),
+    setPhotoAssetsReady: (ready) => set({ photoAssetsReady: ready }),
     setBalanceVisible: (on) => set({ balanceVisible: on }),
     setTiltEnabled: (on) => set({ tiltEnabled: on }),
     setXrayActive: (on) => set({ xrayActive: on }),
@@ -670,14 +675,15 @@ export function createStudioStore(options: { persistKey?: string } = {}) {
   return create<StudioState>()(
     persist(initializer, {
       name: options.persistKey,
-      version: 2,
+      version: 3,
       partialize: (state) => ({
         doc: state.doc,
         learningMode: state.learningMode,
         gridVisible: state.gridVisible,
         gridSnap: state.gridSnap,
         gridStepMm: state.gridStepMm,
-        assetMode: state.assetMode,
+        // assetMode intentionally not persisted — production assets (photo) are
+        // the default each session since the pivot to supplied artwork.
       }),
       migrate: (persisted) => {
         // Format migrations run on the stored document (v1 px → v2 mm).
@@ -689,6 +695,9 @@ export function createStudioStore(options: { persistKey?: string } = {}) {
             state.doc = starterTemplate()
           }
         }
+        // Drop any previously-persisted asset mode so the current default
+        // (photo — supplied production assets) always wins.
+        delete state.assetMode
         return state as StudioState
       },
     }),

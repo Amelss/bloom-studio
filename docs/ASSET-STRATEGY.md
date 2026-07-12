@@ -4,6 +4,35 @@ Status: **decided** · July 2026
 Question every option is judged against: *"Will this create the most visually authentic
 and educational digital floral design experience possible?"*
 
+> **DIRECTION (Ameley, 13 July 2026 — current):** target is **stylised 3D
+> botanical illustration in the BloomyPro mould** — dimensional, layered, soft
+> studio-lit, immediately recognisable, but lightweight (not photoreal, not raw
+> 3D models). Delivered by upgrading the **procedural SVG generators** with a
+> gradient-based dimensional-shading toolkit (`createShader`/`shadedPetalRing`
+> in `assets/sketchSvg.ts`): per-petal form gradients (lit tip → shaded base),
+> soft gradient occlusion in throats and between layers, whole-bloom form light,
+> position-based lighting on domes — all rasterised without SVG filters so it is
+> identical everywhere and still just sprites at runtime (scales to 1,000+).
+> **Pexels photos are REFERENCE ONLY** (botanical accuracy: shape, arrangement,
+> proportion) — not shipped assets. Pilot done: rose, hydrangea, eucalyptus
+> rebuilt to this standard. Next: roll the same shading toolkit across the
+> remaining 10 varieties. The photographic Pexels pipeline (`scripts/`,
+> `/asset-normalizer.html`, Photo mode) is retained but parked as an optional
+> future "photo mode", not the direction.
+>
+> **DECISION UPDATE (Ameley, 12 July 2026 — supersedes the block below):** after
+> reviewing the flat-botanical rewrite against a BloomyPro reference image, the
+> verdict is that flat illustration — even structurally accurate — "still feels
+> flat and animated". The BloomyPro bar is photo-grade imagery (3D digitisations
+> of real stems). **The production realism path is therefore photographic cutout
+> assets via the AI-bridge pipeline (§3 Track 1), exactly as this document
+> originally recommended.** The illustration set is retained as **Sketch mode**:
+> the structure-teaching view and the universal per-variety fallback while photo
+> coverage grows. Tooling now in place: `public/asset-normalizer.html` (anchor
+> fitting + manifest generation) and the per-variety prompt kit in
+> ASSET-PIPELINE.md. Next gate: pilot 3 varieties end-to-end, then blind-ID.
+>
+> *(Historical decision, superseded:)*
 > **DECISION (Ameley, July 2026): the goal is BOTANICAL ACCURACY, not photorealism.**
 > The production art direction is **flat, clean botanical illustration**: accurate
 > species silhouettes, natural petal layering and growth structure, organic variation,
@@ -18,6 +47,13 @@ and educational digital floral design experience possible?"*
 > sections (§2 D/F/G) remain fully relevant — accurate drawing requires accurate
 > references. The pipeline discipline (reference sheets → style bible → QA gate)
 > applies to illustration exactly as it would have to photography.
+>
+> **Quality reference: BloomyPro.** Their library is the visual standard to match —
+> natural silhouettes, realistic petal/leaf arrangements, organic variation, one
+> consistent style across thousands of varieties. Their look derives from 3D models
+> under soft neutral studio light; our flat-illustration equivalent is structural
+> drawing + *non-directional* layer separation (faint halo between petal layers,
+> base-shade crescents) — never a baked light direction.
 
 ---
 
