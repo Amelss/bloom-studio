@@ -177,27 +177,6 @@ export const FLOWER_CATALOG: FlowerVariety[] = [
     },
   },
   {
-    id: 'spray-rose',
-    commonName: 'Spray Rose',
-    botanicalName: 'Rosa × hybrida (spray)',
-    category: 'filler',
-    guidePriceGBP: 1.5,
-    seasons: ['year-round'],
-    stemLengthCm: 45,
-    fragility: 'medium',
-    sketch: 'spray-rose',
-    widthMm: 115,
-    colorways: [
-      { id: 'blush', name: 'Blush Bombastic', petal: '#eec3ca', accent: '#d99aa8', hue: 350 },
-      { id: 'cream', name: 'Cream', petal: '#f4eddc', accent: '#e0d1ae', hue: 45, neutral: true },
-    ],
-    education: {
-      role: 'Several small heads per stem — bridges the scale gap between large focal roses and fine filler, which is what makes a design read as "full".',
-      conditioning: 'As standard roses; remove any bruised heads since one spoiled bloom shows across the whole cluster.',
-      designTip: 'Use spray roses to step the eye down from big blooms to small — scale transitions are what make arrangements look professional.',
-    },
-  },
-  {
     id: 'eucalyptus',
     commonName: 'Silver Dollar Eucalyptus',
     botanicalName: 'Eucalyptus cinerea',

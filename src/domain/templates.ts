@@ -72,7 +72,6 @@ export function starterTemplate(): DesignDocument {
     // Filler — floating slightly beyond the outline
     { varietyId: 'gypsophila', colorwayId: 'white', x: 296, y: 318, rotation: -34, scale: 0.9 },
     { varietyId: 'gypsophila', colorwayId: 'white', x: 304, y: 320, rotation: 34, scale: 0.9, flipX: true },
-    { varietyId: 'spray-rose', colorwayId: 'blush', x: 300, y: 317, rotation: 2, scale: 0.95 },
   ]
 
   const orderByBand: Partial<Record<DepthBand, number>> = {}
