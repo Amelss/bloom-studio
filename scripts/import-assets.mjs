@@ -36,11 +36,11 @@ const PX_PER_MM = EXPORT_W / PHOTO_FRAME_MM
 // True width of each flower at its WIDEST point (bloom diameter / spread /
 // spike width), mm — the measure the importer scales every asset to.
 const SPREAD_MM = {
-  'garden-rose': 90,
+  'garden-rose': 115,
   peony: 130,
-  ranunculus: 50,
+  ranunculus: 70,
   lisianthus: 80,
-  carnation: 65,
+  carnation: 85,
   hydrangea: 150,
   delphinium: 55,
   gypsophila: 160,
