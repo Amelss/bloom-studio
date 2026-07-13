@@ -21,7 +21,7 @@ export const FLOWER_CATALOG: FlowerVariety[] = [
     widthMm: 115,
     colorways: [
       { id: 'blush', name: 'Blush', petal: '#e8b4bc', accent: '#d18a97', hue: 350 },
-      { id: 'cream', name: 'Cream', petal: '#f4ecdb', accent: '#e3d3b3', hue: 45, neutral: true },
+      { id: 'coral', name: 'Coral', petal: '#ea9077', accent: '#c96a52', hue: 12 },
       { id: 'burgundy', name: 'Burgundy', petal: '#7c2d3e', accent: '#5c1f2e', hue: 345 },
     ],
     education: {

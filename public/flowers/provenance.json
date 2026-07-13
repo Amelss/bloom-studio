@@ -7,10 +7,24 @@
     "imported": "2026-07-13"
   },
   {
-    "file": "garden-rose-blush-0.png",
+    "file": "garden-rose-burgundy-0.png",
     "source": "supplied-3d-render",
     "incoming": "02.jpg",
     "note": "externally created production asset",
+    "imported": "2026-07-13"
+  },
+  {
+    "file": "garden-rose-blush-0.png",
+    "source": "supplied-3d-render",
+    "incoming": "02.jpg",
+    "note": "derived colourway — programmatic bloom recolour of the supplied asset",
+    "imported": "2026-07-13"
+  },
+  {
+    "file": "garden-rose-coral-0.png",
+    "source": "supplied-3d-render",
+    "incoming": "02.jpg",
+    "note": "derived colourway — programmatic bloom recolour of the supplied asset",
     "imported": "2026-07-13"
   },
   {

@@ -31,7 +31,7 @@ describe('buildRecipe', () => {
       docWith([
         { varietyId: 'garden-rose', colorwayId: 'blush' },
         { varietyId: 'garden-rose', colorwayId: 'blush' },
-        { varietyId: 'garden-rose', colorwayId: 'cream' },
+        { varietyId: 'garden-rose', colorwayId: 'coral' },
         { varietyId: 'eucalyptus', colorwayId: 'silver' },
       ]),
     )

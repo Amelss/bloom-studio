@@ -66,9 +66,9 @@ export function starterTemplate(): DesignDocument {
     // Focal roses — the heart, low and central
     { varietyId: 'garden-rose', colorwayId: 'blush', x: 297, y: 322, rotation: -14 },
     { varietyId: 'garden-rose', colorwayId: 'blush', x: 303, y: 321, rotation: 12, flipX: true },
-    { varietyId: 'garden-rose', colorwayId: 'cream', x: 300, y: 330, rotation: 0, scale: 1.05 },
+    { varietyId: 'garden-rose', colorwayId: 'coral', x: 300, y: 330, rotation: 0, scale: 1.05 },
     { varietyId: 'garden-rose', colorwayId: 'blush', x: 296, y: 334, rotation: -26 },
-    { varietyId: 'garden-rose', colorwayId: 'cream', x: 298, y: 334, rotation: 24, flipX: true },
+    { varietyId: 'garden-rose', colorwayId: 'blush', x: 298, y: 334, rotation: 24, flipX: true },
     // Filler — floating slightly beyond the outline
     { varietyId: 'gypsophila', colorwayId: 'white', x: 296, y: 318, rotation: -34, scale: 0.9 },
     { varietyId: 'gypsophila', colorwayId: 'white', x: 304, y: 320, rotation: 34, scale: 0.9, flipX: true },

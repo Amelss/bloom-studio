@@ -62,7 +62,15 @@ const SPREAD_MM = {
  */
 const MAP = [
   { n: '01', variety: 'delphinium', colorway: 'blue', variant: 0, tol: 46, soft: 1.7, shadow: 1.7 },
-  { n: '02', variety: 'garden-rose', colorway: 'blush', variant: 0, tol: 46, soft: 1.7, shadow: 1.9 },
+  // The supplied rose is deep red → the BURGUNDY colourway; blush and coral
+  // are derived programmatically (bloom hue-remap, foliage untouched).
+  {
+    n: '02', variety: 'garden-rose', colorway: 'burgundy', variant: 0, tol: 46, soft: 1.7, shadow: 1.9,
+    recolors: [
+      { colorway: 'blush', hex: '#e8b4bc' },
+      { colorway: 'coral', hex: '#ea9077' },
+    ],
+  },
   { n: '03', variety: 'astilbe', colorway: 'pink', variant: 0, tol: 40, soft: 1.5, shadow: 1.8 },
   { n: '04', variety: 'dahlia', colorway: 'burgundy', variant: 0, tol: 52, soft: 1.7, shadow: 1.6 },
   { n: '05', variety: 'eucalyptus', colorway: 'silver', variant: 0, tol: 50, soft: 1.6, shadow: 1.5, rotate: -37 },
@@ -166,6 +174,89 @@ function removeBackground(data, width, height, tolerance, soft, shadow) {
   }
   for (let p = 0; p < width * height; p++) if (cleared[p]) data[p * 4 + 3] = 0
   return { bgR, bgG, bgB }
+}
+
+/* ------------------------- programmatic recolour ------------------------ */
+
+function rgbToHsl(r, g, b) {
+  r /= 255; g /= 255; b /= 255
+  const max = Math.max(r, g, b), min = Math.min(r, g, b)
+  const l = (max + min) / 2
+  if (max === min) return [0, 0, l]
+  const d = max - min
+  const s = l > 0.5 ? d / (2 - max - min) : d / (max + min)
+  let h
+  if (max === r) h = ((g - b) / d + (g < b ? 6 : 0)) / 6
+  else if (max === g) h = ((b - r) / d + 2) / 6
+  else h = ((r - g) / d + 4) / 6
+  return [h * 360, s, l]
+}
+
+function hslToRgb(h, s, l) {
+  h = ((h % 360) + 360) % 360 / 360
+  if (s === 0) { const v = Math.round(l * 255); return [v, v, v] }
+  const q = l < 0.5 ? l * (1 + s) : l + s - l * s
+  const p = 2 * l - q
+  const f = (t) => {
+    if (t < 0) t += 1
+    if (t > 1) t -= 1
+    if (t < 1 / 6) return p + (q - p) * 6 * t
+    if (t < 1 / 2) return q
+    if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6
+    return p
+  }
+  return [Math.round(f(h + 1 / 3) * 255), Math.round(f(h) * 255), Math.round(f(h - 1 / 3) * 255)]
+}
+
+const isFoliageHue = (h, s) => s > 0.1 && h > 55 && h < 185
+
+/**
+ * Recolours the BLOOM of a cutout toward a target swatch while preserving all
+ * shading: each petal pixel keeps its relative lightness (remapped into a
+ * range centred on the target colour) and a trace of its original hue
+ * variation. Green/brown foliage and near-neutral pixels are left untouched,
+ * so stems and leaves survive. Returns a recoloured copy.
+ */
+function recolorBloom(c, targetHex) {
+  const data = new Uint8ClampedArray(c.data)
+  const n = c.width * c.height
+  const [tr, tg, tb] = [parseInt(targetHex.slice(1, 3), 16), parseInt(targetHex.slice(3, 5), 16), parseInt(targetHex.slice(5, 7), 16)]
+  const [th, ts, tl] = rgbToHsl(tr, tg, tb)
+
+  // Pass 1: petal statistics (lightness percentiles + dominant hue).
+  const Ls = []
+  let sinSum = 0, cosSum = 0
+  for (let p = 0; p < n; p++) {
+    if (data[p * 4 + 3] < 12) continue
+    const [h, s, l] = rgbToHsl(data[p * 4], data[p * 4 + 1], data[p * 4 + 2])
+    if (isFoliageHue(h, s) || s < 0.1) continue
+    Ls.push(l)
+    const rad = (h * Math.PI) / 180
+    sinSum += Math.sin(rad); cosSum += Math.cos(rad)
+  }
+  if (!Ls.length) return c
+  Ls.sort((a, b) => a - b)
+  const l5 = Ls[Math.floor(Ls.length * 0.05)]
+  const l95 = Ls[Math.floor(Ls.length * 0.95)]
+  const domHue = ((Math.atan2(sinSum, cosSum) * 180) / Math.PI + 360) % 360
+
+  // Pass 2: remap petal pixels around the target swatch.
+  const SPREAD = 0.5 // output lightness contrast range
+  for (let p = 0; p < n; p++) {
+    if (data[p * 4 + 3] < 12) continue
+    const [h, s, l] = rgbToHsl(data[p * 4], data[p * 4 + 1], data[p * 4 + 2])
+    if (isFoliageHue(h, s) || s < 0.1) continue
+    const t = Math.max(0, Math.min(1, (l - l5) / (l95 - l5 || 1)))
+    const nl = Math.max(0.05, Math.min(0.97, tl + (t - 0.6) * SPREAD))
+    const ns = Math.max(0, Math.min(1, ts * (0.85 + (1 - t) * 0.35)))
+    // Keep a quarter of the source's own hue variation for organic colour.
+    let dh = h - domHue
+    if (dh > 180) dh -= 360
+    if (dh < -180) dh += 360
+    const [r, g, b] = hslToRgb(th + dh * 0.25, ns, nl)
+    data[p * 4] = r; data[p * 4 + 1] = g; data[p * 4 + 2] = b
+  }
+  return { ...c, data }
 }
 
 /* -------------------- content bbox, stem, extension -------------------- */
@@ -309,6 +400,28 @@ async function processOne(entry) {
   const bloomPx = widestRow(cropped)
   const trueScale = (spread * PX_PER_MM) / bloomPx
   const scale = Math.min(trueScale, CONTENT_W_MAX / c.width, CONTENT_H_MAX / c.height)
+
+  // One frame per colourway: the source as-is, plus any programmatically
+  // recoloured derivatives (bloom hue-remap; foliage protected).
+  const outputs = [{ colorway: entry.colorway, buf: c, thumbBuf: cropped }]
+  for (const rc of entry.recolors ?? []) {
+    outputs.push({
+      colorway: rc.colorway,
+      buf: recolorBloom(c, rc.hex),
+      thumbBuf: recolorBloom(cropped, rc.hex),
+    })
+  }
+
+  const results = []
+  for (const out of outputs) {
+    const asset = await writeFrame(entry, out, scale)
+    results.push(asset)
+  }
+  return results
+}
+
+/** Contain-fit one buffer into the padded frame and write PNG + thumbnail. */
+async function writeFrame(entry, { colorway, buf: c, thumbBuf }, scale) {
   const scaledW = Math.max(1, Math.round(c.width * scale))
   const scaledH = Math.max(1, Math.round(c.height * scale))
 
@@ -324,7 +437,7 @@ async function processOne(entry) {
   left = Math.max(PAD, Math.min(EXPORT_W - PAD - scaledW, left))
   top = Math.max(PAD, Math.min(EXPORT_H - PAD - scaledH, top))
 
-  const outName = `${entry.variety}-${entry.colorway}-${entry.variant}.png`
+  const outName = `${entry.variety}-${colorway}-${entry.variant}.png`
   await mkdir(OUT_DIR, { recursive: true })
   await sharp({ create: { width: EXPORT_W, height: EXPORT_H, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } } })
     .composite([{ input: resized, left, top }])
@@ -333,20 +446,21 @@ async function processOne(entry) {
 
   // A tightly-cropped thumbnail (just the flower, minimal padding) for the
   // library panel, so small flowers aren't lost in the true-scale frame.
-  const thumbName = `${entry.variety}-${entry.colorway}-${entry.variant}-thumb.png`
-  const tScale = 256 / Math.max(cropped.width, cropped.height)
-  await sharp(cropped.data, { raw: { width: cropped.width, height: cropped.height, channels: 4 } })
-    .resize(Math.max(1, Math.round(cropped.width * tScale)), Math.max(1, Math.round(cropped.height * tScale)))
+  const thumbName = `${entry.variety}-${colorway}-${entry.variant}-thumb.png`
+  const tScale = 256 / Math.max(thumbBuf.width, thumbBuf.height)
+  await sharp(thumbBuf.data, { raw: { width: thumbBuf.width, height: thumbBuf.height, channels: 4 } })
+    .resize(Math.max(1, Math.round(thumbBuf.width * tScale)), Math.max(1, Math.round(thumbBuf.height * tScale)))
     .png()
     .toFile(path.join(OUT_DIR, thumbName))
 
-  console.log(`✓ ${entry.n} → ${outName} (${scaledW}×${scaledH})`)
+  console.log(`✓ ${entry.n} → ${outName} (${scaledW}×${scaledH})${colorway !== entry.colorway ? ' [recoloured]' : ''}`)
   return {
     varietyId: entry.variety,
-    colorwayId: entry.colorway,
+    colorwayId: colorway,
     variant: entry.variant,
     src: `/flowers/${outName}`,
     thumb: `/flowers/${thumbName}`,
+    recolored: colorway !== entry.colorway || undefined,
   }
 }
 
@@ -354,14 +468,16 @@ async function main() {
   const assets = []
   const provenance = []
   for (const entry of MAP) {
-    const asset = await processOne(entry)
-    if (asset) {
+    const produced = await processOne(entry)
+    for (const asset of produced ?? []) {
       assets.push(asset)
       provenance.push({
         file: `${asset.varietyId}-${asset.colorwayId}-${asset.variant}.png`,
         source: 'supplied-3d-render',
         incoming: `${entry.n}.jpg`,
-        note: 'externally created production asset',
+        note: asset.recolored
+          ? 'derived colourway — programmatic bloom recolour of the supplied asset'
+          : 'externally created production asset',
         imported: new Date().toISOString().slice(0, 10),
       })
     }
