@@ -1,23 +1,15 @@
 import { Rectangle, Texture } from 'pixi.js'
-import { SKETCHES, VESSEL_SKETCHES, hashString, svgToDataUrl } from '../assets/sketchSvg'
+import { VESSEL_SKETCHES, svgToDataUrl } from '../assets/vessels'
 import { FLOWER_INDEX, getColorway } from '../data/catalog'
 import { SPRITE_ASPECT, VESSEL_ASPECT } from '../domain/geometry'
 
 /**
- * Texture pipeline with two sources behind one interface:
- *
- * 1. **Illustrations** (always available): generative SVG artwork rasterised
- *    on demand, in VARIANT_COUNT seeded variations per variety+colorway so
- *    repeated stems never look stamped. A stem picks its variant from a hash
- *    of its id — stable across sessions.
- * 2. **Photographs** (the AI-bridge pipeline, docs/ASSET-PIPELINE.md): alpha
- *    cutout PNGs listed in /flowers/manifest.json, normalised to the standard
- *    100×160 layout. When asset mode is 'photo', photographic textures are
- *    preferred per variety+colorway and fall back to illustration when absent.
- *
- * Low-resolution alpha maps are kept beside every texture for pixel-accurate
- * hit testing. Rasterisation is async; callers get `null` until ready and are
- * re-synced via the onTextureReady callback.
+ * Texture pipeline for the supplied photographic flower assets (alpha cutout
+ * PNGs listed in /flowers/manifest.json) plus the vessel artwork. Each flower
+ * frame represents the same real-world box, so flowers render at correct
+ * relative proportions. Low-resolution alpha maps are kept beside every
+ * texture for pixel-accurate hit testing. Rasterisation is async; callers get
+ * `null` until ready and are re-synced via the onTextureReady callback.
  */
 
 export const VARIANT_COUNT = 3
@@ -26,7 +18,15 @@ const STEM_TEXTURE_WIDTH = 512
 const HIT_MAP_WIDTH = 96
 const VESSEL_TEXTURE_WIDTH = 512
 
-export type AssetMode = 'sketch' | 'photo'
+/** Small stable string hash — picks a stem's asset variant deterministically. */
+function hashString(s: string): number {
+  let h = 2166136261
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i)
+    h = Math.imul(h, 16777619)
+  }
+  return h >>> 0
+}
 
 /**
  * Every imported photographic frame represents the SAME real-world box, so a
@@ -78,20 +78,6 @@ export function variantForStem(stemId: string): number {
   return hashString(stemId) % VARIANT_COUNT
 }
 
-export function hasPhotoAssets(): boolean {
-  return photoIndex.size > 0
-}
-
-/** The image URL to show for a variety (exact colourway first, else any). */
-export function photoAssetSrc(varietyId: string, colorwayId?: string): string | null {
-  if (colorwayId) {
-    const exact = photoIndex.get(`${varietyId}:${colorwayId}`)
-    if (exact?.length) return exact.find(Boolean) ?? null
-  }
-  const any = varietyPhotoIndex.get(varietyId)
-  return any?.[0] ?? null
-}
-
 /** Tightly-cropped thumbnail for the library (exact colourway first, else any). */
 export function photoThumbSrc(varietyId: string, colorwayId?: string): string | null {
   if (colorwayId) {
@@ -135,45 +121,25 @@ export function getStemTexture(
   varietyId: string,
   colorwayId: string,
   variant = 0,
-  mode: AssetMode = 'sketch',
 ): StemTextureEntry | null {
   const variety = FLOWER_INDEX[varietyId]
   const colorway = getColorway(varietyId, colorwayId)
   if (!variety || !colorway) return null
 
-  // Photographic source, when requested and available. Prefer the exact
-  // colourway; fall back to any asset for the variety (one asset per flower
-  // covers all its colourways) before falling back to the illustration.
-  if (mode === 'photo') {
-    const exact = photoIndex.get(`${varietyId}:${colorway.id}`)
-    const sources = exact?.length ? exact : varietyPhotoIndex.get(varietyId)
-    if (sources?.length) {
-      const src = sources[variant % sources.length] ?? sources[0]
-      const key = `photo:${src}`
-      const cached = stemCache.get(key)
-      if (cached) return cached
-      if (!pending.has(key)) {
-        pending.add(key)
-        void rasterizeStemFromUrl(key, src, PHOTO_FRAME_MM)
-      }
-      return null
-    }
-    // No photo for this variety yet — fall through to the illustration.
-  }
+  // Prefer the exact colourway; fall back to any asset for the variety (one
+  // base asset can cover several colourways via programmatic recolour).
+  const exact = photoIndex.get(`${varietyId}:${colorway.id}`)
+  const sources = exact?.length ? exact : varietyPhotoIndex.get(varietyId)
+  if (!sources?.length) return null
 
-  const key = `${variety.sketch}:${colorway.id}:v${variant}`
+  const src = sources[variant % sources.length] ?? sources[0]
+  const key = `photo:${src}`
   const cached = stemCache.get(key)
   if (cached) return cached
-  if (pending.has(key)) return null
-
-  const sketch = SKETCHES[variety.sketch]
-  if (!sketch) return null
-  pending.add(key)
-  void rasterizeStemFromSvg(
-    key,
-    sketch({ petal: colorway.petal, accent: colorway.accent }, variant + 1),
-    variety.widthMm,
-  )
+  if (!pending.has(key)) {
+    pending.add(key)
+    void rasterizeStemFromUrl(key, src, PHOTO_FRAME_MM)
+  }
   return null
 }
 
@@ -198,16 +164,6 @@ export function hitTestAlpha(entry: StemTextureEntry, u: number, v: number): boo
 }
 
 /* ------------------------------ internals ------------------------------ */
-
-async function rasterizeStemFromSvg(key: string, svg: string, mmWidth: number) {
-  try {
-    const image = await loadImage(svgToDataUrl(svg))
-    stemCache.set(key, buildStemEntry(image, mmWidth))
-  } finally {
-    pending.delete(key)
-    onTextureReady?.()
-  }
-}
 
 async function rasterizeStemFromUrl(key: string, src: string, mmWidth: number) {
   try {

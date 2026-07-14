@@ -99,8 +99,6 @@ export interface FlowerVariety {
   seasons: Season[]
   stemLengthCm: number
   fragility: Fragility
-  /** Key into the sketch asset registry. */
-  sketch: string
   /** Real visual width of the sprite (bloom + foliage spread) at scale 1, mm. */
   widthMm: number
   education: EducationNotes
@@ -110,6 +108,7 @@ export interface VesselDef {
   id: string
   name: string
   priceGBP: number
+  /** Key into the vessel artwork registry (assets/vessels.ts). */
   sketch: string
   /** Real width, mm. Height derives from the artwork's 1.3 aspect ratio. */
   widthMm: number

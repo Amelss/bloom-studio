@@ -3,7 +3,6 @@ import { useStudio, type GridStepMm } from '../../domain/store'
 import { FLOWER_INDEX } from '../../data/catalog'
 import type { PaperOption } from '../../domain/types'
 import { CAMERA_CHANGE_EVENT, canvasRegistry } from '../../render/registry'
-import { hasPhotoAssets } from '../../render/textures'
 
 const GRID_STEPS: GridStepMm[] = [5, 10, 25, 50]
 const PAPERS: Array<{ id: PaperOption; label: string }> = [
@@ -13,7 +12,7 @@ const PAPERS: Array<{ id: PaperOption; label: string }> = [
   { id: 'charcoal', label: 'Charcoal' },
 ]
 
-/** Zoom, grid, paper, learning overlays, and asset mode — under the canvas. */
+/** Zoom, grid, paper, and learning overlays — under the canvas. */
 export function CanvasFooter() {
   const [zoom, setZoom] = useState(100)
   const learningMode = useStudio((s) => s.learningMode)
@@ -31,8 +30,6 @@ export function CanvasFooter() {
   const setGridStepMm = useStudio((s) => s.setGridStepMm)
   const paper = useStudio((s) => s.doc.artboards[0]?.paper ?? 'white')
   const setPaper = useStudio((s) => s.setPaper)
-  const assetMode = useStudio((s) => s.assetMode)
-  const setAssetMode = useStudio((s) => s.setAssetMode)
   const brush = useStudio((s) => s.brush)
   const setBrush = useStudio((s) => s.setBrush)
 
@@ -117,28 +114,6 @@ export function CanvasFooter() {
           ))}
         </select>
       </label>
-
-      <div className="ml-0.5 inline-flex overflow-hidden rounded-lg border border-bloom-200" role="group" aria-label="Asset style">
-        {(['sketch', 'photo'] as const).map((mode) => (
-          <button
-            key={mode}
-            className={`px-2 py-1.5 text-xs font-medium capitalize ${
-              assetMode === mode ? 'bg-bloom-600 text-white' : 'bg-white text-bloom-ink/70 hover:bg-bloom-100'
-            }`}
-            aria-pressed={assetMode === mode}
-            title={
-              mode === 'photo' && !hasPhotoAssets()
-                ? 'Photographic assets not installed yet — falls back to illustration (see docs/ASSET-PIPELINE.md)'
-                : mode === 'photo'
-                  ? 'Photographic cutouts where available'
-                  : 'Botanical illustration'
-            }
-            onClick={() => setAssetMode(mode)}
-          >
-            {mode}
-          </button>
-        ))}
-      </div>
 
       {learningMode && (
         <>

@@ -26,7 +26,6 @@ import {
   hitTestAlpha,
   setOnTextureReady,
   variantForStem,
-  type AssetMode,
   type StemTextureEntry,
 } from './textures'
 
@@ -52,7 +51,6 @@ export interface ScenePrefs {
   gridStepMm: number
   hiddenBands: DepthBand[]
   lockedBands: DepthBand[]
-  assetMode: AssetMode
   xrayActive: boolean
   balanceVisible: boolean
 }
@@ -107,7 +105,6 @@ export class SceneManager {
     gridStepMm: 10,
     hiddenBands: [],
     lockedBands: [],
-    assetMode: 'sketch',
     xrayActive: false,
     balanceVisible: false,
   }
@@ -514,12 +511,7 @@ export class SceneManager {
       } else if (sprite.parent !== this.bandContainers[stem.band]) {
         this.bandContainers[stem.band].addChild(sprite)
       }
-      const entry = getStemTexture(
-        stem.varietyId,
-        stem.colorwayId,
-        variantForStem(stem.id),
-        this.prefs.assetMode,
-      )
+      const entry = getStemTexture(stem.varietyId, stem.colorwayId, variantForStem(stem.id))
       const hidden = this.prefs.hiddenBands.includes(stem.band)
       if (entry) {
         this.hitEntries.set(stem.id, entry)

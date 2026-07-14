@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react'
 import { FLOWER_CATALOG, VESSEL_CATALOG } from '../data/catalog'
-import { SKETCHES, svgToDataUrl } from '../assets/sketchSvg'
 import { photoThumbSrc } from '../render/textures'
 import { useStudio } from '../domain/store'
 import type { StemCategory } from '../domain/types'
@@ -30,8 +29,6 @@ export function LibraryPanel() {
   const vesselId = useStudio((s) => s.doc.vesselId)
   const learningMode = useStudio((s) => s.learningMode)
   const photoAssetsReady = useStudio((s) => s.photoAssetsReady)
-  const brush = useStudio((s) => s.brush)
-  const setBrush = useStudio((s) => s.setBrush)
 
   const flowers = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -78,9 +75,7 @@ export function LibraryPanel() {
 
       <ul className="grid grid-cols-2 gap-2">
         {flowers.map((flower) => {
-          const Sketch = SKETCHES[flower.sketch]
           const preview = flower.colorways[0]
-          // Prefer the supplied production asset's thumbnail; else vector sketch.
           const photo = photoAssetsReady ? photoThumbSrc(flower.id, preview.id) : null
           return (
             <li key={flower.id}>
@@ -111,17 +106,7 @@ export function LibraryPanel() {
                 }
               >
                 <span className="flex h-16 w-14 items-end justify-center" aria-hidden>
-                  {photo ? (
-                    <img className="max-h-full max-w-full object-contain" alt="" src={photo} />
-                  ) : (
-                    Sketch && (
-                      <img
-                        className="h-full w-full"
-                        alt=""
-                        src={svgToDataUrl(Sketch({ petal: preview.petal, accent: preview.accent }))}
-                      />
-                    )
-                  )}
+                  {photo && <img className="max-h-full max-w-full object-contain" alt="" src={photo} />}
                 </span>
                 <span className="mt-1 text-xs font-semibold leading-tight">{flower.commonName}</span>
                 <span className="text-[10px] italic text-bloom-ink/50">{flower.botanicalName}</span>
@@ -143,26 +128,6 @@ export function LibraryPanel() {
                       }}
                     />
                   ))}
-                  <button
-                    type="button"
-                    aria-label={`Paint ${flower.commonName} with the brush`}
-                    title="Brush: paint a stroke of these on the canvas (Esc exits)"
-                    className={`ml-0.5 rounded px-1 text-[11px] leading-4 ${
-                      brush?.varietyId === flower.id
-                        ? 'bg-bloom-600 text-white'
-                        : 'text-bloom-ink/40 hover:bg-bloom-100 hover:text-bloom-ink'
-                    }`}
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setBrush(
-                        brush?.varietyId === flower.id
-                          ? null
-                          : { varietyId: flower.id, colorwayId: flower.colorways[0].id },
-                      )
-                    }}
-                  >
-                    🖌
-                  </button>
                 </span>
               </div>
             </li>

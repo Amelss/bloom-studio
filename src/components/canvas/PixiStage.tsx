@@ -69,7 +69,6 @@ export function PixiStage() {
             gridStepMm: s.gridStepMm,
             hiddenBands: s.hiddenBands,
             lockedBands: s.lockedBands,
-            assetMode: s.assetMode,
             xrayActive: s.xrayActive,
             balanceVisible: s.balanceVisible,
           })

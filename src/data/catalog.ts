@@ -17,7 +17,6 @@ export const FLOWER_CATALOG: FlowerVariety[] = [
     seasons: ['year-round'],
     stemLengthCm: 50,
     fragility: 'medium',
-    sketch: 'rose',
     widthMm: 115,
     colorways: [
       { id: 'blush', name: 'Blush', petal: '#e8b4bc', accent: '#d18a97', hue: 350 },
@@ -39,7 +38,6 @@ export const FLOWER_CATALOG: FlowerVariety[] = [
     seasons: ['spring', 'summer'],
     stemLengthCm: 45,
     fragility: 'high',
-    sketch: 'peony',
     widthMm: 155,
     colorways: [
       { id: 'pink', name: 'Sarah Bernhardt Pink', petal: '#f2b8c6', accent: '#e08aa2', hue: 340 },
@@ -61,7 +59,6 @@ export const FLOWER_CATALOG: FlowerVariety[] = [
     seasons: ['winter', 'spring'],
     stemLengthCm: 35,
     fragility: 'high',
-    sketch: 'ranunculus',
     widthMm: 70,
     colorways: [
       { id: 'cream', name: 'Cream', petal: '#f5eedd', accent: '#dfd0ac', hue: 45, neutral: true },
@@ -83,7 +80,6 @@ export const FLOWER_CATALOG: FlowerVariety[] = [
     seasons: ['summer', 'autumn', 'year-round'],
     stemLengthCm: 60,
     fragility: 'medium',
-    sketch: 'lisianthus',
     widthMm: 90,
     colorways: [
       { id: 'white', name: 'White', petal: '#f6f4ee', accent: '#e2ddcd', hue: 50, neutral: true },
@@ -104,7 +100,6 @@ export const FLOWER_CATALOG: FlowerVariety[] = [
     seasons: ['year-round'],
     stemLengthCm: 55,
     fragility: 'low',
-    sketch: 'carnation',
     widthMm: 80,
     colorways: [
       { id: 'dusty-pink', name: 'Dusty Pink', petal: '#dfa4ae', accent: '#c47f8e', hue: 350 },
@@ -125,7 +120,6 @@ export const FLOWER_CATALOG: FlowerVariety[] = [
     seasons: ['summer', 'autumn'],
     stemLengthCm: 50,
     fragility: 'medium',
-    sketch: 'hydrangea',
     widthMm: 175,
     colorways: [
       { id: 'dusty-blue', name: 'Dusty Blue', petal: '#aebfd8', accent: '#8ba2c4', hue: 218 },
@@ -146,7 +140,6 @@ export const FLOWER_CATALOG: FlowerVariety[] = [
     seasons: ['summer'],
     stemLengthCm: 80,
     fragility: 'medium',
-    sketch: 'delphinium',
     widthMm: 90,
     colorways: [
       { id: 'blue', name: 'Volkerfrieden Blue', petal: '#7d95cf', accent: '#5a72b4', hue: 225 },
@@ -167,7 +160,6 @@ export const FLOWER_CATALOG: FlowerVariety[] = [
     seasons: ['year-round'],
     stemLengthCm: 60,
     fragility: 'low',
-    sketch: 'gypsophila',
     widthMm: 175,
     colorways: [{ id: 'white', name: 'White', petal: '#f7f6f1', accent: '#e4e2d6', hue: 55, neutral: true }],
     education: {
@@ -185,7 +177,6 @@ export const FLOWER_CATALOG: FlowerVariety[] = [
     seasons: ['year-round'],
     stemLengthCm: 60,
     fragility: 'low',
-    sketch: 'eucalyptus',
     widthMm: 150,
     colorways: [{ id: 'silver', name: 'Silver Green', petal: '#9fb39a', accent: '#7e947c', hue: 110, neutral: true }],
     education: {
@@ -203,7 +194,6 @@ export const FLOWER_CATALOG: FlowerVariety[] = [
     seasons: ['year-round'],
     stemLengthCm: 70,
     fragility: 'low',
-    sketch: 'ruscus',
     widthMm: 120,
     colorways: [{ id: 'green', name: 'Deep Green', petal: '#5d7a52', accent: '#46603d', hue: 105, neutral: true }],
     education: {
@@ -221,7 +211,6 @@ export const FLOWER_CATALOG: FlowerVariety[] = [
     seasons: ['summer'],
     stemLengthCm: 50,
     fragility: 'high',
-    sketch: 'astilbe',
     widthMm: 90,
     colorways: [
       { id: 'pink', name: 'Feather Pink', petal: '#e6a9bb', accent: '#cf84a1', hue: 340 },
@@ -242,7 +231,6 @@ export const FLOWER_CATALOG: FlowerVariety[] = [
     seasons: ['year-round'],
     stemLengthCm: 45,
     fragility: 'low',
-    sketch: 'leatherleaf',
     widthMm: 150,
     colorways: [{ id: 'green', name: 'Deep Green', petal: '#4a6847', accent: '#324a30', hue: 120, neutral: true }],
     education: {
@@ -262,7 +250,6 @@ export const FLOWER_CATALOG: FlowerVariety[] = [
     seasons: ['summer', 'autumn'],
     stemLengthCm: 45,
     fragility: 'high',
-    sketch: 'peony',
     widthMm: 140,
     colorways: [{ id: 'burgundy', name: 'Burgundy', petal: '#7c1f3a', accent: '#4c1224', hue: 345 }],
     education: {
@@ -280,7 +267,6 @@ export const FLOWER_CATALOG: FlowerVariety[] = [
     seasons: ['year-round'],
     stemLengthCm: 45,
     fragility: 'medium',
-    sketch: 'peony',
     widthMm: 125,
     colorways: [{ id: 'coral', name: 'Coral', petal: '#f0806e', accent: '#d85a44', hue: 10 }],
     education: {
@@ -298,7 +284,6 @@ export const FLOWER_CATALOG: FlowerVariety[] = [
     seasons: ['year-round'],
     stemLengthCm: 80,
     fragility: 'medium',
-    sketch: 'lisianthus',
     widthMm: 155,
     colorways: [{ id: 'white', name: 'White', petal: '#f5f1e6', accent: '#e6dcc4', hue: 45, neutral: true }],
     education: {
@@ -316,7 +301,6 @@ export const FLOWER_CATALOG: FlowerVariety[] = [
     seasons: ['spring', 'summer', 'autumn'],
     stemLengthCm: 90,
     fragility: 'medium',
-    sketch: 'delphinium',
     widthMm: 85,
     colorways: [{ id: 'pink', name: 'Pink', petal: '#e0559a', accent: '#b83274', hue: 330 }],
     education: {
@@ -334,7 +318,6 @@ export const FLOWER_CATALOG: FlowerVariety[] = [
     seasons: ['spring', 'summer'],
     stemLengthCm: 60,
     fragility: 'medium',
-    sketch: 'delphinium',
     widthMm: 80,
     colorways: [{ id: 'lavender', name: 'Lavender', petal: '#b9a7d6', accent: '#9982bd', hue: 270 }],
     education: {
@@ -352,7 +335,6 @@ export const FLOWER_CATALOG: FlowerVariety[] = [
     seasons: ['summer', 'autumn'],
     stemLengthCm: 70,
     fragility: 'low',
-    sketch: 'peony',
     widthMm: 170,
     colorways: [{ id: 'yellow', name: 'Golden Yellow', petal: '#f2c515', accent: '#8a5a1e', hue: 48 }],
     education: {

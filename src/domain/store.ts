@@ -26,8 +26,6 @@ import { FLOWER_INDEX } from '../data/catalog'
 
 export type GridStepMm = 5 | 10 | 25 | 50
 
-export type AssetMode = 'sketch' | 'photo'
-
 export interface ContextMenuState {
   x: number
   y: number
@@ -53,8 +51,6 @@ export interface StudioState {
   gridVisible: boolean
   gridSnap: boolean
   gridStepMm: GridStepMm
-  /** 'photo' prefers supplied production photo/render assets; 'sketch' the vectors. */
-  assetMode: AssetMode
   /** Flips true once the asset manifest has loaded (library re-renders thumbnails). */
   photoAssetsReady: boolean
   /** On-canvas balance overlay (learning mode). */
@@ -114,7 +110,6 @@ export interface StudioState {
   setGridVisible: (on: boolean) => void
   setGridSnap: (on: boolean) => void
   setGridStepMm: (step: GridStepMm) => void
-  setAssetMode: (mode: AssetMode) => void
   setPhotoAssetsReady: (ready: boolean) => void
   setBalanceVisible: (on: boolean) => void
   setTiltEnabled: (on: boolean) => void
@@ -240,7 +235,6 @@ const initializer: StateCreator<StudioState> = (set, get) => {
     gridVisible: false,
     gridSnap: false,
     gridStepMm: 10,
-    assetMode: 'photo',
     photoAssetsReady: false,
     balanceVisible: false,
     tiltEnabled: false,
@@ -591,7 +585,6 @@ const initializer: StateCreator<StudioState> = (set, get) => {
     setGridVisible: (on) => set({ gridVisible: on }),
     setGridSnap: (on) => set({ gridSnap: on }),
     setGridStepMm: (step) => set({ gridStepMm: step }),
-    setAssetMode: (mode) => set({ assetMode: mode }),
     setPhotoAssetsReady: (ready) => set({ photoAssetsReady: ready }),
     setBalanceVisible: (on) => set({ balanceVisible: on }),
     setTiltEnabled: (on) => set({ tiltEnabled: on }),
@@ -682,8 +675,6 @@ export function createStudioStore(options: { persistKey?: string } = {}) {
         gridVisible: state.gridVisible,
         gridSnap: state.gridSnap,
         gridStepMm: state.gridStepMm,
-        // assetMode intentionally not persisted — production assets (photo) are
-        // the default each session since the pivot to supplied artwork.
       }),
       migrate: (persisted) => {
         // Format migrations run on the stored document (v1 px → v2 mm).
@@ -695,9 +686,6 @@ export function createStudioStore(options: { persistKey?: string } = {}) {
             state.doc = starterTemplate()
           }
         }
-        // Drop any previously-persisted asset mode so the current default
-        // (photo — supplied production assets) always wins.
-        delete state.assetMode
         return state as StudioState
       },
     }),
