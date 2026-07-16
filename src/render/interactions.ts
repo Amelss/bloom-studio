@@ -179,7 +179,7 @@ export function attachInteractions(
       return
     }
 
-    if (spaceDown || e.button === 1) {
+    if (spaceDown || e.button === 1 || store.getState().tool === 'pan') {
       gesture = { kind: 'pan', last: p }
       setCursor('grabbing')
       return
@@ -435,7 +435,7 @@ export function attachInteractions(
         ((e.clientY - rect.top) / rect.height) * 2 - 1,
       )
     }
-    if (spaceDown) {
+    if (spaceDown || state.tool === 'pan') {
       setCursor('grab')
       return
     }

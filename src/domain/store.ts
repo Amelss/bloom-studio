@@ -37,9 +37,14 @@ export interface BrushState {
   colorwayId: string
 }
 
+/** The active cursor tool. 'select' is the resting state; 'pan' is the hand tool. */
+export type ToolMode = 'select' | 'pan'
+
 export interface StudioState {
   doc: DesignDocument
   selectedIds: string[]
+  /** Active cursor tool (left toolbar). */
+  tool: ToolMode
   /** When set, clicks inside this cluster select individual members. */
   enteredClusterId: string | null
   hiddenBands: DepthBand[]
@@ -116,6 +121,7 @@ export interface StudioState {
   setXrayActive: (on: boolean) => void
   setPaper: (paper: PaperOption) => void
   setBrush: (brush: BrushState | null) => void
+  setTool: (tool: ToolMode) => void
   /** Brush stroke lifecycle: stems land live, commit as ONE batch on release. */
   brushAddTransient: (placement: {
     x: number
@@ -225,6 +231,7 @@ const initializer: StateCreator<StudioState> = (set, get) => {
   return {
     doc: starterTemplate(),
     selectedIds: [],
+    tool: 'select',
     enteredClusterId: null,
     hiddenBands: [],
     lockedBands: [],
@@ -597,7 +604,11 @@ const initializer: StateCreator<StudioState> = (set, get) => {
       get().run({ type: 'set_paper', artboardId: artboard.id, next: paper, prev: artboard.paper })
     },
 
-    setBrush: (brush) => set({ brush, selectedIds: brush ? [] : get().selectedIds }),
+    setBrush: (brush) =>
+      set({ brush, tool: 'select', selectedIds: brush ? [] : get().selectedIds }),
+
+    // Cursor tool is mutually exclusive with the brush sub-mode.
+    setTool: (tool) => set({ tool, brush: null }),
 
     brushAddTransient: (placement) => {
       const { brush, doc } = get()

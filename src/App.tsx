@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { TopBar } from './components/TopBar'
 import { LibraryPanel } from './components/LibraryPanel'
+import { Toolbar } from './components/Toolbar'
 import { SidePanel } from './components/SidePanel'
 import { SelectionToolbar } from './components/SelectionToolbar'
 import { ContextMenu } from './components/ContextMenu'
@@ -19,6 +20,7 @@ export default function App() {
       <TopBar />
       <div className="flex min-h-0 flex-1">
         <LibraryPanel />
+        <Toolbar />
         <main className="flex min-w-0 flex-1 flex-col px-3 pb-1 pt-0" aria-label="Design workspace">
           <SelectionToolbar />
           <div className="min-h-0 flex-1">
@@ -102,6 +104,16 @@ function useKeyboardShortcuts() {
       }
       if (e.key === '"') {
         store.setGridVisible(!store.gridVisible)
+        return
+      }
+
+      // Cursor tools (V select · H hand/pan), matching creative-app convention.
+      if (!isModifier && e.key.toLowerCase() === 'v') {
+        store.setTool('select')
+        return
+      }
+      if (!isModifier && e.key.toLowerCase() === 'h') {
+        store.setTool('pan')
         return
       }
 

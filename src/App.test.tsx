@@ -19,8 +19,10 @@ describe('App', () => {
     expect(screen.getByText('Suggested retail')).toBeInTheDocument()
     // "Garden Rose" appears in the library card AND the live recipe rows.
     expect(screen.getAllByText('Garden Rose').length).toBeGreaterThanOrEqual(2)
-    // …and the canvas footer exposes zoom and grid controls.
+    // …the canvas footer exposes zoom controls…
     expect(screen.getByRole('button', { name: /Zoom in/ })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Grid' })).toBeInTheDocument()
+    // …and the left tool rail exposes the cursor and grid tools.
+    expect(screen.getByRole('button', { name: /Select tool/ })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Grid & snapping' })).toBeInTheDocument()
   })
 })
