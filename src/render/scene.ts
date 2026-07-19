@@ -637,16 +637,24 @@ export class SceneManager {
     // only the majors at that zoom (snapping is unaffected).
     const step = minor * this.camera.scale >= 5 ? minor : major
 
-    for (let x = artboard.x; x <= artboard.x + artboard.width + 0.01; x += step) {
+    // Fill the whole visible canvas, not just the artboard rectangle, so the
+    // grid spans the entire frame. Lines align to the world origin (where
+    // snapping lands); majors are counted from the artboard origin.
+    const tl = this.camera.worldFromScreen(0, 0)
+    const br = this.camera.worldFromScreen(this.camera.viewportWidth, this.camera.viewportHeight)
+    const startX = Math.floor(tl.x / step) * step
+    const startY = Math.floor(tl.y / step) * step
+
+    for (let x = startX; x <= br.x + 0.01; x += step) {
       const isMajor = Math.round(x - artboard.x) % major === 0
-      g.moveTo(x, artboard.y)
-      g.lineTo(x, artboard.y + artboard.height)
+      g.moveTo(x, tl.y)
+      g.lineTo(x, br.y)
       g.stroke({ color, alpha: isMajor ? 0.28 : 0.13, width: px })
     }
-    for (let y = artboard.y; y <= artboard.y + artboard.height + 0.01; y += step) {
+    for (let y = startY; y <= br.y + 0.01; y += step) {
       const isMajor = Math.round(y - artboard.y) % major === 0
-      g.moveTo(artboard.x, y)
-      g.lineTo(artboard.x + artboard.width, y)
+      g.moveTo(tl.x, y)
+      g.lineTo(br.x, y)
       g.stroke({ color, alpha: isMajor ? 0.28 : 0.13, width: px })
     }
   }
@@ -690,8 +698,11 @@ export class SceneManager {
     const abs = Math.abs(balance.lean)
     const color = abs <= 0.12 ? 0x6f8161 : abs <= 0.3 ? 0xc19a3f : 0xb0715f
 
-    // Central axis (dashed), plumb line to the balance point, the marker.
-    for (let y = artboard.y + 8; y < artboard.y + artboard.height - 8; y += 14) {
+    // Central axis (dashed) spans the full visible canvas height, then the
+    // plumb line to the balance point and the marker.
+    const top = this.camera.worldFromScreen(0, 0).y
+    const bottom = this.camera.worldFromScreen(0, this.camera.viewportHeight).y
+    for (let y = top; y < bottom; y += 14) {
       g.moveTo(cx, y)
       g.lineTo(cx, y + 7)
       g.stroke({ color: 0x8a8378, alpha: 0.5, width: px })
@@ -712,16 +723,19 @@ export class SceneManager {
   private drawGuides() {
     const g = this.guidesG
     g.clear()
-    const artboard = this.artboard
-    if (!artboard || !this.guides.length) return
+    if (!this.guides.length) return
     const px = 1 / this.camera.scale
+    // Alignment guides run the full width/height of the visible canvas, not the
+    // artboard rectangle, so they read as edge-to-edge lines on the new canvas.
+    const tl = this.camera.worldFromScreen(0, 0)
+    const br = this.camera.worldFromScreen(this.camera.viewportWidth, this.camera.viewportHeight)
     for (const guide of this.guides) {
       if (guide.axis === 'v') {
-        g.moveTo(guide.position, artboard.y - 20)
-        g.lineTo(guide.position, artboard.y + artboard.height + 20)
+        g.moveTo(guide.position, tl.y)
+        g.lineTo(guide.position, br.y)
       } else {
-        g.moveTo(artboard.x - 20, guide.position)
-        g.lineTo(artboard.x + artboard.width + 20, guide.position)
+        g.moveTo(tl.x, guide.position)
+        g.lineTo(br.x, guide.position)
       }
       g.stroke({ color: GUIDE_COLOR, alpha: 0.9, width: px })
     }
