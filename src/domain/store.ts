@@ -51,6 +51,10 @@ export interface StudioState {
   lockedBands: DepthBand[]
   contextMenu: ContextMenuState | null
   shortcutsOpen: boolean
+  /** Left flower-library panel visible (collapse to widen the canvas). */
+  libraryOpen: boolean
+  /** Right recipe/insights panel visible. */
+  insightsOpen: boolean
   learningMode: boolean
   showFormGuide: boolean
   gridVisible: boolean
@@ -136,6 +140,8 @@ export interface StudioState {
   toggleBandLocked: (band: DepthBand) => void
   setContextMenu: (menu: ContextMenuState | null) => void
   setShortcutsOpen: (open: boolean) => void
+  setLibraryOpen: (open: boolean) => void
+  setInsightsOpen: (open: boolean) => void
 }
 
 /**
@@ -237,6 +243,8 @@ const initializer: StateCreator<StudioState> = (set, get) => {
     lockedBands: [],
     contextMenu: null,
     shortcutsOpen: false,
+    libraryOpen: true,
+    insightsOpen: true,
     learningMode: true,
     showFormGuide: false,
     gridVisible: false,
@@ -669,6 +677,8 @@ const initializer: StateCreator<StudioState> = (set, get) => {
 
     setContextMenu: (menu) => set({ contextMenu: menu }),
     setShortcutsOpen: (open) => set({ shortcutsOpen: open }),
+    setLibraryOpen: (open) => set({ libraryOpen: open }),
+    setInsightsOpen: (open) => set({ insightsOpen: open }),
   }
 }
 
@@ -688,6 +698,8 @@ export function createStudioStore(options: { persistKey?: string } = {}) {
         gridVisible: state.gridVisible,
         gridSnap: state.gridSnap,
         gridStepMm: state.gridStepMm,
+        libraryOpen: state.libraryOpen,
+        insightsOpen: state.insightsOpen,
       }),
       migrate: (persisted) => {
         // Format migrations run on the stored document (v1 px → v2 mm).

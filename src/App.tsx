@@ -14,12 +14,20 @@ import { useStudio } from './domain/store'
 
 export default function App() {
   useKeyboardShortcuts()
+  const libraryOpen = useStudio((s) => s.libraryOpen)
+  const insightsOpen = useStudio((s) => s.insightsOpen)
+  const setLibraryOpen = useStudio((s) => s.setLibraryOpen)
+  const setInsightsOpen = useStudio((s) => s.setInsightsOpen)
 
   return (
     <div className="flex h-full flex-col">
       <TopBar />
       <div className="flex min-h-0 flex-1">
-        <LibraryPanel />
+        {libraryOpen ? (
+          <LibraryPanel onCollapse={() => setLibraryOpen(false)} />
+        ) : (
+          <CollapsedTab side="left" label="Flower library" onExpand={() => setLibraryOpen(true)} />
+        )}
         <Toolbar />
         <main className="flex min-w-0 flex-1 flex-col px-3 pb-1 pt-0" aria-label="Design workspace">
           <SelectionToolbar />
@@ -28,11 +36,56 @@ export default function App() {
           </div>
           <CanvasFooter />
         </main>
-        <SidePanel />
+        {insightsOpen ? (
+          <SidePanel onCollapse={() => setInsightsOpen(false)} />
+        ) : (
+          <CollapsedTab side="right" label="Recipe & insights" onExpand={() => setInsightsOpen(true)} />
+        )}
       </div>
       <ContextMenu />
       <ShortcutsOverlay />
       <Announcer />
+    </div>
+  )
+}
+
+/**
+ * The slim rail a collapsed side panel leaves behind: a chevron to reopen it
+ * plus a vertical label, so the panel is one click away and the canvas keeps
+ * the reclaimed width.
+ */
+function CollapsedTab({
+  side,
+  label,
+  onExpand,
+}: {
+  side: 'left' | 'right'
+  label: string
+  onExpand: () => void
+}) {
+  return (
+    <div
+      className={`flex w-9 shrink-0 flex-col items-center bg-white/70 ${
+        side === 'left' ? 'border-r' : 'border-l'
+      } border-bloom-200`}
+    >
+      <button
+        type="button"
+        onClick={onExpand}
+        title={`Show ${label}`}
+        aria-label={`Show ${label}`}
+        className="mt-2 flex h-8 w-8 items-center justify-center rounded-lg text-bloom-ink/70 transition-colors hover:bg-bloom-100 hover:text-bloom-ink"
+      >
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+          {side === 'left' ? <path d="M9 6l6 6-6 6" /> : <path d="M15 6l-6 6 6 6" />}
+        </svg>
+      </button>
+      <span
+        className="mt-3 select-none text-[11px] font-semibold uppercase tracking-wide text-bloom-ink/45"
+        style={{ writingMode: 'vertical-rl' }}
+      >
+        {label}
+      </span>
     </div>
   )
 }

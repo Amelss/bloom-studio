@@ -21,7 +21,7 @@ const FILTERS: Array<{ id: StemCategory | 'all'; label: string }> = [
   { id: 'foliage', label: 'Foliage' },
 ]
 
-export function LibraryPanel() {
+export function LibraryPanel({ onCollapse }: { onCollapse?: () => void }) {
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState<StemCategory | 'all'>('all')
   const addStem = useStudio((s) => s.addStem)
@@ -48,7 +48,22 @@ export function LibraryPanel() {
       className="scroll-slim flex w-72 shrink-0 flex-col gap-3 overflow-y-auto border-r border-bloom-200 bg-white/70 p-3"
       aria-label="Flower library"
     >
-      <h2 className="panel-title">Flower library</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="panel-title">Flower library</h2>
+        {onCollapse && (
+          <button
+            type="button"
+            onClick={onCollapse}
+            title="Hide flower library"
+            aria-label="Hide flower library"
+            className="flex h-7 w-7 items-center justify-center rounded-lg text-bloom-ink/55 transition-colors hover:bg-bloom-100 hover:text-bloom-ink"
+          >
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M15 6l-6 6 6 6" />
+            </svg>
+          </button>
+        )}
+      </div>
       <input
         type="search"
         placeholder="Search roses, lilac, eucalyptus…"

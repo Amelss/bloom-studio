@@ -6,7 +6,7 @@ import { LearnPanel } from './panels/LearnPanel'
 
 type Tab = 'recipe' | 'depth' | 'learn'
 
-export function SidePanel() {
+export function SidePanel({ onCollapse }: { onCollapse?: () => void }) {
   const learningMode = useStudio((s) => s.learningMode)
   const [selectedTab, setTab] = useState<Tab>('recipe')
   // The Learn tab only exists in learning mode; derive rather than sync.
@@ -14,11 +14,24 @@ export function SidePanel() {
 
   return (
     <aside className="flex w-80 shrink-0 flex-col border-l border-bloom-200 bg-white/70">
-      <div className="flex border-b border-bloom-200" role="tablist" aria-label="Design details">
+      <div className="flex items-stretch border-b border-bloom-200" role="tablist" aria-label="Design details">
         <TabButton id="recipe" label="Recipe" active={tab === 'recipe'} onSelect={() => setTab('recipe')} />
         <TabButton id="depth" label="Depth" active={tab === 'depth'} onSelect={() => setTab('depth')} />
         {learningMode && (
           <TabButton id="learn" label="Learn" active={tab === 'learn'} onSelect={() => setTab('learn')} />
+        )}
+        {onCollapse && (
+          <button
+            type="button"
+            onClick={onCollapse}
+            title="Hide recipe & insights"
+            aria-label="Hide recipe & insights"
+            className="flex w-9 shrink-0 items-center justify-center text-bloom-ink/55 transition-colors hover:bg-bloom-100 hover:text-bloom-ink"
+          >
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M9 6l6 6-6 6" />
+            </svg>
+          </button>
         )}
       </div>
       <div
