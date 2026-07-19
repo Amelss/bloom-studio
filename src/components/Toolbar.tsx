@@ -42,10 +42,8 @@ const IconHand = svg(
 )
 const IconTransform = svg(
   <>
-    <path d="M12 5a7 7 0 017 7" />
-    <path d="M19 8l-2 4 4-1" />
-    <path d="M12 19a7 7 0 01-7-7" />
-    <path d="M5 16l2-4-4 1" />
+    <path d="M21 12a9 9 0 1 1-2.64-6.36" />
+    <path d="M21 3v6h-6" />
   </>,
 )
 const IconArrange = svg(
@@ -77,9 +75,8 @@ const IconTrash = svg(
 )
 const IconBrush = svg(
   <>
-    <path d="M14 4l6 6-6.5 6.5" />
-    <path d="M14 10L8 4" opacity="0" />
-    <path d="M13.5 16.5C11 14 9 14 7 15c-1.6.8-2 3-4 3.5 1-2 .5-3.5 1.5-5 1.2-1.8 4-3.5 7-1z" />
+    <path d="m9.06 11.9 8.07-8.06a2.85 2.85 0 1 1 4.03 4.03l-8.06 8.08" />
+    <path d="M7.07 14.94c-1.66 0-3 1.35-3 3.02 0 1.33-2.5 1.52-2 2.02 1.08 1.1 2.49 2.02 4 2.02 2.2 0 4-1.8 4-4.04a3.01 3.01 0 0 0-3-3.02z" />
   </>,
 )
 const IconGrid = svg(
@@ -109,6 +106,7 @@ interface FlyItem {
 function Tool({
   icon: Icon,
   label,
+  hint,
   active,
   disabled,
   hasFlyout,
@@ -118,6 +116,8 @@ function Tool({
 }: {
   icon: (p: IconProps) => ReactNode
   label: string
+  /** Why the tool is unavailable — shown in the tooltip when disabled. */
+  hint?: string
   active?: boolean
   disabled?: boolean
   hasFlyout?: boolean
@@ -125,16 +125,16 @@ function Tool({
   onClick: () => void
   children?: ReactNode
 }) {
+  const tip = disabled && hint ? `${label} — ${hint}` : label
   return (
-    <div className="relative">
+    <div className="group relative">
       <button
         type="button"
-        aria-label={label}
+        aria-label={tip}
         aria-disabled={disabled}
         aria-pressed={active}
         aria-haspopup={hasFlyout || undefined}
         aria-expanded={hasFlyout ? isOpen : undefined}
-        title={disabled ? `${label} — select a flower first` : label}
         disabled={disabled}
         onClick={onClick}
         className={`relative flex h-9 w-9 items-center justify-center rounded-lg transition-colors ${
@@ -148,6 +148,16 @@ function Tool({
           <span className="absolute bottom-0.5 right-0.5 h-1 w-1 rounded-sm bg-current opacity-40" aria-hidden />
         )}
       </button>
+      {/* Hover tooltip — named to the right of the rail, hidden while the
+          fly-out is open so the two never overlap. */}
+      {!isOpen && (
+        <span
+          role="tooltip"
+          className="pointer-events-none absolute left-[calc(100%+8px)] top-1/2 z-[60] hidden -translate-y-1/2 whitespace-nowrap rounded-md bg-bloom-ink px-2 py-1 text-xs font-medium text-white shadow-lg group-hover:block"
+        >
+          {tip}
+        </span>
+      )}
       {isOpen && children}
     </div>
   )
@@ -275,6 +285,7 @@ export function Toolbar() {
       <Tool
         icon={IconTransform}
         label="Transform"
+        hint="select a flower first"
         hasFlyout
         disabled={!hasSelection}
         isOpen={open === 'transform'}
@@ -293,6 +304,7 @@ export function Toolbar() {
       <Tool
         icon={IconArrange}
         label="Arrange"
+        hint="select a flower first"
         hasFlyout
         disabled={!hasSelection}
         isOpen={open === 'arrange'}
@@ -310,6 +322,7 @@ export function Toolbar() {
       <Tool
         icon={IconGroup}
         label="Cluster"
+        hint="select two or more flowers"
         hasFlyout
         disabled={!canGroup && !anyClustered}
         isOpen={open === 'group'}
@@ -321,19 +334,19 @@ export function Toolbar() {
         </Flyout>
       </Tool>
 
-      <Tool icon={IconDuplicate} label="Duplicate (⌘D)" disabled={!hasSelection} onClick={run(duplicateSelected)} />
-      <Tool icon={IconTrash} label="Delete (⌫)" disabled={!hasSelection} onClick={run(removeSelected)} />
+      <Tool icon={IconDuplicate} label="Duplicate (⌘D)" hint="select a flower first" disabled={!hasSelection} onClick={run(duplicateSelected)} />
+      <Tool icon={IconTrash} label="Delete (⌫)" hint="select a flower first" disabled={!hasSelection} onClick={run(removeSelected)} />
 
       <Divider />
 
       {/* Filler brush */}
       <Tool
         icon={IconBrush}
-        label="Filler brush"
+        label={brush ? 'Filler brush — click to stop painting' : 'Filler brush'}
         hasFlyout
         active={!!brush}
         isOpen={open === 'brush'}
-        onClick={() => toggle('brush')}
+        onClick={() => (brush ? setBrush(null) : toggle('brush'))}
       >
         <Flyout title="Filler brush — paint a stroke">
           <div className="max-h-64 overflow-y-auto">
@@ -352,7 +365,7 @@ export function Toolbar() {
         </Flyout>
       </Tool>
 
-      <div className="flex-1" />
+      <Divider />
 
       {/* View controls */}
       <Tool
@@ -386,7 +399,8 @@ export function Toolbar() {
 
       <Tool
         icon={IconGuides}
-        label={learningMode ? 'Learning overlays' : 'Learning overlays — enable Learning mode'}
+        label="Learning overlays"
+        hint="turn on Learning mode"
         hasFlyout
         disabled={!learningMode}
         active={learningMode && (showFormGuide || balanceVisible || tiltEnabled)}

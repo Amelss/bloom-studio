@@ -368,7 +368,9 @@ const initializer: StateCreator<StudioState> = (set, get) => {
         y: Math.round(y),
         rotation,
         scale: 1,
-        flipX: rotation > 8 && Math.random() > 0.4,
+        // Flowers face their natural direction; flipping is a deliberate act
+        // (the Flip control), never random — so placement stays predictable.
+        flipX: false,
         band,
         order: nextOrderInBand(doc, band),
       }

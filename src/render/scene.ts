@@ -17,7 +17,6 @@ import { FLOWER_INDEX, VESSEL_INDEX } from '../data/catalog'
 import type { FlowerVariety } from '../domain/types'
 import { computeBalancePoint } from '../education/insights'
 import { Camera } from './camera'
-import { gridSteps } from './grid'
 import { FORM_FOCAL_ZONE, formSilhouette } from './formGuide'
 import type { GuideLine } from './smartGuides'
 import {
@@ -91,6 +90,7 @@ export class SceneManager {
   private readonly balanceG = new Graphics()
   private readonly guidesG = new Graphics()
   private readonly marqueeG = new Graphics()
+  private readonly clusterG = new Graphics()
   private readonly selectionG = new Graphics()
 
   private readonly sprites = new Map<string, Sprite>()
@@ -142,6 +142,7 @@ export class SceneManager {
       this.overlayG,
       this.balanceG,
       this.guidesG,
+      this.clusterG,
       this.selectionG,
       this.marqueeG,
     )
@@ -378,12 +379,14 @@ export class SceneManager {
       balance: this.balanceG.visible,
       selection: this.selectionG.visible,
       guides: this.guidesG.visible,
+      cluster: this.clusterG.visible,
     }
     this.gridG.visible = false
     this.overlayG.visible = false
     this.balanceG.visible = false
     this.selectionG.visible = false
     this.guidesG.visible = false
+    this.clusterG.visible = false
     this.world.scale.set(resolution)
     this.world.position.set(-artboard.x * resolution, -artboard.y * resolution)
     this.app.renderer.render({ container: this.world, target: renderTexture })
@@ -395,6 +398,7 @@ export class SceneManager {
     this.balanceG.visible = prev.balance
     this.selectionG.visible = prev.selection
     this.guidesG.visible = prev.guides
+    this.clusterG.visible = prev.cluster
     renderTexture.destroy(true)
     this.requestRender()
     return canvas.toDataURL?.('image/png') ?? null
@@ -560,8 +564,62 @@ export class SceneManager {
     this.drawFormGuide()
     this.drawBalance()
     this.drawGuides()
+    this.drawClusters()
     this.drawMarquee()
     this.drawSelection()
+  }
+
+  /**
+   * A faint, always-on capsule around every cluster so that grouping leaves a
+   * lasting mark — you can see which stems are bound long after you deselect.
+   * The currently-selected cluster is skipped here (drawSelection draws its
+   * stronger capsule) to avoid a doubled outline.
+   */
+  private drawClusters() {
+    const g = this.clusterG
+    g.clear()
+    if (!this.doc) return
+    const px = 1 / this.camera.scale
+
+    const groups = new Map<string, PlacedStem[]>()
+    for (const stem of this.doc.stems) {
+      if (!stem.clusterId || !this.stemInteractive(stem)) continue
+      const arr = groups.get(stem.clusterId) ?? []
+      arr.push(stem)
+      groups.set(stem.clusterId, arr)
+    }
+    if (!groups.size) return
+
+    const selected = new Set(this.selectedIds)
+    for (const stems of groups.values()) {
+      if (stems.length < 2) continue
+      // The active selection's own cluster is drawn (more boldly) by drawSelection.
+      const isActive =
+        this.selectedIds.length === stems.length && stems.every((s) => selected.has(s.id))
+      if (isActive) continue
+
+      let minX = Infinity
+      let minY = Infinity
+      let maxX = -Infinity
+      let maxY = -Infinity
+      for (const stem of stems) {
+        const variety = FLOWER_INDEX[stem.varietyId]
+        if (!variety) continue
+        for (const c of this.contentCorners(stem, variety)) {
+          if (c.x < minX) minX = c.x
+          if (c.y < minY) minY = c.y
+          if (c.x > maxX) maxX = c.x
+          if (c.y > maxY) maxY = c.y
+        }
+      }
+      if (!Number.isFinite(minX)) continue
+      const m = 8 * px
+      g.roundRect(minX - m, minY - m, maxX - minX + 2 * m, maxY - minY + 2 * m, 12 * px).stroke({
+        color: SELECTION_COLOR,
+        alpha: 0.45,
+        width: 1.4 * px,
+      })
+    }
   }
 
   private drawGrid() {
@@ -569,18 +627,24 @@ export class SceneManager {
     g.clear()
     const artboard = this.artboard
     if (!artboard || !this.prefs.gridVisible) return
-    const { minor, major } = gridSteps(this.camera.scale)
+    // The drawn grid uses the chosen step, so the size dropdown is visible AND
+    // matches where snapping lands (interactions snap to the same gridStepMm).
+    const minor = this.prefs.gridStepMm
+    const major = minor * 5
     const px = 1 / this.camera.scale
     const onDark = artboard.paper === 'charcoal'
     const color = onDark ? 0xd8d4cb : 0x8a9a7b
+    // Below a few pixels apart the minor lines are an unreadable wash — draw
+    // only the majors at that zoom (snapping is unaffected).
+    const step = minor * this.camera.scale >= 5 ? minor : major
 
-    for (let x = artboard.x; x <= artboard.x + artboard.width + 0.01; x += minor) {
+    for (let x = artboard.x; x <= artboard.x + artboard.width + 0.01; x += step) {
       const isMajor = Math.round(x - artboard.x) % major === 0
       g.moveTo(x, artboard.y)
       g.lineTo(x, artboard.y + artboard.height)
       g.stroke({ color, alpha: isMajor ? 0.28 : 0.13, width: px })
     }
-    for (let y = artboard.y; y <= artboard.y + artboard.height + 0.01; y += minor) {
+    for (let y = artboard.y; y <= artboard.y + artboard.height + 0.01; y += step) {
       const isMajor = Math.round(y - artboard.y) % major === 0
       g.moveTo(artboard.x, y)
       g.lineTo(artboard.x + artboard.width, y)
@@ -694,6 +758,22 @@ export class SceneManager {
 
     const bounds = this.selectionBounds()
     if (!bounds) return
+
+    // A selection that is exactly one whole cluster gets a rounded "capsule"
+    // hull, so clustering is visibly doing something — these stems are bound
+    // and move, rotate and select as a single unit.
+    const selStems = this.selectedIds
+      .map((id) => this.doc!.stems.find((s) => s.id === id))
+      .filter((s): s is PlacedStem => !!s)
+    const clusterId = selStems[0]?.clusterId
+    const isCluster =
+      selStems.length > 1 && clusterId != null && selStems.every((s) => s.clusterId === clusterId)
+    if (isCluster) {
+      const m = 9 * px
+      g.roundRect(bounds.x - m, bounds.y - m, bounds.width + 2 * m, bounds.height + 2 * m, 12 * px)
+        .stroke({ color: SELECTION_COLOR, alpha: 0.7, width: 1.5 * px })
+    }
+
     g.rect(bounds.x, bounds.y, bounds.width, bounds.height).stroke({
       color: SELECTION_COLOR,
       alpha: 0.55,

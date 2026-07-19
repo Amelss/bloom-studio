@@ -42,7 +42,7 @@ function SingleProps({ stem }: { stem: PlacedStem }) {
   if (!variety) return null
 
   return (
-    <div className="flex h-11 flex-wrap items-center justify-center gap-2">
+    <div className="flex min-h-[2.75rem] flex-wrap items-center justify-center gap-x-2 gap-y-1 py-1">
       <span className="mr-1 text-sm font-medium">{variety.commonName}</span>
 
       <NumField
@@ -92,6 +92,12 @@ function SingleProps({ stem }: { stem: PlacedStem }) {
           ))}
         </span>
       )}
+
+      {/* Teach multi-select at the moment it's useful — the hint bar is gone
+          once something is selected, so a first-timer never learns it. */}
+      <span className="ml-1 hidden text-[11px] text-bloom-ink/45 lg:inline">
+        ⇧-click another to select several
+      </span>
     </div>
   )
 }

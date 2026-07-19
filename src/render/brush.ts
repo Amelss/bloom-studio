@@ -80,7 +80,8 @@ export class BrushSampler {
       y: Math.round(py * 10) / 10,
       rotation: Math.round(lean + j(this.params.rotationJitterDeg)),
       scale: Math.min(1.15, Math.max(0.85, +(0.95 + j(0.12)).toFixed(2))),
-      flipX: this.rng() > 0.5,
+      // Painted stems keep their natural facing — no random mirroring.
+      flipX: false,
     }
   }
 }

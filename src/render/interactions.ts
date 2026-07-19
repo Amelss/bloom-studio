@@ -350,25 +350,27 @@ export function attachInteractions(
         }
       }
 
-      // 2. Smart alignment against neighbours and the artboard axes.
+      // 2. Snapping. When the user has turned on grid snap it wins outright —
+      //    both axes lock to the grid so the toggle reliably does what it says,
+      //    even in a dense arrangement where a neighbour is always nearby.
+      //    Otherwise, smart alignment against neighbours and the artboard axes.
       if (!formSnapped) {
-        const dragging = new Set(g.start.keys())
-        const targetsX: number[] = [artboard.x + artboard.width / 2]
-        const targetsY: number[] = [artboard.y + artboard.height / 2]
-        for (const stem of state.doc.stems) {
-          if (dragging.has(stem.id)) continue
-          targetsX.push(stem.x)
-          targetsY.push(stem.y)
-        }
-        const snap = findSmartSnap(nx, ny, targetsX, targetsY, SMART_SNAP_PX / scene.camera.scale)
-        nx = snap.x
-        ny = snap.y
-        guides = snap.guides
-
-        // 3. Grid snap on axes the smart guides didn't claim.
         if (state.gridSnap) {
-          if (!guides.some((g) => g.axis === 'v')) nx = snapToGrid(nx, state.gridStepMm)
-          if (!guides.some((g) => g.axis === 'h')) ny = snapToGrid(ny, state.gridStepMm)
+          nx = snapToGrid(nx, state.gridStepMm)
+          ny = snapToGrid(ny, state.gridStepMm)
+        } else {
+          const dragging = new Set(g.start.keys())
+          const targetsX: number[] = [artboard.x + artboard.width / 2]
+          const targetsY: number[] = [artboard.y + artboard.height / 2]
+          for (const stem of state.doc.stems) {
+            if (dragging.has(stem.id)) continue
+            targetsX.push(stem.x)
+            targetsY.push(stem.y)
+          }
+          const snap = findSmartSnap(nx, ny, targetsX, targetsY, SMART_SNAP_PX / scene.camera.scale)
+          nx = snap.x
+          ny = snap.y
+          guides = snap.guides
         }
       }
     } else if (!suspendSnap && state.gridSnap) {
