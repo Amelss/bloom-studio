@@ -189,6 +189,15 @@ function useKeyboardShortcuts() {
         return
       }
 
+      // Panel toggles: [ hides/shows the left library, ] the right insights.
+      // Only when nothing is selected, so a selection keeps the brackets for
+      // layer order ([ send backward, ] bring forward).
+      if (!isModifier && !store.selectedIds.length && (e.key === '[' || e.key === ']')) {
+        if (e.key === '[') store.setLibraryOpen(!store.libraryOpen)
+        else store.setInsightsOpen(!store.insightsOpen)
+        return
+      }
+
       // Selected-stem operations
       if (!store.selectedIds.length) return
       const step = e.shiftKey ? 10 : 1 // mm

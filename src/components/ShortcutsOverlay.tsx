@@ -15,6 +15,7 @@ const GROUPS: ShortcutGroup[] = [
       ['⌘0 · ⌘1 · ⌘2', 'Fit artboard · 100% · fit selection'],
       ['+ / −', 'Step zoom'],
       ["Shift+'", 'Toggle grid'],
+      ['[ / ]', 'Hide / show library · insights panel (no selection)'],
     ],
   },
   {
@@ -49,7 +50,7 @@ const GROUPS: ShortcutGroup[] = [
   {
     title: 'Depth',
     items: [
-      ['[ / ]', 'Recess / advance within band'],
+      ['[ / ]', 'Recess / advance within band (with a stem selected)'],
       ['⌘[ / ⌘]', 'Move to the band behind / in front'],
     ],
   },

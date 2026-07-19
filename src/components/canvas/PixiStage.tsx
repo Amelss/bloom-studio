@@ -25,7 +25,9 @@ export function PixiStage() {
 
     app
       .init({
-        background: '#f2f2f0',
+        // Matches the default white paper; the scene repaints this to the
+        // active paper colour so the canvas fills the frame seamlessly.
+        background: '#ffffff',
         antialias: true,
         resolution: Math.min(window.devicePixelRatio || 1, 2),
         autoDensity: true,

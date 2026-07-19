@@ -210,7 +210,7 @@ export class SceneManager {
   fitArtboard(animate = true) {
     const artboard = this.artboard
     if (!artboard) return
-    this.camera.fitBounds(artboard, 48, animate)
+    this.camera.fitBounds(artboard, 12, animate)
   }
 
   fitSelection(animate = true) {
@@ -486,18 +486,17 @@ export class SceneManager {
   private drawArtboard(artboard: Artboard) {
     const g = this.artboardG
     g.clear()
-    g.rect(artboard.x + 3, artboard.y + 5, artboard.width, artboard.height).fill({
-      color: 0x000000,
-      alpha: 0.08,
-    })
-    g.rect(artboard.x, artboard.y, artboard.width, artboard.height).fill(
-      PAPER_COLORS[artboard.paper] ?? PAPER_COLORS.white,
-    )
-    g.rect(artboard.x, artboard.y, artboard.width, artboard.height).stroke({
-      color: 0xd8d4cb,
-      width: 1,
-      pixelLine: true,
-    })
+    const paper = PAPER_COLORS[artboard.paper] ?? PAPER_COLORS.white
+    // The pasteboard is painted the SAME colour as the paper, so the canvas
+    // reads as one continuous surface filling the frame rather than a small
+    // sheet floating on a grey matte.
+    try {
+      this.app.renderer.background.color = paper
+    } catch {
+      // Older/edge renderers may not expose a settable background; the fill
+      // below still covers the artboard itself.
+    }
+    g.rect(artboard.x, artboard.y, artboard.width, artboard.height).fill(paper)
   }
 
   private syncStems(doc: DesignDocument) {
