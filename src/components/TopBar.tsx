@@ -86,7 +86,7 @@ export function TopBar() {
 
         <details className="relative">
           <summary className="btn cursor-pointer list-none">New ▾</summary>
-          <div className="absolute right-0 z-50 mt-1 w-48 rounded-lg border border-bloom-200 bg-white p-1 shadow-lg">
+          <div className="absolute right-0 z-50 mt-1.5 w-48 rounded-xl bg-white p-1 shadow-pop ring-1 ring-bloom-ink/[0.06]">
             <button
               className="block w-full rounded px-2 py-1.5 text-left text-sm hover:bg-bloom-100"
               onClick={(e) => {
@@ -110,7 +110,7 @@ export function TopBar() {
 
         <details className="relative">
           <summary className="btn cursor-pointer list-none">Export ▾</summary>
-          <div className="absolute right-0 z-50 mt-1 w-56 rounded-lg border border-bloom-200 bg-white p-1 shadow-lg">
+          <div className="absolute right-0 z-50 mt-1.5 w-56 rounded-xl bg-white p-1 shadow-pop ring-1 ring-bloom-ink/[0.06]">
             <button
               className="block w-full rounded px-2 py-1.5 text-left text-sm hover:bg-bloom-100"
               onClick={(e) => {

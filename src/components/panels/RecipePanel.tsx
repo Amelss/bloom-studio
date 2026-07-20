@@ -28,11 +28,11 @@ export function RecipePanel() {
       ) : (
         <table className="w-full text-left text-xs">
           <thead>
-            <tr className="border-b border-bloom-200 text-bloom-ink/60">
-              <th className="py-1 pr-1 font-medium">Item</th>
-              <th className="py-1 pr-1 text-right font-medium">Qty</th>
-              <th className="py-1 pr-1 text-right font-medium">Unit £</th>
-              <th className="py-1 text-right font-medium">Total</th>
+            <tr className="border-b border-bloom-200/70 text-[10px] uppercase tracking-wide text-bloom-ink/40">
+              <th className="pb-2 pr-1 font-semibold">Item</th>
+              <th className="pb-2 pr-1 text-right font-semibold">Qty</th>
+              <th className="pb-2 pr-1 text-right font-semibold">Unit £</th>
+              <th className="pb-2 text-right font-semibold">Total</th>
             </tr>
           </thead>
           <tbody>
@@ -49,8 +49,8 @@ export function RecipePanel() {
                     min="0"
                     step="0.05"
                     aria-label={`Unit price for ${line.varietyName}`}
-                    className={`w-14 rounded border px-1 py-0.5 text-right tabular-nums ${
-                      line.isOverride ? 'border-bloom-600 bg-bloom-100' : 'border-bloom-200 bg-white'
+                    className={`w-14 rounded px-1 py-0.5 text-right tabular-nums transition-colors hover:bg-bloom-100 focus:bg-white focus:shadow-soft ${
+                      line.isOverride ? 'bg-bloom-100 font-medium text-bloom-700' : 'bg-transparent'
                     }`}
                     value={line.unitPrice}
                     onChange={(e) => {
@@ -90,7 +90,7 @@ export function RecipePanel() {
           <dd>
             <select
               id="markup-select"
-              className="rounded border border-bloom-200 bg-white px-1.5 py-0.5 text-sm"
+              className="rounded bg-bloom-100/60 px-1.5 py-1 text-sm transition-colors hover:bg-bloom-100 focus:bg-white"
               value={recipe.markup}
               onChange={(e) => setMarkup(parseFloat(e.target.value))}
             >
@@ -102,9 +102,9 @@ export function RecipePanel() {
             </select>
           </dd>
         </div>
-        <div className="flex justify-between border-t border-bloom-200 pt-1.5 text-base">
-          <dt className="font-medium">Suggested retail</dt>
-          <dd className="font-display font-semibold tabular-nums text-bloom-700">
+        <div className="mt-1 flex items-baseline justify-between border-t border-bloom-200/70 pt-2.5">
+          <dt className="text-sm text-bloom-ink/60">Suggested retail</dt>
+          <dd className="font-display text-2xl font-semibold tabular-nums text-bloom-700">
             £{recipe.suggestedRetail.toFixed(2)}
           </dd>
         </div>
@@ -117,8 +117,8 @@ export function RecipePanel() {
       )}
 
       {learningMode && recipe.stemCount > 0 && (
-        <p className="rounded-lg border border-bloom-200 bg-white px-3 py-2 text-xs text-bloom-ink/70">
-          <span className="font-semibold">Why this matters:</span> under-counting stems is
+        <p className="rounded-lg bg-bloom-100/50 px-3 py-2 text-xs leading-relaxed text-bloom-ink/70">
+          <span className="font-semibold text-bloom-700">Why this matters:</span> under-counting stems is
           invisible on the invoice and fatal to margin. Studios typically mark up wholesale cost
           2–4× and may add labour on top — try changing the markup and watch the retail price.
         </p>

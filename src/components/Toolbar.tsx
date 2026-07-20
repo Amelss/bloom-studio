@@ -169,7 +169,7 @@ function Flyout({ title, children }: { title: string; children: ReactNode }) {
     <div
       role="menu"
       aria-label={title}
-      className="absolute left-[calc(100%+8px)] top-0 z-50 min-w-[13rem] rounded-xl border border-bloom-200 bg-white p-1.5 shadow-xl"
+      className="absolute left-[calc(100%+8px)] top-0 z-50 min-w-[13rem] rounded-xl bg-white p-1.5 shadow-pop ring-1 ring-bloom-ink/[0.06]"
     >
       <p className="px-2 pb-1 pt-0.5 text-[10px] font-semibold uppercase tracking-wide text-bloom-ink/40">
         {title}

@@ -162,7 +162,7 @@ export function PixiStage() {
 
   if (error) {
     return (
-      <div className="flex h-full items-center justify-center rounded-xl border border-bloom-200 bg-white p-8 text-center text-sm text-bloom-ink/70">
+      <div className="flex h-full items-center justify-center rounded-2xl bg-white p-8 text-center text-sm text-bloom-ink/70 shadow-canvas ring-1 ring-bloom-ink/[0.06]">
         {error}
       </div>
     )
@@ -173,7 +173,7 @@ export function PixiStage() {
       ref={hostRef}
       role="application"
       aria-label="Design canvas"
-      className="relative h-full min-h-0 w-full overflow-hidden rounded-xl border border-bloom-200"
+      className="relative h-full min-h-0 w-full overflow-hidden"
     />
   )
 }

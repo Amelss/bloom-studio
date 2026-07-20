@@ -29,7 +29,7 @@ export default function App() {
           <CollapsedTab side="left" label="Flower library" onExpand={() => setLibraryOpen(true)} />
         )}
         <Toolbar />
-        <main className="flex min-w-0 flex-1 flex-col px-3 pb-1 pt-0" aria-label="Design workspace">
+        <main className="flex min-w-0 flex-1 flex-col" aria-label="Design workspace">
           <SelectionToolbar />
           <div className="min-h-0 flex-1">
             <PixiStage />

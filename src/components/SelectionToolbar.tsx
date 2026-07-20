@@ -24,9 +24,13 @@ export function SelectionToolbar() {
 
   if (stems.length === 0) {
     return (
-      <div className="flex h-11 items-center justify-center text-xs text-bloom-ink/50">
-        Click a stem to select · drag empty space for marquee · ⇧click adds · ⌥click digs ·
-        double-click enters a cluster · press ? for all shortcuts
+      <div className="flex h-11 items-center justify-center gap-2 text-xs text-bloom-ink/40">
+        <span>Click to select · drag to marquee · double-click a cluster to edit</span>
+        <span className="hidden text-bloom-ink/30 sm:inline">·</span>
+        <kbd className="hidden rounded bg-bloom-100 px-1.5 py-0.5 font-sans text-[11px] text-bloom-ink/50 sm:inline">
+          ?
+        </kbd>
+        <span className="hidden text-bloom-ink/40 sm:inline">for shortcuts</span>
       </div>
     )
   }

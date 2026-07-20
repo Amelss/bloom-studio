@@ -46,7 +46,7 @@ export function ContextMenu() {
       <div
         role="menu"
         aria-label={`${variety.commonName} actions`}
-        className="fixed z-50 w-60 rounded-lg border border-bloom-200 bg-white p-1 shadow-lg"
+        className="fixed z-50 w-60 rounded-xl bg-white p-1 shadow-pop ring-1 ring-bloom-ink/[0.06]"
         style={{
           left: Math.min(menu.x, window.innerWidth - 250),
           top: Math.min(menu.y, window.innerHeight - 220),

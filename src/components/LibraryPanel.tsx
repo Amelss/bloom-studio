@@ -68,7 +68,7 @@ export function LibraryPanel({ onCollapse }: { onCollapse?: () => void }) {
         type="search"
         placeholder="Search roses, lilac, eucalyptus…"
         aria-label="Search the flower library"
-        className="rounded-lg border border-bloom-200 bg-white px-3 py-1.5 text-sm"
+        className="rounded-lg bg-bloom-100/60 px-3 py-2 text-sm text-bloom-ink placeholder:text-bloom-ink/40 transition-colors focus:bg-white focus:shadow-soft"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
       />
@@ -77,10 +77,10 @@ export function LibraryPanel({ onCollapse }: { onCollapse?: () => void }) {
           <button
             key={f.id}
             onClick={() => setFilter(f.id)}
-            className={`chip border ${
+            className={`chip transition-colors ${
               filter === f.id
-                ? 'border-bloom-700 bg-bloom-600 text-white'
-                : 'border-bloom-200 bg-white text-bloom-ink/70 hover:bg-bloom-100'
+                ? 'bg-bloom-600 text-white shadow-soft'
+                : 'bg-bloom-100/70 text-bloom-ink/55 hover:bg-bloom-100 hover:text-bloom-ink'
             }`}
           >
             {f.label}
@@ -98,7 +98,7 @@ export function LibraryPanel({ onCollapse }: { onCollapse?: () => void }) {
                 role="button"
                 tabIndex={0}
                 draggable
-                className="group flex w-full cursor-pointer flex-col items-center rounded-xl border border-bloom-200 bg-white p-2 text-center shadow-sm transition hover:border-bloom-500 hover:shadow"
+                className="group flex w-full cursor-pointer flex-col items-center rounded-xl bg-white p-2.5 text-center shadow-soft ring-1 ring-bloom-ink/[0.04] transition duration-150 hover:-translate-y-0.5 hover:shadow-panel hover:ring-bloom-500/30"
                 onClick={() => addStem(flower.id)}
                 onDragStart={(e) => {
                   e.dataTransfer.setData(

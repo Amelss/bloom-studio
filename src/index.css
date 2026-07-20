@@ -19,7 +19,7 @@
 
 @layer components {
   .btn {
-    @apply inline-flex items-center gap-1.5 rounded-lg border border-bloom-200 bg-white px-2.5 py-1.5 text-sm font-medium text-bloom-ink shadow-sm transition-colors hover:bg-bloom-100 disabled:cursor-not-allowed disabled:opacity-40;
+    @apply inline-flex items-center gap-1.5 rounded-lg border border-bloom-200 bg-white px-2.5 py-1.5 text-sm font-medium text-bloom-ink shadow-soft transition-colors hover:bg-bloom-100 disabled:cursor-not-allowed disabled:opacity-40;
   }
   .btn-icon {
     @apply btn px-2;

@@ -86,7 +86,7 @@ export function ShortcutsOverlay() {
         role="dialog"
         aria-modal="true"
         aria-label="Keyboard shortcuts"
-        className="max-h-[80vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-bloom-200 bg-white p-5 shadow-xl"
+        className="max-h-[80vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-5 shadow-pop ring-1 ring-bloom-ink/[0.06]"
       >
         <div className="mb-3 flex items-center gap-3">
           <h2 className="font-display text-lg font-semibold text-bloom-700">Keyboard shortcuts</h2>

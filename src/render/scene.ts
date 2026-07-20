@@ -35,8 +35,8 @@ const PAPER_COLORS: Record<PaperOption, number> = {
   charcoal: 0x34322f,
 }
 
-const SELECTION_COLOR = 0x586950
-const GUIDE_COLOR = 0xb0715f
+const SELECTION_COLOR = 0x5c6b61
+const GUIDE_COLOR = 0xa5766a
 const HANDLE_HIT_PX = 10
 /** Vertical fan distance per band during depth x-ray, mm. */
 const XRAY_LIFT_MM = 36
@@ -632,7 +632,7 @@ export class SceneManager {
     const major = minor * 5
     const px = 1 / this.camera.scale
     const onDark = artboard.paper === 'charcoal'
-    const color = onDark ? 0xd8d4cb : 0x8a9a7b
+    const color = onDark ? 0xd4d7d4 : 0x9aa19c
     // Below a few pixels apart the minor lines are an unreadable wash — draw
     // only the majors at that zoom (snapping is unaffected).
     const step = minor * this.camera.scale >= 5 ? minor : major
@@ -668,7 +668,7 @@ export class SceneManager {
     const px = 1 / this.camera.scale
     const ellipse = formSilhouette(artboard)
     dashedEllipse(g, ellipse.cx, ellipse.cy, ellipse.rx, ellipse.ry, 8, {
-      color: 0x6f8161,
+      color: 0x5c6b61,
       alpha: 0.55,
       width: 1.5 * px,
     })
@@ -696,7 +696,7 @@ export class SceneManager {
     const px = 1 / this.camera.scale
     const cx = artboard.x + artboard.width / 2
     const abs = Math.abs(balance.lean)
-    const color = abs <= 0.12 ? 0x6f8161 : abs <= 0.3 ? 0xc19a3f : 0xb0715f
+    const color = abs <= 0.12 ? 0x5c6b61 : abs <= 0.3 ? 0xc19a3f : 0xa5766a
 
     // Central axis (dashed) spans the full visible canvas height, then the
     // plumb line to the balance point and the marker.

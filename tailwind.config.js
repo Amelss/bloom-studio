@@ -9,16 +9,25 @@ export default {
       },
       colors: {
         bloom: {
-          50: '#faf7f2',
-          100: '#f3ede2',
-          200: '#e5dcc9',
-          500: '#8a9a7b',
-          600: '#6f8161',
-          700: '#586950',
-          rose: '#c98a94',
-          clay: '#b0715f',
-          ink: '#2f2a26',
+          // Cool editorial: greige/stone neutrals separated by tone + soft
+          // shadow (never hard outlines), with a single restrained accent.
+          50: '#f4f4f2', // app / workspace ground — cool stone off-white
+          100: '#eaebe8', // subtle fill / hover
+          200: '#ddded9', // hairline borders (low contrast on purpose)
+          500: '#7e8b82', // muted sage-slate — accent, light
+          600: '#5c6b61', // primary action — deep muted sage-slate
+          700: '#414b45', // deep accent — green-ink for headings / hero figures
+          rose: '#bd8b90', // cooled dusty rose (decorative)
+          clay: '#a5766a', // cooled clay (decorative)
+          ink: '#26282b', // cool near-black
         },
+      },
+      boxShadow: {
+        // A restrained elevation scale — soft, cool-neutral, never a hard ring.
+        soft: '0 1px 2px rgba(28,30,34,0.06)',
+        panel: '0 1px 3px rgba(28,30,34,0.07), 0 1px 2px rgba(28,30,34,0.05)',
+        pop: '0 10px 30px -10px rgba(28,30,34,0.22), 0 2px 8px -2px rgba(28,30,34,0.10)',
+        canvas: '0 2px 6px rgba(28,30,34,0.06), 0 24px 56px -28px rgba(28,30,34,0.24)',
       },
     },
   },
