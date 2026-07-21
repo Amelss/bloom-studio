@@ -8,7 +8,7 @@ import { ContextMenu } from './components/ContextMenu'
 import { ShortcutsOverlay } from './components/ShortcutsOverlay'
 import { Announcer } from './components/Announcer'
 import { PixiStage } from './components/canvas/PixiStage'
-import { CanvasFooter } from './components/canvas/CanvasFooter'
+import { CanvasControls } from './components/canvas/CanvasControls'
 import { canvasRegistry } from './render/registry'
 import { useStudio } from './domain/store'
 
@@ -31,10 +31,10 @@ export default function App() {
         <Toolbar />
         <main className="flex min-w-0 flex-1 flex-col" aria-label="Design workspace">
           <SelectionToolbar />
-          <div className="min-h-0 flex-1">
+          <div className="relative min-h-0 flex-1">
             <PixiStage />
+            <CanvasControls />
           </div>
-          <CanvasFooter />
         </main>
         {insightsOpen ? (
           <SidePanel onCollapse={() => setInsightsOpen(false)} />

@@ -2,6 +2,14 @@ import { useRef, type MouseEvent } from 'react'
 import { useStudio, migrateDocument } from '../domain/store'
 import { canvasRegistry } from '../render/registry'
 import { downloadFile, downloadUrl } from '../utils/download'
+import type { PaperOption } from '../domain/types'
+
+const PAPERS: Array<{ id: PaperOption; label: string }> = [
+  { id: 'white', label: 'White' },
+  { id: 'ivory', label: 'Ivory' },
+  { id: 'blush', label: 'Blush' },
+  { id: 'charcoal', label: 'Charcoal' },
+]
 
 export function TopBar() {
   const docName = useStudio((s) => s.doc.name)
@@ -15,6 +23,8 @@ export function TopBar() {
   const setLearningMode = useStudio((s) => s.setLearningMode)
   const newDesign = useStudio((s) => s.newDesign)
   const importDesign = useStudio((s) => s.importDesign)
+  const paper = useStudio((s) => s.doc.artboards[0]?.paper ?? 'white')
+  const setPaper = useStudio((s) => s.setPaper)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -73,6 +83,22 @@ export function TopBar() {
         <button className="btn-icon" onClick={redo} disabled={!canRedo} aria-label="Redo" title="Redo (⇧⌘Z)">
           ↪
         </button>
+
+        <label className="flex items-center gap-1.5 text-xs text-bloom-ink/55" title="Presentation ground — white bouquets need a darker paper">
+          Paper
+          <select
+            className="rounded-lg bg-bloom-100/60 px-1.5 py-1 text-sm text-bloom-ink transition-colors hover:bg-bloom-100 focus:bg-white"
+            value={paper}
+            onChange={(e) => setPaper(e.target.value as PaperOption)}
+            aria-label="Artboard paper"
+          >
+            {PAPERS.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.label}
+              </option>
+            ))}
+          </select>
+        </label>
 
         <label className="btn cursor-pointer select-none" title="Show live feedback and flower notes while you design">
           <input

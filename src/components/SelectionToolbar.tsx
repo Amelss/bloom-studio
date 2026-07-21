@@ -22,18 +22,9 @@ export function SelectionToolbar() {
   const doc = useStudio((s) => s.doc)
   const stems = doc.stems.filter((s) => selectedIds.includes(s.id))
 
-  if (stems.length === 0) {
-    return (
-      <div className="flex h-11 items-center justify-center gap-2 text-xs text-bloom-ink/40">
-        <span>Click to select · drag to marquee · double-click a cluster to edit</span>
-        <span className="hidden text-bloom-ink/30 sm:inline">·</span>
-        <kbd className="hidden rounded bg-bloom-100 px-1.5 py-0.5 font-sans text-[11px] text-bloom-ink/50 sm:inline">
-          ?
-        </kbd>
-        <span className="hidden text-bloom-ink/40 sm:inline">for shortcuts</span>
-      </div>
-    )
-  }
+  // Nothing selected: no strip at all, so the canvas runs to the top edge.
+  // (Selection hints live in the ? shortcuts overlay.)
+  if (stems.length === 0) return null
 
   return stems.length === 1 ? <SingleProps stem={stems[0]} /> : <MultiProps stems={stems} />
 }
