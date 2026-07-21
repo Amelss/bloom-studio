@@ -204,12 +204,12 @@ function useKeyboardShortcuts() {
 
       if (isModifier && e.key === '[') {
         e.preventDefault()
-        store.bandSelected('backward')
+        store.sendToBack()
         return
       }
       if (isModifier && e.key === ']') {
         e.preventDefault()
-        store.bandSelected('forward')
+        store.bringToFront()
         return
       }
       if (isModifier && e.key.toLowerCase() === 'd') {

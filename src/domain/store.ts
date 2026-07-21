@@ -98,6 +98,8 @@ export interface StudioState {
   scaleSelected: (delta: number) => void
   flipSelected: () => void
   layerSelected: (direction: 'forward' | 'backward') => void
+  bringToFront: () => void
+  sendToBack: () => void
   bandSelected: (direction: 'forward' | 'backward') => void
   groupSelected: () => void
   ungroupSelected: () => void
@@ -451,16 +453,43 @@ const initializer: StateCreator<StudioState> = (set, get) => {
 
     layerSelected: (direction) => {
       const { doc } = get()
-      const extremes = new Map<DepthBand, number>()
+      const isFront = direction === 'forward'
       updateEach((stem) => {
         const orders = ordersInBand(doc, stem.band)
-        const base =
-          extremes.get(stem.band) ??
-          (direction === 'forward' ? Math.max(...orders) : Math.min(...orders))
-        const order = direction === 'forward' ? base + 1 : base - 1
-        extremes.set(stem.band, order)
-        return { order }
+        const extreme = isFront ? Math.max(...orders) : Math.min(...orders)
+        // Already at the edge of its band: spill into the neighbouring depth
+        // band so repeated presses walk the stem through the whole front-to-back
+        // stack (not stuck reordering within one band). Band jumps at the very
+        // front/back are a no-op.
+        if (stem.order === extreme) {
+          const nextRank = DEPTH_BANDS.indexOf(stem.band) + (isFront ? 1 : -1)
+          if (nextRank < 0 || nextRank >= DEPTH_BANDS.length) return null
+          const band = DEPTH_BANDS[nextRank]
+          const nb = ordersInBand(doc, band)
+          const order = isFront
+            ? (nb.length ? Math.min(...nb) - 1 : 0) // enter at the back of the front band
+            : (nb.length ? Math.max(...nb) + 1 : 0) // enter at the front of the back band
+          return { band, order }
+        }
+        return { order: isFront ? extreme + 1 : extreme - 1 }
       })
+    },
+
+    // Jump straight to the very front / back of the WHOLE design by landing in
+    // the front-most (accents) / back-most (background) depth band at the top /
+    // bottom of its stack. Multiple stems keep their relative order.
+    bringToFront: () => {
+      const front = DEPTH_BANDS[DEPTH_BANDS.length - 1]
+      const orders = ordersInBand(get().doc, front)
+      let next = (orders.length ? Math.max(...orders) : -1) + 1
+      updateEach(() => ({ band: front, order: next++ }))
+    },
+
+    sendToBack: () => {
+      const back = DEPTH_BANDS[0]
+      const orders = ordersInBand(get().doc, back)
+      let next = (orders.length ? Math.min(...orders) : 1) - 1
+      updateEach(() => ({ band: back, order: next-- }))
     },
 
     bandSelected: (direction) => {

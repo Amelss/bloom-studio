@@ -225,7 +225,8 @@ export function Toolbar() {
   const flipSelected = useStudio((s) => s.flipSelected)
   const scaleSelected = useStudio((s) => s.scaleSelected)
   const layerSelected = useStudio((s) => s.layerSelected)
-  const bandSelected = useStudio((s) => s.bandSelected)
+  const bringToFront = useStudio((s) => s.bringToFront)
+  const sendToBack = useStudio((s) => s.sendToBack)
   const duplicateSelected = useStudio((s) => s.duplicateSelected)
   const removeSelected = useStudio((s) => s.removeSelected)
   const groupSelected = useStudio((s) => s.groupSelected)
@@ -310,11 +311,11 @@ export function Toolbar() {
         isOpen={open === 'arrange'}
         onClick={() => toggle('arrange')}
       >
-        <Flyout title="Arrange (depth)">
+        <Flyout title="Arrange (stacking)">
+          <FlyRow label="Bring to front" shortcut="⌘]" onClick={run(bringToFront)} />
           <FlyRow label="Bring forward" shortcut="]" onClick={run(() => layerSelected('forward'))} />
           <FlyRow label="Send backward" shortcut="[" onClick={run(() => layerSelected('backward'))} />
-          <FlyRow label="Move up a band" shortcut="⌘]" onClick={run(() => bandSelected('forward'))} />
-          <FlyRow label="Move down a band" shortcut="⌘[" onClick={run(() => bandSelected('backward'))} />
+          <FlyRow label="Send to back" shortcut="⌘[" onClick={run(sendToBack)} />
         </Flyout>
       </Tool>
 

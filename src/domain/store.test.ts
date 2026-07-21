@@ -200,9 +200,13 @@ describe('studio store — clusters', () => {
 })
 
 describe('studio store — depth', () => {
-  it('layer moves stay inside the band; band moves cross it', () => {
-    s().addStem('garden-rose')
+  it('layer moves spill across bands at the edges; band moves cross explicitly', () => {
+    s().addStem('garden-rose') // lone focal rose — at both edges of its band
+    // Alone in focal, sending it backward spills into the body band behind it.
     s().layerSelected('backward')
+    expect(s().doc.stems[0].band).toBe('body')
+    // Band moves jump whole bands.
+    s().bandSelected('forward')
     expect(s().doc.stems[0].band).toBe('focal')
     s().bandSelected('forward')
     expect(s().doc.stems[0].band).toBe('accents')
@@ -210,6 +214,33 @@ describe('studio store — depth', () => {
     expect(s().doc.stems[0].band).toBe('accents')
     s().bandSelected('backward')
     expect(s().doc.stems[0].band).toBe('focal')
+  })
+
+  it('layer moves stay within a band when the stem is not at its edge', () => {
+    s().addStem('garden-rose') // order 0 (back of focal)
+    s().addStem('garden-rose') // order 1 (front of focal, selected)
+    s().layerSelected('backward') // front rose, not at the back edge → stays focal
+    expect(s().doc.stems[s().doc.stems.length - 1].band).toBe('focal')
+  })
+
+  it('bring to front / send to back move a stem to the very front / back of the whole stack', () => {
+    s().addStem('eucalyptus') // background band
+    s().addStem('garden-rose') // focal band
+    s().addStem('gypsophila') // accents band (front-most)
+    const eucId = s().doc.stems[0].id
+    s().selectOne(eucId)
+    // Bring to front: lands in the front-most band, on top of its stack.
+    s().bringToFront()
+    const euc = s().doc.stems.find((x) => x.id === eucId)!
+    expect(euc.band).toBe('accents')
+    const accents = s().doc.stems.filter((x) => x.band === 'accents').map((x) => x.order)
+    expect(euc.order).toBe(Math.max(...accents))
+    // Send to back: lands in the back-most band, at the bottom of its stack.
+    s().sendToBack()
+    const euc2 = s().doc.stems.find((x) => x.id === eucId)!
+    expect(euc2.band).toBe('background')
+    const bg = s().doc.stems.filter((x) => x.band === 'background').map((x) => x.order)
+    expect(euc2.order).toBe(Math.min(...bg))
   })
 
   it('solo hides every other band, and toggles back', () => {

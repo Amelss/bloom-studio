@@ -48,10 +48,10 @@ const GROUPS: ShortcutGroup[] = [
     ],
   },
   {
-    title: 'Depth',
+    title: 'Stacking order',
     items: [
-      ['[ / ]', 'Recess / advance within band (with a stem selected)'],
-      ['⌘[ / ⌘]', 'Move to the band behind / in front'],
+      ['[ / ]', 'Send backward / bring forward (with a stem selected)'],
+      ['⌘[ / ⌘]', 'Send to back / bring to front'],
     ],
   },
 ]
