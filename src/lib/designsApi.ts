@@ -41,25 +41,33 @@ export async function loadDesign(id: string): Promise<DesignRow> {
   return data as DesignRow
 }
 
-/** Partial update — send only what changed (doc autosave, rename, thumbnail). */
+/**
+ * Partial update — send only what changed (doc autosave, rename, thumbnail).
+ * Uses upsert (POST) rather than update (PATCH): some deployments block PATCH at
+ * the CORS layer. The row already exists, so this resolves to an UPDATE; RLS
+ * still restricts it to the owner. `owner_id` is included to satisfy the
+ * insert-shaped payload's not-null constraint.
+ */
 export async function saveDesign(
   id: string,
   patch: { doc?: DesignDocument; name?: string; thumbnail?: string | null },
 ): Promise<void> {
-  const update: Record<string, unknown> = {}
+  const row: Record<string, unknown> = { id }
   if (patch.doc !== undefined) {
-    update.doc = patch.doc
-    update.doc_version = patch.doc.version
+    row.doc = patch.doc
+    row.doc_version = patch.doc.version
   }
-  if (patch.name !== undefined) update.name = patch.name
-  if (patch.thumbnail !== undefined) update.thumbnail_url = patch.thumbnail
-  if (Object.keys(update).length === 0) return
-  const { error } = await supabase.from('designs').update(update).eq('id', id)
+  if (patch.name !== undefined) row.name = patch.name
+  if (patch.thumbnail !== undefined) row.thumbnail_url = patch.thumbnail
+  if (Object.keys(row).length === 1) return // nothing but the id
+  row.owner_id = await requireUserId()
+  const { error } = await supabase.from('designs').upsert(row)
   if (error) throw error
 }
 
 export async function renameDesign(id: string, name: string): Promise<void> {
-  const { error } = await supabase.from('designs').update({ name }).eq('id', id)
+  const owner_id = await requireUserId()
+  const { error } = await supabase.from('designs').upsert({ id, owner_id, name })
   if (error) throw error
 }
 

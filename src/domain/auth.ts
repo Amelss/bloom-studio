@@ -70,13 +70,26 @@ export const useAuth = create<AuthState>((set, get) => ({
   updateDisplayName: async (displayName) => {
     const user = get().user
     if (!user) return { error: 'You are not signed in.' }
-    const { error } = await supabase
-      .from('profiles')
-      .update({ display_name: displayName })
-      .eq('id', user.id)
-    if (error) return { error: error.message }
-    await get().loadProfile()
-    return { error: null }
+    try {
+      // upsert (POST) rather than update (PATCH): some deployments block PATCH
+      // at the CORS layer, and this is functionally the same for an existing row.
+      const { error } = await supabase
+        .from('profiles')
+        .upsert({ id: user.id, display_name: displayName })
+      if (error) return { error: error.message }
+      await get().loadProfile()
+      return { error: null }
+    } catch (e) {
+      // Network-level failure (couldn't reach Supabase) rather than an API error.
+      return {
+        error:
+          e instanceof Error && e.message.includes('fetch')
+            ? 'Could not reach the server. Check your connection and that the Supabase project is running.'
+            : e instanceof Error
+              ? e.message
+              : 'Something went wrong.',
+      }
+    }
   },
 
   signUp: async ({ email, password, displayName, role }) => {
