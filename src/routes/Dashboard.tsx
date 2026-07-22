@@ -1,17 +1,14 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useAuth } from '../domain/auth'
-import { starterTemplate } from '../domain/templates'
+import { blankDocument } from '../domain/templates'
 import { createDesign, deleteDesign, listDesigns, renameDesign } from '../lib/designsApi'
 import { clearLegacyDesign, readLegacyDesign } from '../lib/legacyDesign'
+import { UserMenu } from '../components/auth/UserMenu'
 import type { DesignListItem } from '../lib/types'
 import type { DesignDocument } from '../domain/types'
 
 export default function Dashboard() {
   const navigate = useNavigate()
-  const profile = useAuth((s) => s.profile)
-  const user = useAuth((s) => s.user)
-  const signOut = useAuth((s) => s.signOut)
 
   const [designs, setDesigns] = useState<DesignListItem[] | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -44,7 +41,7 @@ export default function Dashboard() {
   const onNew = async () => {
     setCreating(true)
     try {
-      const doc = starterTemplate()
+      const doc = blankDocument('Untitled arrangement')
       const id = await createDesign(doc.name, doc)
       navigate(`/design/${id}`)
     } catch (e) {
@@ -81,15 +78,7 @@ export default function Dashboard() {
     <div className="min-h-full bg-bloom-50">
       <header className="flex items-center justify-between border-b border-bloom-200 bg-white/80 px-6 py-3">
         <h1 className="font-display text-lg font-semibold text-bloom-700">Bloom Studio</h1>
-        <div className="flex items-center gap-3 text-sm">
-          <span className="text-bloom-ink/60">{profile?.display_name ?? user?.email}</span>
-          <button
-            onClick={() => void signOut().then(() => navigate('/login'))}
-            className="rounded-lg px-2.5 py-1.5 font-medium text-bloom-ink/70 transition-colors hover:bg-bloom-100 hover:text-bloom-ink"
-          >
-            Sign out
-          </button>
-        </div>
+        <UserMenu />
       </header>
 
       <main className="mx-auto max-w-5xl px-6 py-8">

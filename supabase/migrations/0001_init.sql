@@ -38,7 +38,14 @@ begin
   insert into public.profiles (id, display_name, role)
   values (
     new.id,
-    coalesce(nullif(new.raw_user_meta_data->>'display_name', ''), split_part(new.email, '@', 1)),
+    -- email/password sends 'display_name'; Google sends 'full_name'/'name';
+    -- otherwise fall back to the email's local part.
+    coalesce(
+      nullif(new.raw_user_meta_data->>'display_name', ''),
+      nullif(new.raw_user_meta_data->>'full_name', ''),
+      nullif(new.raw_user_meta_data->>'name', ''),
+      split_part(new.email, '@', 1)
+    ),
     coalesce(nullif(new.raw_user_meta_data->>'role', ''), 'student')
   )
   on conflict (id) do nothing;

@@ -19,6 +19,7 @@ interface AuthState {
 
   init: () => void
   loadProfile: () => Promise<void>
+  updateDisplayName: (displayName: string) => Promise<{ error: string | null }>
   signUp: (args: {
     email: string
     password: string
@@ -64,6 +65,18 @@ export const useAuth = create<AuthState>((set, get) => ({
     if (!user) return
     const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single()
     if (data) set({ profile: data as Profile })
+  },
+
+  updateDisplayName: async (displayName) => {
+    const user = get().user
+    if (!user) return { error: 'You are not signed in.' }
+    const { error } = await supabase
+      .from('profiles')
+      .update({ display_name: displayName })
+      .eq('id', user.id)
+    if (error) return { error: error.message }
+    await get().loadProfile()
+    return { error: null }
   },
 
   signUp: async ({ email, password, displayName, role }) => {
