@@ -77,6 +77,10 @@ export const useAuth = create<AuthState>((set, get) => ({
         .from('profiles')
         .upsert({ id: user.id, display_name: displayName })
       if (error) return { error: error.message }
+      // Mirror onto the auth user metadata so the Supabase dashboard
+      // (Authentication → Users) shows the same name. Best-effort: `profiles`
+      // is the source of truth, so a metadata hiccup doesn't fail the save.
+      await supabase.auth.updateUser({ data: { display_name: displayName } })
       await get().loadProfile()
       return { error: null }
     } catch (e) {
