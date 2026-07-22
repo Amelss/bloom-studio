@@ -721,8 +721,9 @@ export function createStudioStore(options: { persistKey?: string } = {}) {
     persist(initializer, {
       name: options.persistKey,
       version: 3,
+      // The document now lives in the cloud (per design) + a per-design local
+      // cache — only UI preferences persist under this key.
       partialize: (state) => ({
-        doc: state.doc,
         learningMode: state.learningMode,
         gridVisible: state.gridVisible,
         gridSnap: state.gridSnap,
@@ -746,7 +747,10 @@ export function createStudioStore(options: { persistKey?: string } = {}) {
   )
 }
 
-export const useStudio = createStudioStore({ persistKey: 'bloom-studio-design-v1' })
+// Preferences persist under a NEW key; the legacy 'bloom-studio-design-v1'
+// entry (which held a document) is left intact so the dashboard can offer to
+// migrate that on-device design into the user's account on first login.
+export const useStudio = createStudioStore({ persistKey: 'bloom-studio-prefs-v1' })
 
 // Re-export for existing imports (TopBar) and tests.
 export { migrateDocument }

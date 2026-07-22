@@ -1,8 +1,10 @@
 import { useRef, type MouseEvent } from 'react'
+import { Link } from 'react-router-dom'
 import { useStudio, migrateDocument } from '../domain/store'
 import { canvasRegistry } from '../render/registry'
 import { downloadFile, downloadUrl } from '../utils/download'
 import type { PaperOption } from '../domain/types'
+import { UserMenu } from './auth/UserMenu'
 
 const PAPERS: Array<{ id: PaperOption; label: string }> = [
   { id: 'white', label: 'White' },
@@ -58,10 +60,16 @@ export function TopBar() {
 
   return (
     <header className="flex flex-wrap items-center gap-3 border-b border-bloom-200 bg-white/80 px-4 py-2">
-      <h1 className="font-display text-lg font-semibold text-bloom-700">
-        Bloom Studio
-        <span className="chip ml-2 bg-bloom-100 align-middle text-bloom-700">Student Edition</span>
-      </h1>
+      <Link
+        to="/"
+        title="Back to my designs"
+        className="flex items-center gap-1.5 rounded-lg px-1.5 py-1 text-bloom-700 transition-colors hover:bg-bloom-100"
+      >
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+          <path d="M15 6l-6 6 6 6" />
+        </svg>
+        <span className="font-display text-lg font-semibold">Bloom Studio</span>
+      </Link>
 
       {/* Uncontrolled with a remount key: external name changes (undo/import)
           refresh the field without state-syncing effects. */}
@@ -178,6 +186,9 @@ export function TopBar() {
             e.target.value = ''
           }}
         />
+
+        <span className="mx-1 h-6 w-px bg-bloom-200" aria-hidden />
+        <UserMenu />
       </div>
     </header>
   )
