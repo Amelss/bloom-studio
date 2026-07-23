@@ -61,7 +61,10 @@ export function useDesignSync(id: string | undefined) {
         // thumbnail is best-effort
       }
       try {
-        await saveDesign(id, { doc, name: doc.name, thumbnail })
+        // Only send the thumbnail when we actually captured one. A flush that
+        // runs while the canvas is unmounting (navigating back to the dashboard)
+        // gets none — we must NOT overwrite the saved image with null.
+        await saveDesign(id, thumbnail ? { doc, name: doc.name, thumbnail } : { doc, name: doc.name })
       } catch {
         // keep the local cache; a later change retries
       }
