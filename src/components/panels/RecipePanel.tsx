@@ -1,7 +1,8 @@
-import { useMemo } from 'react'
-import { useStudio } from '../../domain/store'
-import { buildRecipe, recipeToCSV } from '../../domain/recipe'
-import { downloadFile } from '../../utils/download'
+import { useMemo, useRef, useState, type MouseEvent } from 'react'
+import { useStudio, migrateDocument } from '../../domain/store'
+import { buildRecipe, recipeToCSV, recipeToDocx, recipeToPdf } from '../../domain/recipe'
+import { downloadBlob, downloadFile, downloadUrl } from '../../utils/download'
+import { canvasRegistry } from '../../render/registry'
 
 const MARKUP_OPTIONS = [2, 2.5, 3, 3.5, 4]
 
@@ -15,8 +16,48 @@ export function RecipePanel() {
   const setMarkup = useStudio((s) => s.setMarkup)
   const setPriceOverride = useStudio((s) => s.setPriceOverride)
   const learningMode = useStudio((s) => s.learningMode)
+  const importDesign = useStudio((s) => s.importDesign)
 
   const recipe = useMemo(() => buildRecipe(doc), [doc])
+  const [exporting, setExporting] = useState<null | 'csv' | 'docx' | 'pdf'>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const closeMenu = (e: MouseEvent) => {
+    const details = (e.currentTarget as HTMLElement).closest('details')
+    if (details) details.open = false
+  }
+
+  const download = async (format: 'csv' | 'docx' | 'pdf') => {
+    setExporting(format)
+    try {
+      const base = `${doc.name}-recipe`
+      if (format === 'csv') {
+        downloadFile(`${base}.csv`, 'text/csv', recipeToCSV(recipe, doc.name))
+      } else if (format === 'docx') {
+        downloadBlob(`${base}.docx`, await recipeToDocx(recipe, doc.name))
+      } else {
+        downloadBlob(`${base}.pdf`, await recipeToPdf(recipe, doc.name))
+      }
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : 'Could not export the recipe.')
+    } finally {
+      setExporting(null)
+    }
+  }
+
+  const exportPng = async () => {
+    const dataUrl = await canvasRegistry.api?.exportPng()
+    if (dataUrl) downloadUrl(`${doc.name}.png`, dataUrl)
+  }
+
+  const onImportFile = async (file: File) => {
+    try {
+      const imported = migrateDocument(JSON.parse(await file.text()))
+      importDesign(imported)
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : 'Could not read that design file.')
+    }
+  }
 
   return (
     <div className="flex flex-col gap-3">
@@ -124,13 +165,81 @@ export function RecipePanel() {
         </p>
       )}
 
-      <button
-        className="btn justify-center"
-        disabled={recipe.stemCount === 0}
-        onClick={() => downloadFile(`${doc.name}-recipe.csv`, 'text/csv', recipeToCSV(recipe, doc.name))}
-      >
-        Download recipe & shopping list (CSV)
-      </button>
+      <div className="flex flex-col gap-1">
+        {/* Recipe & shopping list, in the format the studio prefers.
+            Shared `name` makes the two menus mutually exclusive: opening one
+            closes the other. */}
+        <details name="recipe-actions" className="relative">
+          <summary className="btn w-full justify-center !py-1 cursor-pointer list-none text-xs">
+            {exporting ? 'Downloading…' : 'Download ▾'}
+          </summary>
+          <div className="absolute top-full left-0 z-50 mt-1.5 w-full rounded-xl bg-white p-1 shadow-pop ring-1 ring-bloom-ink/[0.06]">
+            {([
+              ['csv', 'Spreadsheet (CSV)'],
+              ['docx', 'Word document (.docx)'],
+              ['pdf', 'PDF document (.pdf)'],
+            ] as const).map(([format, label]) => (
+              <button
+                key={format}
+                className="block w-full rounded px-2 py-1.5 text-left text-sm hover:bg-bloom-100 disabled:cursor-not-allowed disabled:opacity-40"
+                disabled={recipe.stemCount === 0 || exporting !== null}
+                onClick={(e) => {
+                  closeMenu(e)
+                  void download(format)
+                }}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </details>
+
+        {/* Whole-design export + import, relocated here from the top bar. */}
+        <details name="recipe-actions" className="relative">
+          <summary className="btn w-full justify-center !py-1 cursor-pointer list-none text-xs">Export ▾</summary>
+          <div className="absolute top-full left-0 z-50 mt-1.5 w-full rounded-xl bg-white p-1 shadow-pop ring-1 ring-bloom-ink/[0.06]">
+            <button
+              className="block w-full rounded px-2 py-1.5 text-left text-sm hover:bg-bloom-100"
+              onClick={(e) => {
+                closeMenu(e)
+                void exportPng()
+              }}
+            >
+              Design snapshot (PNG)
+            </button>
+            <button
+              className="block w-full rounded px-2 py-1.5 text-left text-sm hover:bg-bloom-100"
+              onClick={(e) => {
+                closeMenu(e)
+                downloadFile(`${doc.name}.bloom.json`, 'application/json', JSON.stringify(doc, null, 2))
+              }}
+            >
+              Design file (.bloom.json)
+            </button>
+            <button
+              className="block w-full rounded px-2 py-1.5 text-left text-sm hover:bg-bloom-100"
+              onClick={(e) => {
+                closeMenu(e)
+                fileInputRef.current?.click()
+              }}
+            >
+              Import design file…
+            </button>
+          </div>
+        </details>
+      </div>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".json,application/json"
+        className="hidden"
+        aria-hidden
+        onChange={(e) => {
+          const file = e.target.files?.[0]
+          if (file) void onImportFile(file)
+          e.target.value = ''
+        }}
+      />
     </div>
   )
 }

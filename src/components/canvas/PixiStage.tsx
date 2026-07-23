@@ -31,6 +31,9 @@ export function PixiStage() {
         antialias: true,
         resolution: Math.min(window.devicePixelRatio || 1, 2),
         autoDensity: true,
+        // Still start (on a software renderer) when hardware acceleration is
+        // off, rather than refusing to create a context.
+        failIfMajorPerformanceCaveat: false,
         width: Math.max(1, host.clientWidth),
         height: Math.max(1, host.clientHeight),
       })

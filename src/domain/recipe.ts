@@ -95,6 +95,117 @@ export function recipeToCSV(recipe: Recipe, designName: string): string {
   return rows.join('\n')
 }
 
+/** Rows shared by the DOCX and PDF exporters: item lines then a summary block. */
+function recipeTableRows(recipe: Recipe): { head: string[]; body: string[][] } {
+  const head = ['Item', 'Colour', 'Stems', 'Unit £', 'Line total £']
+  const body: string[][] = recipe.lines.map((line) => [
+    line.varietyName,
+    line.colorwayName,
+    String(line.count),
+    line.unitPrice.toFixed(2),
+    line.lineTotal.toFixed(2),
+  ])
+  if (recipe.vessel) {
+    body.push([recipe.vessel.name, '', '1', recipe.vessel.price.toFixed(2), recipe.vessel.price.toFixed(2)])
+  }
+  return { head, body }
+}
+
+function recipeSummaryRows(recipe: Recipe): Array<[string, string]> {
+  return [
+    ['Total stems', String(recipe.stemCount)],
+    ['Material cost', `£${recipe.materialCost.toFixed(2)}`],
+    ['Markup', `${recipe.markup}×`],
+    ['Suggested retail', `£${recipe.suggestedRetail.toFixed(2)}`],
+  ]
+}
+
+/** Build a Word (.docx) recipe. Dynamically imports `docx` so it stays out of the main bundle. */
+export async function recipeToDocx(recipe: Recipe, designName: string): Promise<Blob> {
+  const { Document, Packer, Paragraph, HeadingLevel, Table, TableRow, TableCell, TextRun, WidthType } =
+    await import('docx')
+
+  const { head, body } = recipeTableRows(recipe)
+  const cell = (text: string, bold = false) =>
+    new TableCell({ children: [new Paragraph({ children: [new TextRun({ text, bold })] })] })
+
+  const table = new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    rows: [
+      new TableRow({ children: head.map((h) => cell(h, true)) }),
+      ...body.map((row) => new TableRow({ children: row.map((c) => cell(c)) })),
+    ],
+  })
+
+  const summary = recipeSummaryRows(recipe).map(
+    ([label, value]) =>
+      new Paragraph({ children: [new TextRun({ text: `${label}: `, bold: true }), new TextRun(value)] }),
+  )
+
+  const doc = new Document({
+    sections: [
+      {
+        children: [
+          new Paragraph({ text: designName, heading: HeadingLevel.HEADING_1 }),
+          new Paragraph({ text: 'Recipe & shopping list', heading: HeadingLevel.HEADING_2 }),
+          table,
+          new Paragraph({ text: '' }),
+          ...summary,
+          ...(recipe.vessel
+            ? [
+                new Paragraph({
+                  children: [
+                    new TextRun({ text: 'Mechanics: ', bold: true }),
+                    new TextRun(recipe.vessel.mechanics),
+                  ],
+                }),
+              ]
+            : []),
+        ],
+      },
+    ],
+  })
+
+  return Packer.toBlob(doc)
+}
+
+/** Build a PDF recipe. Dynamically imports `jspdf` + autotable so they stay out of the main bundle. */
+export async function recipeToPdf(recipe: Recipe, designName: string): Promise<Blob> {
+  const { jsPDF } = await import('jspdf')
+  const autoTable = (await import('jspdf-autotable')).default
+
+  const pdf = new jsPDF({ unit: 'pt', format: 'a4' })
+  pdf.setFontSize(18)
+  pdf.text(designName, 40, 48)
+  pdf.setFontSize(12)
+  pdf.text('Recipe & shopping list', 40, 68)
+
+  const { head, body } = recipeTableRows(recipe)
+  autoTable(pdf, {
+    head: [head],
+    body,
+    startY: 88,
+    styles: { fontSize: 10 },
+    headStyles: { fillColor: [190, 130, 150] },
+    margin: { left: 40, right: 40 },
+  })
+
+  // @ts-expect-error autotable stashes the final cursor position on the instance
+  let y: number = (pdf.lastAutoTable?.finalY ?? 88) + 24
+  pdf.setFontSize(11)
+  for (const [label, value] of recipeSummaryRows(recipe)) {
+    pdf.text(`${label}: ${value}`, 40, y)
+    y += 18
+  }
+  if (recipe.vessel) {
+    y += 6
+    const lines = pdf.splitTextToSize(`Mechanics: ${recipe.vessel.mechanics}`, 515)
+    pdf.text(lines, 40, y)
+  }
+
+  return pdf.output('blob')
+}
+
 function round2(n: number): number {
   return Math.round(n * 100) / 100
 }

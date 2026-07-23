@@ -1,8 +1,5 @@
-import { useRef, type MouseEvent } from 'react'
 import { Link } from 'react-router-dom'
-import { useStudio, migrateDocument } from '../domain/store'
-import { canvasRegistry } from '../render/registry'
-import { downloadFile, downloadUrl } from '../utils/download'
+import { useStudio } from '../domain/store'
 import type { PaperOption } from '../domain/types'
 import { UserMenu } from './auth/UserMenu'
 
@@ -24,37 +21,15 @@ export function TopBar() {
   const learningMode = useStudio((s) => s.learningMode)
   const setLearningMode = useStudio((s) => s.setLearningMode)
   const newDesign = useStudio((s) => s.newDesign)
-  const importDesign = useStudio((s) => s.importDesign)
   const paper = useStudio((s) => s.doc.artboards[0]?.paper ?? 'white')
   const setPaper = useStudio((s) => s.setPaper)
 
-  const fileInputRef = useRef<HTMLInputElement>(null)
-
-  const closeMenu = (e: MouseEvent) => {
-    const details = (e.currentTarget as HTMLElement).closest('details')
-    if (details) details.open = false
-  }
-
-  const confirmNew = (kind: 'starter' | 'blank') => {
+  const confirmNew = () => {
     if (
       doc.stems.length === 0 ||
       window.confirm('Start a new design? Your current design will be replaced (this cannot be undone).')
     ) {
-      newDesign(kind)
-    }
-  }
-
-  const exportPng = async () => {
-    const dataUrl = await canvasRegistry.api?.exportPng()
-    if (dataUrl) downloadUrl(`${doc.name}.png`, dataUrl)
-  }
-
-  const onImportFile = async (file: File) => {
-    try {
-      const imported = migrateDocument(JSON.parse(await file.text()))
-      importDesign(imported)
-    } catch (error) {
-      window.alert(error instanceof Error ? error.message : 'Could not read that design file.')
+      newDesign('blank')
     }
   }
 
@@ -118,74 +93,9 @@ export function TopBar() {
           Learning mode
         </label>
 
-        <details className="relative">
-          <summary className="btn cursor-pointer list-none">New ▾</summary>
-          <div className="absolute right-0 z-50 mt-1.5 w-48 rounded-xl bg-white p-1 shadow-pop ring-1 ring-bloom-ink/[0.06]">
-            <button
-              className="block w-full rounded px-2 py-1.5 text-left text-sm hover:bg-bloom-100"
-              onClick={(e) => {
-                closeMenu(e)
-                confirmNew('starter')
-              }}
-            >
-              Starter bouquet template
-            </button>
-            <button
-              className="block w-full rounded px-2 py-1.5 text-left text-sm hover:bg-bloom-100"
-              onClick={(e) => {
-                closeMenu(e)
-                confirmNew('blank')
-              }}
-            >
-              Blank canvas
-            </button>
-          </div>
-        </details>
-
-        <details className="relative">
-          <summary className="btn cursor-pointer list-none">Export ▾</summary>
-          <div className="absolute right-0 z-50 mt-1.5 w-56 rounded-xl bg-white p-1 shadow-pop ring-1 ring-bloom-ink/[0.06]">
-            <button
-              className="block w-full rounded px-2 py-1.5 text-left text-sm hover:bg-bloom-100"
-              onClick={(e) => {
-                closeMenu(e)
-                void exportPng()
-              }}
-            >
-              Design snapshot (PNG)
-            </button>
-            <button
-              className="block w-full rounded px-2 py-1.5 text-left text-sm hover:bg-bloom-100"
-              onClick={(e) => {
-                closeMenu(e)
-                downloadFile(`${doc.name}.bloom.json`, 'application/json', JSON.stringify(doc, null, 2))
-              }}
-            >
-              Design file (.bloom.json)
-            </button>
-            <button
-              className="block w-full rounded px-2 py-1.5 text-left text-sm hover:bg-bloom-100"
-              onClick={(e) => {
-                closeMenu(e)
-                fileInputRef.current?.click()
-              }}
-            >
-              Import design file…
-            </button>
-          </div>
-        </details>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".json,application/json"
-          className="hidden"
-          aria-hidden
-          onChange={(e) => {
-            const file = e.target.files?.[0]
-            if (file) void onImportFile(file)
-            e.target.value = ''
-          }}
-        />
+        <button className="btn" onClick={confirmNew} title="Start a new blank canvas">
+          New
+        </button>
 
         <span className="mx-1 h-6 w-px bg-bloom-200" aria-hidden />
         <UserMenu />

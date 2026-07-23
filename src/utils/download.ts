@@ -5,6 +5,12 @@ export function downloadFile(filename: string, mime: string, content: string) {
   URL.revokeObjectURL(url)
 }
 
+export function downloadBlob(filename: string, blob: Blob) {
+  const url = URL.createObjectURL(blob)
+  downloadUrl(filename, url)
+  URL.revokeObjectURL(url)
+}
+
 export function downloadUrl(filename: string, url: string) {
   const anchor = document.createElement('a')
   anchor.href = url
