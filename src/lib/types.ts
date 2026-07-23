@@ -3,10 +3,16 @@ import type { DesignDocument } from '../domain/types'
 /** Account roles — mirrors the `profiles.role` check in the SQL schema. */
 export type UserRole = 'student' | 'educator' | 'professional' | 'admin'
 
+export type ExperienceLevel = 'beginner' | 'intermediate' | 'advanced' | 'professional'
+
 export interface Profile {
   id: string
   display_name: string
   role: UserRole
+  onboarded: boolean
+  organisation: string | null
+  experience_level: ExperienceLevel | null
+  avatar_url: string | null
   created_at: string
 }
 

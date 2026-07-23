@@ -1,7 +1,22 @@
 import { create } from 'zustand'
 import type { Session, User } from '@supabase/supabase-js'
 import { supabase, supabaseConfigured } from '../lib/supabase'
-import type { Profile, UserRole } from '../lib/types'
+import type { ExperienceLevel, Profile, UserRole } from '../lib/types'
+
+/** Editable profile fields (from Account settings). */
+export interface ProfilePatch {
+  display_name?: string
+  organisation?: string | null
+  experience_level?: ExperienceLevel | null
+  avatar_url?: string | null
+}
+
+function toMessage(e: unknown): string {
+  if (e instanceof Error && e.message.includes('fetch')) {
+    return 'Could not reach the server. Check your connection and try again.'
+  }
+  return e instanceof Error ? e.message : 'Something went wrong.'
+}
 
 /**
  * Auth session store — the same Zustand pattern as the design store. Holds the
@@ -19,7 +34,12 @@ interface AuthState {
 
   init: () => void
   loadProfile: () => Promise<void>
-  updateDisplayName: (displayName: string) => Promise<{ error: string | null }>
+  updateProfile: (patch: ProfilePatch) => Promise<{ error: string | null }>
+  uploadAvatar: (file: File) => Promise<{ error: string | null }>
+  completeOnboarding: (args: {
+    displayName: string
+    role: UserRole
+  }) => Promise<{ error: string | null }>
   signUp: (args: {
     email: string
     password: string
@@ -67,32 +87,50 @@ export const useAuth = create<AuthState>((set, get) => ({
     if (data) set({ profile: data as Profile })
   },
 
-  updateDisplayName: async (displayName) => {
+  updateProfile: async (patch) => {
     const user = get().user
     if (!user) return { error: 'You are not signed in.' }
+    const current = get().profile
     try {
-      // upsert (POST) rather than update (PATCH): some deployments block PATCH
-      // at the CORS layer, and this is functionally the same for an existing row.
-      const { error } = await supabase
-        .from('profiles')
-        .upsert({ id: user.id, display_name: displayName })
+      // upsert (POST) rather than update (PATCH) — some deployments block PATCH
+      // at the CORS layer. display_name is always included so the insert-shaped
+      // payload satisfies the NOT NULL column even on a partial edit.
+      const row: Record<string, unknown> = {
+        id: user.id,
+        display_name: patch.display_name ?? current?.display_name ?? '',
+      }
+      if (patch.organisation !== undefined) row.organisation = patch.organisation
+      if (patch.experience_level !== undefined) row.experience_level = patch.experience_level
+      if (patch.avatar_url !== undefined) row.avatar_url = patch.avatar_url
+
+      const { error } = await supabase.from('profiles').upsert(row)
       if (error) return { error: error.message }
-      // Mirror onto the auth user metadata so the Supabase dashboard
-      // (Authentication → Users) shows the same name. Best-effort: `profiles`
-      // is the source of truth, so a metadata hiccup doesn't fail the save.
-      await supabase.auth.updateUser({ data: { display_name: displayName } })
+      // Mirror the name onto auth metadata (shown in the Supabase dashboard).
+      if (patch.display_name) {
+        await supabase.auth.updateUser({ data: { display_name: patch.display_name } })
+      }
       await get().loadProfile()
       return { error: null }
     } catch (e) {
-      // Network-level failure (couldn't reach Supabase) rather than an API error.
-      return {
-        error:
-          e instanceof Error && e.message.includes('fetch')
-            ? 'Could not reach the server. Check your connection and that the Supabase project is running.'
-            : e instanceof Error
-              ? e.message
-              : 'Something went wrong.',
-      }
+      return { error: toMessage(e) }
+    }
+  },
+
+  uploadAvatar: async (file) => {
+    const user = get().user
+    if (!user) return { error: 'You are not signed in.' }
+    try {
+      const ext = (file.name.split('.').pop() || 'png').toLowerCase()
+      const path = `${user.id}/avatar.${ext}`
+      const { error: upErr } = await supabase.storage
+        .from('avatars')
+        .upload(path, file, { upsert: true, contentType: file.type || undefined })
+      if (upErr) return { error: upErr.message }
+      const { data } = supabase.storage.from('avatars').getPublicUrl(path)
+      // Cache-bust so a replaced image at the same path shows immediately.
+      return await get().updateProfile({ avatar_url: `${data.publicUrl}?v=${Date.now()}` })
+    } catch (e) {
+      return { error: toMessage(e) }
     }
   },
 
@@ -106,6 +144,29 @@ export const useAuth = create<AuthState>((set, get) => ({
     if (error) return { error: error.message, needsConfirmation: false }
     // No session means email confirmation is required before first login.
     return { error: null, needsConfirmation: !data.session }
+  },
+
+  completeOnboarding: async ({ displayName, role }) => {
+    const user = get().user
+    if (!user) return { error: 'You are not signed in.' }
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .upsert({ id: user.id, display_name: displayName, role, onboarded: true })
+      if (error) return { error: error.message }
+      await supabase.auth.updateUser({ data: { display_name: displayName, role } })
+      await get().loadProfile()
+      return { error: null }
+    } catch (e) {
+      return {
+        error:
+          e instanceof Error && e.message.includes('fetch')
+            ? 'Could not reach the server. Check your connection and try again.'
+            : e instanceof Error
+              ? e.message
+              : 'Something went wrong.',
+      }
+    }
   },
 
   signInWithPassword: async (email, password) => {

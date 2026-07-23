@@ -8,6 +8,14 @@ create table if not exists public.profiles (
   display_name text not null,
   role         text not null default 'student'
                check (role in ('student', 'educator', 'professional', 'admin')),
+  -- false until the user has confirmed name + role (OAuth sign-ups arrive
+  -- without a role, so they're sent through onboarding first).
+  onboarded    boolean not null default false,
+  -- optional profile details, filled in from Account settings.
+  organisation text,
+  experience_level text
+               check (experience_level in ('beginner', 'intermediate', 'advanced', 'professional')),
+  avatar_url   text,
   created_at   timestamptz not null default now()
 );
 
@@ -35,7 +43,7 @@ security definer
 set search_path = public
 as $$
 begin
-  insert into public.profiles (id, display_name, role)
+  insert into public.profiles (id, display_name, role, onboarded)
   values (
     new.id,
     -- email/password sends 'display_name'; Google sends 'full_name'/'name';
@@ -46,7 +54,9 @@ begin
       nullif(new.raw_user_meta_data->>'name', ''),
       split_part(new.email, '@', 1)
     ),
-    coalesce(nullif(new.raw_user_meta_data->>'role', ''), 'student')
+    coalesce(nullif(new.raw_user_meta_data->>'role', ''), 'student'),
+    -- email sign-up supplies a role (already onboarded); OAuth does not.
+    coalesce(new.raw_user_meta_data ? 'role', false)
   )
   on conflict (id) do nothing;
   return new;
@@ -105,3 +115,32 @@ create policy "designs_update_own" on public.designs
 drop policy if exists "designs_delete_own" on public.designs;
 create policy "designs_delete_own" on public.designs
   for delete using (owner_id = auth.uid());
+
+-- ─────────────────────────── avatars storage ──────────────────────────────
+-- Public-read bucket; a user may only write files under a folder named after
+-- their own id (we store avatars at `<user_id>/avatar.<ext>`).
+insert into storage.buckets (id, name, public)
+values ('avatars', 'avatars', true)
+on conflict (id) do nothing;
+
+drop policy if exists "avatars_read" on storage.objects;
+create policy "avatars_read" on storage.objects
+  for select using (bucket_id = 'avatars');
+
+drop policy if exists "avatars_insert_own" on storage.objects;
+create policy "avatars_insert_own" on storage.objects
+  for insert with check (
+    bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text
+  );
+
+drop policy if exists "avatars_update_own" on storage.objects;
+create policy "avatars_update_own" on storage.objects
+  for update using (
+    bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text
+  );
+
+drop policy if exists "avatars_delete_own" on storage.objects;
+create policy "avatars_delete_own" on storage.objects
+  for delete using (
+    bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text
+  );

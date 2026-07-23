@@ -17,9 +17,15 @@ export function AuthLoading() {
 export function ProtectedRoute() {
   const loading = useAuth((s) => s.loading)
   const user = useAuth((s) => s.user)
+  const profile = useAuth((s) => s.profile)
   const location = useLocation()
 
   if (loading) return <AuthLoading />
   if (!user) return <Navigate to="/login" replace state={{ from: location.pathname }} />
+  // New users (typically Google) haven't picked a role yet → onboard first.
+  // Only redirect once the profile has loaded, and never away from /welcome itself.
+  if (profile && !profile.onboarded && location.pathname !== '/welcome') {
+    return <Navigate to="/welcome" replace />
+  }
   return <Outlet />
 }

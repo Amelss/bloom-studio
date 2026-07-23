@@ -22,11 +22,15 @@ export function UserMenu() {
   return (
     <details className="relative">
       <summary
-        className="flex h-8 w-8 cursor-pointer list-none items-center justify-center rounded-full bg-bloom-600 text-sm font-semibold text-white"
+        className="flex h-8 w-8 cursor-pointer list-none items-center justify-center overflow-hidden rounded-full bg-bloom-600 text-sm font-semibold text-white"
         title={name}
         aria-label="Account menu"
       >
-        {initial}
+        {profile?.avatar_url ? (
+          <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" />
+        ) : (
+          initial
+        )}
       </summary>
       <div className="absolute right-0 z-50 mt-1.5 w-56 rounded-xl bg-white p-1 shadow-pop ring-1 ring-bloom-ink/[0.06]">
         <div className="px-2 py-1.5">
