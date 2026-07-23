@@ -6,3 +6,7 @@ dist-ssr
 coverage
 .env
 asset-work
+
+# Local-only: Claude Code config + internal docs (never publish)
+.claude
+docs
