@@ -251,7 +251,14 @@ export const FLOWER_CATALOG: FlowerVariety[] = [
     stemLengthCm: 45,
     fragility: 'high',
     widthMm: 140,
-    colorways: [{ id: 'burgundy', name: 'Burgundy', petal: '#7c1f3a', accent: '#4c1224', hue: 345 }],
+    colorways: [
+      { id: 'burgundy', name: 'Burgundy', petal: '#7c1f3a', accent: '#4c1224', hue: 345 },
+      { id: 'red', name: 'Red', petal: '#c0392b', accent: '#8e2018', hue: 5 },
+      { id: 'pink', name: 'Pink', petal: '#e87ba0', accent: '#cf5680', hue: 340 },
+      { id: 'coral', name: 'Coral', petal: '#f0806e', accent: '#d85a44', hue: 10 },
+      { id: 'magenta', name: 'Magenta', petal: '#b83b8a', accent: '#8f2a68', hue: 320 },
+      { id: 'purple', name: 'Purple', petal: '#7d4aa0', accent: '#5c3378', hue: 275 },
+    ],
     education: {
       role: 'A statement focal: a large, geometric ball of layered petals that anchors autumn designs the way a peony anchors summer ones.',
       conditioning: 'Thirsty and bruise-prone — cut in the cool of the day, sear or deep-water, and handle the petals as little as possible.',
@@ -268,7 +275,13 @@ export const FLOWER_CATALOG: FlowerVariety[] = [
     stemLengthCm: 45,
     fragility: 'medium',
     widthMm: 125,
-    colorways: [{ id: 'coral', name: 'Coral', petal: '#f0806e', accent: '#d85a44', hue: 10 }],
+    colorways: [
+      { id: 'coral', name: 'Coral', petal: '#f0806e', accent: '#d85a44', hue: 10 },
+      { id: 'red', name: 'Red', petal: '#d1392e', accent: '#a3241c', hue: 4 },
+      { id: 'pink', name: 'Pink', petal: '#ee7ba6', accent: '#d65685', hue: 335 },
+      { id: 'magenta', name: 'Magenta', petal: '#c53a90', accent: '#9c2a6c', hue: 322 },
+      { id: 'peach', name: 'Peach', petal: '#f4a97f', accent: '#e08456', hue: 24 },
+    ],
     education: {
       role: 'A clean, graphic focal — a single flat disc of radiating petals that brings a modern, cheerful note and a strong circular form.',
       conditioning: 'Hollow, floppy stems — use a gerbera straw or shallow water, and keep them upright; the heads droop otherwise.',
@@ -302,7 +315,13 @@ export const FLOWER_CATALOG: FlowerVariety[] = [
     stemLengthCm: 90,
     fragility: 'medium',
     widthMm: 85,
-    colorways: [{ id: 'pink', name: 'Pink', petal: '#e0559a', accent: '#b83274', hue: 330 }],
+    colorways: [
+      { id: 'pink', name: 'Pink', petal: '#e0559a', accent: '#b83274', hue: 330 },
+      { id: 'red', name: 'Red', petal: '#cf3b4a', accent: '#a52534', hue: 352 },
+      { id: 'coral', name: 'Coral', petal: '#ef7e6b', accent: '#d85846', hue: 10 },
+      { id: 'burgundy', name: 'Burgundy', petal: '#7c1f3a', accent: '#55172a', hue: 345 },
+      { id: 'magenta', name: 'Magenta', petal: '#c23a8f', accent: '#98296b', hue: 322 },
+    ],
     education: {
       role: 'A tall line flower: a dense spike of dragon-mouth florets that opens from the bottom up, giving height, movement and a soft column of colour.',
       conditioning: 'Strongly photo-tropic — it bends toward light, so store upright. Keep water clean and re-cut; the tips keep growing.',

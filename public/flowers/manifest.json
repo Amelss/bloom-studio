@@ -13,23 +13,8 @@
       "colorwayId": "burgundy",
       "variant": 0,
       "src": "/flowers/garden-rose-burgundy-0.png",
-      "thumb": "/flowers/garden-rose-burgundy-0-thumb.png"
-    },
-    {
-      "varietyId": "garden-rose",
-      "colorwayId": "blush",
-      "variant": 0,
-      "src": "/flowers/garden-rose-blush-0.png",
-      "thumb": "/flowers/garden-rose-blush-0-thumb.png",
-      "recolored": true
-    },
-    {
-      "varietyId": "garden-rose",
-      "colorwayId": "coral",
-      "variant": 0,
-      "src": "/flowers/garden-rose-coral-0.png",
-      "thumb": "/flowers/garden-rose-coral-0-thumb.png",
-      "recolored": true
+      "thumb": "/flowers/garden-rose-burgundy-0-thumb.png",
+      "recolorable": true
     },
     {
       "varietyId": "astilbe",
@@ -43,7 +28,8 @@
       "colorwayId": "burgundy",
       "variant": 0,
       "src": "/flowers/dahlia-burgundy-0.png",
-      "thumb": "/flowers/dahlia-burgundy-0-thumb.png"
+      "thumb": "/flowers/dahlia-burgundy-0-thumb.png",
+      "recolorable": true
     },
     {
       "varietyId": "eucalyptus",
@@ -64,7 +50,9 @@
       "colorwayId": "coral",
       "variant": 0,
       "src": "/flowers/gerbera-coral-0.png",
-      "thumb": "/flowers/gerbera-coral-0-thumb.png"
+      "thumb": "/flowers/gerbera-coral-0-thumb.png",
+      "recolorable": true,
+      "darkCore": true
     },
     {
       "varietyId": "gypsophila",
@@ -106,28 +94,32 @@
       "colorwayId": "dusty-pink",
       "variant": 0,
       "src": "/flowers/carnation-dusty-pink-0.png",
-      "thumb": "/flowers/carnation-dusty-pink-0-thumb.png"
+      "thumb": "/flowers/carnation-dusty-pink-0-thumb.png",
+      "recolorable": true
     },
     {
       "varietyId": "peony",
       "colorwayId": "pink",
       "variant": 0,
       "src": "/flowers/peony-pink-0.png",
-      "thumb": "/flowers/peony-pink-0-thumb.png"
+      "thumb": "/flowers/peony-pink-0-thumb.png",
+      "recolorable": true
     },
     {
       "varietyId": "ranunculus",
       "colorwayId": "pink",
       "variant": 0,
       "src": "/flowers/ranunculus-pink-0.png",
-      "thumb": "/flowers/ranunculus-pink-0-thumb.png"
+      "thumb": "/flowers/ranunculus-pink-0-thumb.png",
+      "recolorable": true
     },
     {
       "varietyId": "snapdragon",
       "colorwayId": "pink",
       "variant": 0,
       "src": "/flowers/snapdragon-pink-0.png",
-      "thumb": "/flowers/snapdragon-pink-0-thumb.png"
+      "thumb": "/flowers/snapdragon-pink-0-thumb.png",
+      "recolorable": true
     },
     {
       "varietyId": "stock",

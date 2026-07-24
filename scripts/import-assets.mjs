@@ -62,29 +62,24 @@ const SPREAD_MM = {
  */
 const MAP = [
   { n: '01', variety: 'delphinium', colorway: 'blue', variant: 0, tol: 46, soft: 1.7, shadow: 1.7 },
-  // The supplied rose is deep red → the BURGUNDY colourway; blush and coral
-  // are derived programmatically (bloom hue-remap, foliage untouched).
-  {
-    n: '02', variety: 'garden-rose', colorway: 'burgundy', variant: 0, tol: 46, soft: 1.7, shadow: 1.9,
-    recolors: [
-      { colorway: 'blush', hex: '#e8b4bc' },
-      { colorway: 'coral', hex: '#ea9077' },
-    ],
-  },
+  // `recolorable: true` = a base whose non-neutral catalog colourways are
+  // derived at RUNTIME (bloom hue-remap, foliage + white/cream untouched) — no
+  // baked file per colour. See docs/ASSET-CLOUD.md.
+  { n: '02', variety: 'garden-rose', colorway: 'burgundy', variant: 0, tol: 46, soft: 1.7, shadow: 1.9, recolorable: true },
   { n: '03', variety: 'astilbe', colorway: 'pink', variant: 0, tol: 40, soft: 1.5, shadow: 1.8 },
-  { n: '04', variety: 'dahlia', colorway: 'burgundy', variant: 0, tol: 52, soft: 1.7, shadow: 1.6 },
+  { n: '04', variety: 'dahlia', colorway: 'burgundy', variant: 0, tol: 52, soft: 1.7, shadow: 1.6, recolorable: true },
   { n: '05', variety: 'eucalyptus', colorway: 'silver', variant: 0, tol: 50, soft: 1.6, shadow: 1.5, rotate: -37 },
   { n: '06', variety: 'leatherleaf', colorway: 'green', variant: 0, tol: 46, soft: 1.6, shadow: 1.6 },
-  { n: '07', variety: 'gerbera', colorway: 'coral', variant: 0, tol: 52, soft: 1.7, shadow: 1.6 },
+  { n: '07', variety: 'gerbera', colorway: 'coral', variant: 0, tol: 52, soft: 1.7, shadow: 1.6, recolorable: true, darkCore: true },
   { n: '08', variety: 'gypsophila', colorway: 'white', variant: 0, tol: 32, soft: 1.5, shadow: 2.0 },
   { n: '09', variety: 'hydrangea', colorway: 'dusty-blue', variant: 0, tol: 50, soft: 1.6, shadow: 1.6 },
   { n: '10', variety: 'ruscus', colorway: 'green', variant: 0, tol: 44, soft: 1.6, shadow: 1.7 },
   { n: '11', variety: 'lily', colorway: 'white', variant: 0, tol: 42, soft: 1.6, shadow: 1.8 },
   { n: '12', variety: 'lisianthus', colorway: 'lilac', variant: 0, tol: 50, soft: 1.6, shadow: 1.6 },
-  { n: '13', variety: 'carnation', colorway: 'dusty-pink', variant: 0, tol: 44, soft: 1.6, shadow: 1.8 },
-  { n: '14', variety: 'peony', colorway: 'pink', variant: 0, tol: 42, soft: 1.6, shadow: 1.8 },
-  { n: '15', variety: 'ranunculus', colorway: 'pink', variant: 0, tol: 46, soft: 1.6, shadow: 1.7 },
-  { n: '16', variety: 'snapdragon', colorway: 'pink', variant: 0, tol: 48, soft: 1.6, shadow: 1.7 },
+  { n: '13', variety: 'carnation', colorway: 'dusty-pink', variant: 0, tol: 44, soft: 1.6, shadow: 1.8, recolorable: true },
+  { n: '14', variety: 'peony', colorway: 'pink', variant: 0, tol: 42, soft: 1.6, shadow: 1.8, recolorable: true },
+  { n: '15', variety: 'ranunculus', colorway: 'pink', variant: 0, tol: 46, soft: 1.6, shadow: 1.7, recolorable: true },
+  { n: '16', variety: 'snapdragon', colorway: 'pink', variant: 0, tol: 48, soft: 1.6, shadow: 1.7, recolorable: true },
   { n: '17', variety: 'stock', colorway: 'lavender', variant: 0, tol: 26, soft: 1.3, shadow: 1.25 },
   { n: '18', variety: 'sunflower', colorway: 'yellow', variant: 0, tol: 52, soft: 1.7, shadow: 1.6 },
   { n: '19', variety: 'sunflower', colorway: 'yellow', variant: 1, tol: 46, soft: 1.6, shadow: 1.7 },
@@ -401,27 +396,20 @@ async function processOne(entry) {
   const trueScale = (spread * PX_PER_MM) / bloomPx
   const scale = Math.min(trueScale, CONTENT_W_MAX / c.width, CONTENT_H_MAX / c.height)
 
-  // One frame per colourway: the source as-is, plus any programmatically
-  // recoloured derivatives (bloom hue-remap; foliage protected).
-  const outputs = [{ colorway: entry.colorway, buf: c, thumbBuf: cropped }]
-  for (const rc of entry.recolors ?? []) {
-    outputs.push({
-      colorway: rc.colorway,
-      buf: recolorBloom(c, rc.hex),
-      thumbBuf: recolorBloom(cropped, rc.hex),
-    })
-  }
-
-  const results = []
-  for (const out of outputs) {
-    const asset = await writeFrame(entry, out, scale)
-    results.push(asset)
-  }
-  return results
+  // One base frame per variety. Colourways for a "recolorable" variety (those
+  // with a `recolors` list) are NOT baked into files — they are derived at
+  // runtime by src/render/recolor.ts from the catalog swatch (docs/ASSET-CLOUD.md).
+  // The base simply carries a recolorable flag; recolorBloom() below stays the
+  // canonical algorithm the runtime twin mirrors, still available for baking
+  // distinct assets if ever needed.
+  const recolorable = entry.recolorable === true
+  const asset = await writeFrame(entry, { colorway: entry.colorway, buf: c, thumbBuf: cropped }, scale, recolorable)
+  return [asset]
 }
 
 /** Contain-fit one buffer into the padded frame and write PNG + thumbnail. */
-async function writeFrame(entry, { colorway, buf: c, thumbBuf }, scale) {
+async function writeFrame(entry, { colorway, buf: c, thumbBuf }, scale, recolorable = false) {
+  const darkCore = entry.darkCore === true
   const scaledW = Math.max(1, Math.round(c.width * scale))
   const scaledH = Math.max(1, Math.round(c.height * scale))
 
@@ -453,14 +441,15 @@ async function writeFrame(entry, { colorway, buf: c, thumbBuf }, scale) {
     .png()
     .toFile(path.join(OUT_DIR, thumbName))
 
-  console.log(`✓ ${entry.n} → ${outName} (${scaledW}×${scaledH})${colorway !== entry.colorway ? ' [recoloured]' : ''}`)
+  console.log(`✓ ${entry.n} → ${outName} (${scaledW}×${scaledH})${recolorable ? ' [recolorable base]' : ''}`)
   return {
     varietyId: entry.variety,
     colorwayId: colorway,
     variant: entry.variant,
     src: `/flowers/${outName}`,
     thumb: `/flowers/${thumbName}`,
-    recolored: colorway !== entry.colorway || undefined,
+    recolorable: recolorable || undefined,
+    darkCore: darkCore || undefined,
   }
 }
 
@@ -475,8 +464,8 @@ async function main() {
         file: `${asset.varietyId}-${asset.colorwayId}-${asset.variant}.png`,
         source: 'supplied-3d-render',
         incoming: `${entry.n}.jpg`,
-        note: asset.recolored
-          ? 'derived colourway — programmatic bloom recolour of the supplied asset'
+        note: asset.recolorable
+          ? 'externally created production asset — recolorable base (colourways derived at runtime)'
           : 'externally created production asset',
         imported: new Date().toISOString().slice(0, 10),
       })

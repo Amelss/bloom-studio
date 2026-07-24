@@ -2,6 +2,7 @@ import { Rectangle, Texture } from 'pixi.js'
 import { VESSEL_SKETCHES, svgToDataUrl } from '../assets/vessels'
 import { FLOWER_INDEX, getColorway } from '../data/catalog'
 import { SPRITE_ASPECT, VESSEL_ASPECT } from '../domain/geometry'
+import { recolorBloom } from './recolor'
 
 /**
  * Texture pipeline for the supplied photographic flower assets (alpha cutout
@@ -53,7 +54,20 @@ interface ManifestAsset {
   variant?: number
   src: string
   thumb?: string
+  /**
+   * When true, this base asset covers every catalog colorway for the variety
+   * via runtime hue-remap (see docs/ASSET-CLOUD.md) — no file per colour.
+   */
+  recolorable?: boolean
+  /**
+   * When true, the flower has a dark central disc (e.g. a gerbera eye) that
+   * must stay near-black through recolour — its darkest pixels are protected.
+   */
+  darkCore?: boolean
 }
+
+/** Lightness floor below which a `darkCore` flower's pixels resist recolour. */
+const DARK_CORE_MAX_L = 0.2
 
 const stemCache = new Map<string, StemTextureEntry>()
 const vesselCache = new Map<string, Texture>()
@@ -63,9 +77,27 @@ const pending = new Set<string>()
 const photoIndex = new Map<string, string[]>()
 /** varietyId → every source for the variety (colourway-agnostic fallback). */
 const varietyPhotoIndex = new Map<string, string[]>()
+/** varietyId → recolorable base: its sources and the colorway they were shot in. */
+const recolorBaseIndex = new Map<
+  string,
+  { sources: string[]; baseColorwayId: string; darkCore: boolean }
+>()
 /** varietyId:colorwayId → tightly-cropped thumbnail for the library panel. */
 const thumbIndex = new Map<string, string>()
 let manifestLoaded = false
+
+/**
+ * Where flower assets are served from. `/flowers` (default) is the bundled
+ * local set; a Supabase Storage public-bucket URL serves from the CDN and drops
+ * the assets from the bundle (docs/ASSET-CLOUD.md). Manifest paths are stored
+ * canonically as `/flowers/<file>`; the base swaps in at load time.
+ */
+const ASSET_BASE_URL = import.meta.env.VITE_ASSET_BASE_URL ?? '/flowers'
+
+function resolveAssetUrl(path: string): string {
+  if (/^https?:\/\//.test(path)) return path
+  return `${ASSET_BASE_URL}/${path.replace(/^\/flowers\//, '')}`
+}
 
 let onTextureReady: (() => void) | null = null
 
@@ -98,22 +130,67 @@ export async function loadPhotoManifest(): Promise<void> {
   if (manifestLoaded) return
   manifestLoaded = true
   try {
-    const response = await fetch('/flowers/manifest.json')
+    const response = await fetch(resolveAssetUrl('manifest.json'))
     if (!response.ok) return
     const manifest = (await response.json()) as { assets?: ManifestAsset[] }
     for (const asset of manifest.assets ?? []) {
       const key = `${asset.varietyId}:${asset.colorwayId}`
+      const src = resolveAssetUrl(asset.src)
       const list = photoIndex.get(key) ?? []
-      list[asset.variant ?? list.length] = asset.src
+      list[asset.variant ?? list.length] = src
       photoIndex.set(key, list)
       const vList = varietyPhotoIndex.get(asset.varietyId) ?? []
-      if (!vList.includes(asset.src)) vList.push(asset.src)
+      if (!vList.includes(src)) vList.push(src)
       varietyPhotoIndex.set(asset.varietyId, vList)
-      if (asset.thumb && !thumbIndex.has(key)) thumbIndex.set(key, asset.thumb)
+      if (asset.thumb && !thumbIndex.has(key)) thumbIndex.set(key, resolveAssetUrl(asset.thumb))
+      if (asset.recolorable) {
+        const base = recolorBaseIndex.get(asset.varietyId) ?? {
+          sources: [],
+          baseColorwayId: asset.colorwayId,
+          darkCore: Boolean(asset.darkCore),
+        }
+        base.sources[asset.variant ?? base.sources.length] = src
+        recolorBaseIndex.set(asset.varietyId, base)
+      }
     }
+    await generateRecoloredThumbs()
     if (photoIndex.size) onTextureReady?.()
   } catch {
     // Offline or absent — illustrations carry the canvas.
+  }
+}
+
+/**
+ * The library picker shows a thumbnail per colourway. Recolorable varieties
+ * ship only their base thumb, so derive the missing colourway thumbnails once
+ * (small 256px images) and cache them as data URLs — keeps the picker's colours
+ * honest without shipping a thumb per colour.
+ */
+async function generateRecoloredThumbs(): Promise<void> {
+  for (const [varietyId, base] of recolorBaseIndex) {
+    const variety = FLOWER_INDEX[varietyId]
+    const baseThumb = thumbIndex.get(`${varietyId}:${base.baseColorwayId}`)
+    if (!variety || !baseThumb) continue
+    for (const colorway of variety.colorways) {
+      const key = `${varietyId}:${colorway.id}`
+      if (colorway.id === base.baseColorwayId || colorway.neutral || thumbIndex.has(key)) continue
+      try {
+        const image = await loadImage(baseThumb)
+        const canvas = document.createElement('canvas')
+        canvas.width = image.naturalWidth
+        canvas.height = image.naturalHeight
+        const ctx = canvas.getContext('2d', { willReadFrequently: true })!
+        ctx.drawImage(image, 0, 0)
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
+        recolorBloom(imageData, colorway.petal, {
+          preserveDarkBelow: base.darkCore ? DARK_CORE_MAX_L : 0,
+        })
+        ctx.putImageData(imageData, 0, 0)
+        thumbIndex.set(key, canvas.toDataURL('image/png'))
+      } catch {
+        // Keep the base-thumb fallback if a thumb can't be recoloured.
+      }
+    }
   }
 }
 
@@ -126,19 +203,28 @@ export function getStemTexture(
   const colorway = getColorway(varietyId, colorwayId)
   if (!variety || !colorway) return null
 
-  // Prefer the exact colourway; fall back to any asset for the variety (one
-  // base asset can cover several colourways via programmatic recolour).
+  // 1. A distinct shipped file for this exact colourway wins.
   const exact = photoIndex.get(`${varietyId}:${colorway.id}`)
-  const sources = exact?.length ? exact : varietyPhotoIndex.get(varietyId)
+  // 2. Else a recolorable base covers every colourway via runtime hue-remap.
+  const base = exact?.length ? null : recolorBaseIndex.get(varietyId)
+  // 3. Else fall back to any asset for the variety, rendered as-is.
+  const sources = exact?.length ? exact : base?.sources ?? varietyPhotoIndex.get(varietyId)
   if (!sources?.length) return null
 
   const src = sources[variant % sources.length] ?? sources[0]
-  const key = `photo:${src}`
+  // Recolour only when using a base whose native colourway differs from the
+  // request; the base's own colourway (and distinct files) render untouched.
+  // Neutral (white/cream/green) targets can't be faked from a saturated base —
+  // they need their own asset, so leave them on the raw-base fallback.
+  const petalHex =
+    base && colorway.id !== base.baseColorwayId && !colorway.neutral ? colorway.petal : null
+  const preserveDarkBelow = base?.darkCore ? DARK_CORE_MAX_L : 0
+  const key = petalHex ? `photo:${src}:${colorway.id}` : `photo:${src}`
   const cached = stemCache.get(key)
   if (cached) return cached
   if (!pending.has(key)) {
     pending.add(key)
-    void rasterizeStemFromUrl(key, src, PHOTO_FRAME_MM)
+    void rasterizeStemFromUrl(key, src, PHOTO_FRAME_MM, petalHex, preserveDarkBelow)
   }
   return null
 }
@@ -165,10 +251,19 @@ export function hitTestAlpha(entry: StemTextureEntry, u: number, v: number): boo
 
 /* ------------------------------ internals ------------------------------ */
 
-async function rasterizeStemFromUrl(key: string, src: string, mmWidth: number) {
+async function rasterizeStemFromUrl(
+  key: string,
+  src: string,
+  mmWidth: number,
+  petalHex: string | null = null,
+  preserveDarkBelow = 0,
+) {
   try {
     const image = await loadImage(src)
-    stemCache.set(key, buildStemEntry(image, mmWidth))
+    // A recolorable base is hue-remapped to the requested swatch once, on an
+    // offscreen canvas, then atlased like any other sprite (docs/ASSET-CLOUD.md).
+    const source = petalHex ? recolorToCanvas(image, petalHex, preserveDarkBelow) : image
+    stemCache.set(key, buildStemEntry(source, mmWidth))
   } catch {
     // Broken asset reference: leave uncached; illustration fallback shows
     // next sync because the photo lookup keeps failing over.
@@ -178,7 +273,26 @@ async function rasterizeStemFromUrl(key: string, src: string, mmWidth: number) {
   }
 }
 
-function buildStemEntry(image: HTMLImageElement, mmWidth: number): StemTextureEntry {
+/** Draws the base at sprite resolution and remaps its bloom to `petalHex`. */
+function recolorToCanvas(
+  image: HTMLImageElement,
+  petalHex: string,
+  preserveDarkBelow: number,
+): HTMLCanvasElement {
+  const width = STEM_TEXTURE_WIDTH
+  const height = Math.round(width * SPRITE_ASPECT)
+  const canvas = document.createElement('canvas')
+  canvas.width = width
+  canvas.height = height
+  const ctx = canvas.getContext('2d', { willReadFrequently: true })!
+  ctx.drawImage(image, 0, 0, width, height)
+  const imageData = ctx.getImageData(0, 0, width, height)
+  recolorBloom(imageData, petalHex, { preserveDarkBelow })
+  ctx.putImageData(imageData, 0, 0)
+  return canvas
+}
+
+function buildStemEntry(image: CanvasImageSource, mmWidth: number): StemTextureEntry {
   const width = STEM_TEXTURE_WIDTH
   const height = Math.round(width * SPRITE_ASPECT)
   const texture = drawToTexture(image, width, height)
@@ -267,7 +381,7 @@ function newAtlasPage(): AtlasPage {
 }
 
 /** Shelf-packs the image into an atlas page; returns a sub-texture. */
-function drawToTexture(image: HTMLImageElement, width: number, height: number): Texture {
+function drawToTexture(image: CanvasImageSource, width: number, height: number): Texture {
   const w = width + ATLAS_PAD
   const h = height + ATLAS_PAD
   let page = atlasPages[atlasPages.length - 1] ?? newAtlasPage()
