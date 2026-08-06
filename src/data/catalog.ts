@@ -123,6 +123,8 @@ export const FLOWER_CATALOG: FlowerVariety[] = [
     widthMm: 175,
     colorways: [
       { id: 'dusty-blue', name: 'Dusty Blue', petal: '#aebfd8', accent: '#8ba2c4', hue: 218 },
+      { id: 'pink', name: 'Pink', petal: '#e0a0bd', accent: '#c87fa0', hue: 330 },
+      { id: 'purple', name: 'Purple', petal: '#9d72c6', accent: '#7c52a6', hue: 272 },
       { id: 'white', name: 'White', petal: '#f2f3ec', accent: '#dee1d2', hue: 80, neutral: true },
     ],
     education: {
@@ -298,7 +300,12 @@ export const FLOWER_CATALOG: FlowerVariety[] = [
     stemLengthCm: 80,
     fragility: 'medium',
     widthMm: 155,
-    colorways: [{ id: 'white', name: 'White', petal: '#f5f1e6', accent: '#e6dcc4', hue: 45, neutral: true }],
+    colorways: [
+      { id: 'white', name: 'White', petal: '#f5f1e6', accent: '#e6dcc4', hue: 45, neutral: true },
+      { id: 'pink', name: 'Pink', petal: '#e86a99', accent: '#cf4f80', hue: 335 },
+      { id: 'yellow', name: 'Yellow', petal: '#f2c94c', accent: '#d9a92e', hue: 47 },
+      { id: 'orange', name: 'Orange', petal: '#ef8b3c', accent: '#d86e20', hue: 28 },
+    ],
     education: {
       role: 'A large, fragrant star-shaped focal that opens over days — one stem carries several blooms and buds, giving height and drama.',
       conditioning: 'Remove the pollen-bearing anthers to prevent staining. Buds open in sequence, extending vase life.',
