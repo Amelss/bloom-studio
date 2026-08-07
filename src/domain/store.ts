@@ -18,6 +18,7 @@ import {
   generateId,
   type DepthBand,
   type DesignDocument,
+  type DesignPricing,
   type PaperOption,
   type PlacedStem,
   type StemCategory,
@@ -114,6 +115,7 @@ export interface StudioState {
   setVessel: (vesselId: string | null) => void
   setMarkup: (markup: number) => void
   setPriceOverride: (varietyId: string, price: number | null) => void
+  updatePricing: (patch: Partial<DesignPricing>) => void
   renameDesign: (name: string) => void
   newDesign: (kind: 'starter' | 'blank') => void
   importDesign: (doc: DesignDocument) => void
@@ -591,6 +593,11 @@ const initializer: StateCreator<StudioState> = (set, get) => {
     setMarkup: (markup) => {
       const { doc } = get()
       get().run({ type: 'set_markup', next: markup, prev: doc.pricing.markup })
+    },
+
+    updatePricing: (patch) => {
+      const { doc } = get()
+      get().run({ type: 'set_pricing', next: { ...doc.pricing, ...patch }, prev: doc.pricing })
     },
 
     setPriceOverride: (varietyId, price) => {

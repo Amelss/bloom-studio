@@ -160,8 +160,24 @@ export const STEM_SCALE_MIN = 0.85
 export const STEM_SCALE_MAX = 1.15
 
 export interface DesignPricing {
+  /** Retail markup applied to flowers (materials + wastage). */
   markup: number
+  /** Per-variety unit-price overrides (a real price the florist paid). */
   priceOverrides: Record<string, number>
+  /** Event month, 0–11, for seasonal pricing. Undefined → the current month. */
+  month?: number
+  /** Studio labour rate, £/hour (default 18). */
+  labourRatePerHour?: number
+  /** Minutes of labour per stem (default 1.5). */
+  minutesPerStem?: number
+  /** Markup applied to hard goods / the vessel (default 2, i.e. not the full flower markup). */
+  vesselMarkup?: number
+  /** Conditioning-wastage allowance on flower cost, 0–1 (default 0.10). */
+  wastageRate?: number
+  /** Add a VAT line to the retail total (default false). */
+  vatEnabled?: boolean
+  /** VAT rate, 0–1 (default 0.20). */
+  vatRate?: number
 }
 
 export interface DesignDocument {

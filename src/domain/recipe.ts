@@ -1,11 +1,50 @@
-import type { DesignDocument } from './types'
+import type { DesignDocument, Season } from './types'
 import { FLOWER_INDEX, VESSEL_INDEX, getColorway } from '../data/catalog'
 
 /**
  * The recipe is derived, never entered: because the design is structured data
  * (which stems, how many, where), the stem count, cost, and suggested retail
- * fall out of the canvas automatically.
+ * fall out of the canvas automatically. The costing mirrors how a UK studio
+ * actually prices: seasonal wholesale stem prices + conditioning wastage,
+ * marked up; the container at a lower hard-goods markup; labour on top; and an
+ * optional VAT line. Every input is editable per design.
  */
+
+export const PRICING_DEFAULTS = {
+  labourRatePerHour: 18,
+  minutesPerStem: 1.5,
+  vesselMarkup: 2,
+  wastageRate: 0.1,
+  vatEnabled: false,
+  vatRate: 0.2,
+} as const
+
+const round2 = (n: number) => Math.round(n * 100) / 100
+
+/** Northern-hemisphere season for a month (0 = Jan). */
+const SEASON_ORDER: Season[] = ['spring', 'summer', 'autumn', 'winter']
+export function monthToSeason(month: number): Season {
+  const m = ((month % 12) + 12) % 12
+  if (m >= 2 && m <= 4) return 'spring'
+  if (m >= 5 && m <= 7) return 'summer'
+  if (m >= 8 && m <= 10) return 'autumn'
+  return 'winter'
+}
+
+/**
+ * Seasonal price multiplier on a variety's in-season guide price: 1× in season,
+ * 1.6× in the shoulder (an adjacent season), 2.5× out of season. Year-round
+ * varieties never move. A coarse but honest teaching model of the single
+ * biggest driver of flower cost.
+ */
+export function seasonMultiplier(seasons: Season[], month: number): number {
+  if (seasons.includes('year-round')) return 1
+  const now = monthToSeason(month)
+  if (seasons.includes(now)) return 1
+  const i = SEASON_ORDER.indexOf(now)
+  const adjacent = [SEASON_ORDER[(i + 1) % 4], SEASON_ORDER[(i + 3) % 4]]
+  return seasons.some((s) => adjacent.includes(s)) ? 1.6 : 2.5
+}
 
 export interface RecipeLine {
   key: string
@@ -16,28 +55,61 @@ export interface RecipeLine {
   unitPrice: number
   lineTotal: number
   isOverride: boolean
+  /** Applied seasonal multiplier (1 when in season or overridden). */
+  seasonMultiplier: number
+  /** True when a seasonal uplift is inflating the price (not overridden). */
+  outOfSeason: boolean
 }
 
 export interface Recipe {
   lines: RecipeLine[]
   stemCount: number
+  /** Month (0–11) the seasonal pricing was computed for. */
+  month: number
+  /** Seasonal wholesale flower cost, before wastage or markup. */
   flowerCost: number
+  /** Conditioning-wastage allowance added to flower cost. */
+  wastage: number
+  /** Flowers (cost + wastage) at the retail markup. */
+  flowerRetail: number
   vessel: { name: string; price: number; mechanics: string } | null
+  /** Vessel at the hard-goods markup. */
+  vesselRetail: number
+  /** Labour charge. */
+  labour: number
+  /** Raw materials cost (flowers + vessel), pre-markup — the "what it cost you". */
   materialCost: number
   markup: number
+  /** Retail before VAT (flowers + vessel + labour). */
+  subtotal: number
+  vat: number
+  vatEnabled: boolean
+  vatRate: number
   suggestedRetail: number
 }
 
 export function buildRecipe(doc: DesignDocument): Recipe {
-  const grouped = new Map<string, RecipeLine>()
+  const p = doc.pricing
+  const month = p.month ?? new Date().getMonth()
+  const markup = p.markup
+  const labourRatePerHour = p.labourRatePerHour ?? PRICING_DEFAULTS.labourRatePerHour
+  const minutesPerStem = p.minutesPerStem ?? PRICING_DEFAULTS.minutesPerStem
+  const vesselMarkup = p.vesselMarkup ?? PRICING_DEFAULTS.vesselMarkup
+  const wastageRate = p.wastageRate ?? PRICING_DEFAULTS.wastageRate
+  const vatEnabled = p.vatEnabled ?? PRICING_DEFAULTS.vatEnabled
+  const vatRate = p.vatRate ?? PRICING_DEFAULTS.vatRate
 
+  const grouped = new Map<string, RecipeLine>()
   for (const stem of doc.stems) {
     const variety = FLOWER_INDEX[stem.varietyId]
     if (!variety) continue
     const colorway = getColorway(stem.varietyId, stem.colorwayId)
     const key = `${stem.varietyId}:${colorway?.id ?? 'default'}`
-    const override = doc.pricing.priceOverrides[stem.varietyId]
-    const unitPrice = override ?? variety.guidePriceGBP
+    const override = p.priceOverrides[stem.varietyId]
+    // A price the florist actually paid overrides everything; otherwise the
+    // in-season guide price lifted by the seasonal multiplier for this month.
+    const mult = seasonMultiplier(variety.seasons, month)
+    const unitPrice = override ?? round2(variety.guidePriceGBP * mult)
 
     const line = grouped.get(key)
     if (line) {
@@ -53,6 +125,8 @@ export function buildRecipe(doc: DesignDocument): Recipe {
         unitPrice,
         lineTotal: round2(unitPrice),
         isOverride: override != null,
+        seasonMultiplier: override != null ? 1 : mult,
+        outOfSeason: override == null && mult > 1,
       })
     }
   }
@@ -68,10 +142,35 @@ export function buildRecipe(doc: DesignDocument): Recipe {
 
   const stemCount = doc.stems.length
   const flowerCost = round2(lines.reduce((sum, l) => sum + l.lineTotal, 0))
-  const materialCost = round2(flowerCost + (vessel?.price ?? 0))
-  const suggestedRetail = round2(materialCost * doc.pricing.markup)
+  const wastage = round2(flowerCost * wastageRate)
+  const vesselCost = vessel?.price ?? 0
+  const materialCost = round2(flowerCost + vesselCost)
 
-  return { lines, stemCount, flowerCost, vessel, materialCost, markup: doc.pricing.markup, suggestedRetail }
+  const flowerRetail = round2((flowerCost + wastage) * markup)
+  const vesselRetail = round2(vesselCost * vesselMarkup)
+  const labour = round2((stemCount * minutesPerStem * labourRatePerHour) / 60)
+  const subtotal = round2(flowerRetail + vesselRetail + labour)
+  const vat = vatEnabled ? round2(subtotal * vatRate) : 0
+  const suggestedRetail = round2(subtotal + vat)
+
+  return {
+    lines,
+    stemCount,
+    month,
+    flowerCost,
+    wastage,
+    flowerRetail,
+    vessel,
+    vesselRetail,
+    labour,
+    materialCost,
+    markup,
+    subtotal,
+    vat,
+    vatEnabled,
+    vatRate,
+    suggestedRetail,
+  }
 }
 
 export function recipeToCSV(recipe: Recipe, designName: string): string {
@@ -87,10 +186,9 @@ export function recipeToCSV(recipe: Recipe, designName: string): string {
     rows.push([recipe.vessel.name, '', 1, recipe.vessel.price.toFixed(2), recipe.vessel.price.toFixed(2)].map(esc).join(','))
   }
   rows.push('')
-  rows.push(['Total stems', recipe.stemCount].map(esc).join(','))
-  rows.push(['Material cost (GBP)', recipe.materialCost.toFixed(2)].map(esc).join(','))
-  rows.push(['Markup', `${recipe.markup}x`].map(esc).join(','))
-  rows.push(['Suggested retail (GBP)', recipe.suggestedRetail.toFixed(2)].map(esc).join(','))
+  for (const [label, value] of recipeSummaryRows(recipe)) {
+    rows.push([label, value.replace('£', '')].map(esc).join(','))
+  }
   if (recipe.vessel) rows.push(['Mechanics', recipe.vessel.mechanics].map(esc).join(','))
   return rows.join('\n')
 }
@@ -112,12 +210,18 @@ function recipeTableRows(recipe: Recipe): { head: string[]; body: string[][] } {
 }
 
 function recipeSummaryRows(recipe: Recipe): Array<[string, string]> {
-  return [
+  const rows: Array<[string, string]> = [
     ['Total stems', String(recipe.stemCount)],
-    ['Material cost', `£${recipe.materialCost.toFixed(2)}`],
-    ['Markup', `${recipe.markup}×`],
-    ['Suggested retail', `£${recipe.suggestedRetail.toFixed(2)}`],
+    ['Flower cost', `£${recipe.flowerCost.toFixed(2)}`],
+    ['Wastage', `£${recipe.wastage.toFixed(2)}`],
+    [`Flowers @ ${recipe.markup}×`, `£${recipe.flowerRetail.toFixed(2)}`],
   ]
+  if (recipe.vessel) rows.push([`Vessel (${recipe.vessel.name})`, `£${recipe.vesselRetail.toFixed(2)}`])
+  rows.push(['Labour', `£${recipe.labour.toFixed(2)}`])
+  rows.push(['Subtotal', `£${recipe.subtotal.toFixed(2)}`])
+  if (recipe.vatEnabled) rows.push([`VAT (${Math.round(recipe.vatRate * 100)}%)`, `£${recipe.vat.toFixed(2)}`])
+  rows.push(['Suggested retail', `£${recipe.suggestedRetail.toFixed(2)}`])
+  return rows
 }
 
 /** Build a Word (.docx) recipe. Dynamically imports `docx` so it stays out of the main bundle. */
@@ -204,8 +308,4 @@ export async function recipeToPdf(recipe: Recipe, designName: string): Promise<B
   }
 
   return pdf.output('blob')
-}
-
-function round2(n: number): number {
-  return Math.round(n * 100) / 100
 }

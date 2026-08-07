@@ -1,4 +1,4 @@
-import type { DesignDocument, PaperOption, PlacedStem } from './types'
+import type { DesignDocument, DesignPricing, PaperOption, PlacedStem } from './types'
 
 /**
  * Every mutation of a design document is an invertible command. This gives us
@@ -21,6 +21,7 @@ export type Command =
   | { type: 'set_vessel'; next: string | null; prev: string | null }
   | { type: 'set_markup'; next: number; prev: number }
   | { type: 'set_price_override'; varietyId: string; next: number | null; prev: number | null }
+  | { type: 'set_pricing'; next: DesignPricing; prev: DesignPricing }
   | { type: 'rename'; next: string; prev: string }
   | { type: 'set_paper'; artboardId: string; next: PaperOption; prev: PaperOption }
   /** Several commands as ONE undo step (multi-select operations, gestures). */
@@ -47,6 +48,8 @@ export function applyCommand(doc: DesignDocument, cmd: Command): DesignDocument 
       else priceOverrides[cmd.varietyId] = cmd.next
       return { ...doc, pricing: { ...doc.pricing, priceOverrides } }
     }
+    case 'set_pricing':
+      return { ...doc, pricing: cmd.next }
     case 'rename':
       return { ...doc, name: cmd.next }
     case 'set_paper':
@@ -74,6 +77,8 @@ export function invertCommand(cmd: Command): Command {
     case 'set_markup':
       return { ...cmd, next: cmd.prev, prev: cmd.next }
     case 'set_price_override':
+      return { ...cmd, next: cmd.prev, prev: cmd.next }
+    case 'set_pricing':
       return { ...cmd, next: cmd.prev, prev: cmd.next }
     case 'rename':
       return { ...cmd, next: cmd.prev, prev: cmd.next }
