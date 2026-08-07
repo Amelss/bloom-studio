@@ -16,7 +16,7 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
-    console.error('Bloom Studio crashed:', error, info)
+    console.error('Florafo crashed:', error, info)
   }
 
   render() {
@@ -25,7 +25,7 @@ export class ErrorBoundary extends Component<Props, State> {
         <div className="flex h-full flex-col items-center justify-center gap-4 p-8 text-center">
           <h1 className="font-display text-2xl text-bloom-700">Something wilted.</h1>
           <p className="max-w-md text-sm text-bloom-ink/70">
-            Bloom Studio hit an unexpected error. Your design is autosaved locally — reload to
+            Florafo hit an unexpected error. Your design is autosaved locally — reload to
             pick up where you left off.
           </p>
           <button className="btn" onClick={() => window.location.reload()}>

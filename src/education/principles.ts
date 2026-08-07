@@ -120,7 +120,7 @@ export const PRINCIPLES: Principle[] = [
     name: 'Recipes & Pricing',
     summary: 'Count every stem; price with a deliberate markup.',
     body:
-      'Profitable floristry is recipe discipline: every stem counted, every material listed, then a markup applied — commonly 2× to 4× on wholesale cost depending on market and complexity, with many studios adding labour on top. Under-counting stems is invisible on the invoice and fatal to margin. Bloom Studio counts your canvas automatically, but the habit of sanity-checking the recipe against the design is a professional skill in itself.',
+      'Profitable floristry is recipe discipline: every stem counted, every material listed, then a markup applied — commonly 2× to 4× on wholesale cost depending on market and complexity, with many studios adding labour on top. Under-counting stems is invisible on the invoice and fatal to margin. Florafo counts your canvas automatically, but the habit of sanity-checking the recipe against the design is a professional skill in itself.',
     tryIt:
       'Change the markup on this design from 3× to 2.5× and back — watch what it does to retail price, and consider what your local market would bear.',
   },

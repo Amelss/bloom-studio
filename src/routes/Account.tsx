@@ -67,7 +67,7 @@ export default function Account() {
     <div className="min-h-full bg-bloom-50">
       <header className="flex items-center justify-between border-b border-bloom-200 bg-white/80 px-6 py-3">
         <Link to="/" className="font-display text-lg font-semibold text-bloom-700">
-          Bloom Studio
+          Florafo
         </Link>
         <UserMenu />
       </header>

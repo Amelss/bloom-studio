@@ -18,11 +18,11 @@ export function migrateDocument(raw: unknown): DesignDocument {
   if (!raw || typeof raw !== 'object') throw new Error('Not a design document')
   let doc = raw as Record<string, unknown>
   if (typeof doc.version !== 'number' || !Array.isArray(doc.stems)) {
-    throw new Error('Not a Bloom Studio design file')
+    throw new Error('Not a Florafo design file')
   }
   if (doc.version > DESIGN_DOC_VERSION) {
     throw new Error(
-      `This design was made with a newer version of Bloom Studio (format v${doc.version}).`,
+      `This design was made with a newer version of Florafo (format v${doc.version}).`,
     )
   }
   if (doc.version === 1) doc = migrateV1toV2(doc)

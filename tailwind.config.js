@@ -9,18 +9,18 @@ export default {
       },
       colors: {
         bloom: {
-          // "Ivory & Wine" — warm ivory paper neutrals separated by tone + soft
-          // shadow (never hard outlines), with a single deep-wine accent. An
-          // editorial florist-atelier palette: warm, premium, restrained.
-          50: '#f8f6f2', // app / workspace ground — warm ivory paper
-          100: '#efeae1', // subtle warm fill / hover
-          200: '#e7e2d9', // hairline borders (low contrast on purpose)
-          500: '#a24956', // wine, light — secondary accent / active tint
-          600: '#7a2e3b', // primary action — deep wine
-          700: '#5c2029', // deep wine — wordmark / strong accents
+          // "White & Deep Green" — a white ground with near-neutral (faint
+          // green undertone) separators, and a single rich, solid deep-green
+          // accent. Editorial and premium; the green carries the brand.
+          50: '#ffffff', // app / workspace ground — white
+          100: '#eef1ee', // subtle fill / hover (faint green-grey)
+          200: '#dfe4df', // hairline borders (low contrast on purpose)
+          500: '#5ba17e', // green, light — secondary accent / active tint
+          600: '#2f8a62', // primary action — medium green
+          700: '#216b4c', // deeper green — wordmark / strong accents / button hover
           rose: '#c98b93', // dusty rose (decorative)
           clay: '#b07c66', // warm clay (decorative)
-          ink: '#211d1b', // espresso near-black
+          ink: '#1d211e', // near-black, faint green undertone
         },
       },
       boxShadow: {

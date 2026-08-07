@@ -43,7 +43,7 @@ export function TopBar() {
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
           <path d="M15 6l-6 6 6 6" />
         </svg>
-        <span className="font-display text-lg font-semibold">Bloom Studio</span>
+        <span className="font-display text-lg font-semibold">Florafo</span>
       </Link>
 
       {/* Uncontrolled with a remount key: external name changes (undo/import)

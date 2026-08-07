@@ -142,7 +142,7 @@ export default function Dashboard() {
         <div className="flex items-center gap-2 px-2">
           <BrandMark />
           <span className="font-display text-lg font-semibold tracking-tight text-bloom-700">
-            Bloom Studio
+            Florafo
           </span>
         </div>
 
@@ -176,12 +176,30 @@ export default function Dashboard() {
 
       {/* ── Main ────────────────────────────────────────────────── */}
       <div className="flex min-w-0 flex-1 flex-col">
-        {/* Top bar: search + (mobile) account */}
-        <header className="sticky top-0 z-10 flex items-center gap-3 border-b border-bloom-200 bg-bloom-50/85 px-6 py-3 backdrop-blur">
-          <div className="flex items-center gap-2 md:hidden">
+        {/* Mobile top bar — the sidebar (brand + account) is hidden on small screens */}
+        <div className="flex items-center justify-between px-6 py-3 md:hidden">
+          <div className="flex items-center gap-2">
             <BrandMark />
+            <span className="font-display text-lg font-semibold tracking-tight text-bloom-700">
+              Florafo
+            </span>
           </div>
-          <div className="relative mx-auto w-full max-w-md">
+          <UserMenu />
+        </div>
+
+        <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-8 lg:px-10">
+          {/* Hero */}
+          <div className="mb-6">
+            <h1 className="font-display text-3xl font-semibold tracking-tight text-bloom-ink">
+              {greeting()}{firstName ? `, ${firstName}` : ''}
+            </h1>
+            <p className="mt-1 text-[15px] text-bloom-ink/55">
+              Design an arrangement, cost it instantly, and learn as you go.
+            </p>
+          </div>
+
+          {/* Search — inline in the content flow, matching the card grid width */}
+          <div className="relative mb-8">
             <svg
               className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-bloom-ink/35"
               viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"
@@ -193,23 +211,8 @@ export default function Dashboard() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search your designs"
-              className="w-full rounded-full border border-bloom-200 bg-white py-2 pl-10 pr-4 text-sm text-bloom-ink placeholder:text-bloom-ink/40 focus:border-bloom-500 focus:outline-none focus:ring-2 focus:ring-bloom-500/20"
+              className="w-full rounded-lg border border-bloom-200 bg-white py-2 pl-10 pr-4 text-sm text-bloom-ink placeholder:text-bloom-ink/40 focus:border-bloom-500 focus:outline-none focus:ring-2 focus:ring-bloom-500/20"
             />
-          </div>
-          <div className="md:hidden">
-            <UserMenu />
-          </div>
-        </header>
-
-        <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-8 lg:px-10">
-          {/* Hero */}
-          <div className="mb-8">
-            <h1 className="font-display text-3xl font-semibold tracking-tight text-bloom-ink">
-              {greeting()}{firstName ? `, ${firstName}` : ''}
-            </h1>
-            <p className="mt-1 text-[15px] text-bloom-ink/55">
-              Design an arrangement, cost it instantly, and learn as you go.
-            </p>
           </div>
 
           {error && (
@@ -219,7 +222,7 @@ export default function Dashboard() {
           )}
 
           {legacy && (
-            <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-white px-4 py-3 shadow-soft ring-1 ring-bloom-200">
+            <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-bloom-200 bg-white px-4 py-3">
               <p className="text-sm text-bloom-ink/75">
                 We found a design saved on this device (“{legacy.name}”). Save it to your account?
               </p>
@@ -254,9 +257,9 @@ export default function Dashboard() {
                   key={q.key}
                   onClick={() => void create(q.build)}
                   disabled={creating}
-                  className="group flex flex-col items-start gap-3 rounded-2xl border border-bloom-200 bg-white p-4 text-left shadow-soft transition hover:-translate-y-0.5 hover:border-bloom-500/40 hover:shadow-pop disabled:opacity-60"
+                  className="group flex flex-col items-start gap-3 rounded-2xl border border-bloom-200 bg-white p-4 text-left transition hover:-translate-y-0.5 hover:border-bloom-500/50 disabled:opacity-60"
                 >
-                  <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-bloom-600/[0.08] text-bloom-600 transition group-hover:bg-bloom-600 group-hover:text-white">
+                  <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-bloom-600/[0.12] text-bloom-600 transition group-hover:bg-bloom-600 group-hover:text-white">
                     <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
                       {q.icon}
                     </svg>
@@ -298,7 +301,7 @@ export default function Dashboard() {
             )}
 
             {designs && designs.length > 0 && filtered && filtered.length === 0 && (
-              <p className="rounded-xl bg-white px-4 py-10 text-center text-sm text-bloom-ink/50 shadow-soft ring-1 ring-bloom-200">
+              <p className="rounded-xl border border-bloom-200 bg-white px-4 py-10 text-center text-sm text-bloom-ink/50">
                 No designs match “{query}”.
               </p>
             )}
@@ -315,12 +318,20 @@ export default function Dashboard() {
 
 /* ──────────────────────────── pieces ──────────────────────────── */
 
+/** The Florafo mark: a styled serif "F" (Fraunces), inheriting its container's
+ *  colour. Sized via a text-size class on `className`. */
+function FlorafoGlyph({ className }: { className?: string }) {
+  return (
+    <span className={`font-display font-semibold leading-none ${className ?? ''}`} aria-hidden>
+      F
+    </span>
+  )
+}
+
 function BrandMark() {
   return (
     <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-bloom-700 text-white">
-      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M12 11c2 0 3.5-1.6 3.5-3.5S14 4 12 4 8.5 5.6 8.5 7.5 10 11 12 11zm0 0c0 3 2 5 5 5m-5-5c0 3-2 5-5 5m5-5v6" />
-      </svg>
+      <FlorafoGlyph className="text-[20px]" />
     </span>
   )
 }
@@ -338,8 +349,8 @@ function NavItem({
 }) {
   const cls = `flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors ${
     active
-      ? 'bg-bloom-100 font-semibold text-bloom-700'
-      : 'font-medium text-bloom-ink/60 hover:bg-bloom-100 hover:text-bloom-ink'
+      ? 'bg-bloom-600/10 font-semibold text-bloom-700'
+      : 'font-medium text-bloom-ink/60 hover:bg-bloom-ink/[0.05] hover:text-bloom-ink'
   }`
   const inner = (
     <>
@@ -364,7 +375,7 @@ function GridSkeleton() {
   return (
     <ul className="grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-4">
       {Array.from({ length: 4 }).map((_, i) => (
-        <li key={i} className="overflow-hidden rounded-xl bg-white shadow-soft ring-1 ring-bloom-200">
+        <li key={i} className="overflow-hidden rounded-xl border border-bloom-200 bg-white">
           <div className="aspect-[4/3] w-full animate-pulse bg-bloom-100" />
           <div className="space-y-2 px-3 py-3">
             <div className="h-3 w-2/3 animate-pulse rounded bg-bloom-100" />
@@ -378,11 +389,9 @@ function GridSkeleton() {
 
 function EmptyState({ onStart, disabled }: { onStart: () => void; disabled: boolean }) {
   return (
-    <div className="flex flex-col items-center rounded-2xl bg-white px-6 py-14 text-center shadow-soft ring-1 ring-bloom-200">
-      <span className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-bloom-600/[0.08] text-bloom-600">
-        <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M12 11c2 0 3.5-1.6 3.5-3.5S14 4 12 4 8.5 5.6 8.5 7.5 10 11 12 11zm0 0c0 3 2 5 5 5m-5-5c0 3-2 5-5 5m5-5v6" />
-        </svg>
+    <div className="flex flex-col items-center rounded-2xl border border-bloom-200 bg-white px-6 py-14 text-center">
+      <span className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-bloom-600/[0.12] text-bloom-600">
+        <FlorafoGlyph className="text-[34px]" />
       </span>
       <h3 className="font-display text-lg font-semibold text-bloom-ink">Your studio is ready</h3>
       <p className="mt-1 max-w-sm text-sm text-bloom-ink/55">
@@ -416,7 +425,7 @@ function DesignCard({
     year: 'numeric',
   })
   return (
-    <li className="group overflow-hidden rounded-xl bg-white shadow-soft ring-1 ring-bloom-ink/[0.04] transition hover:-translate-y-0.5 hover:shadow-pop">
+    <li className="group overflow-hidden rounded-xl border border-bloom-200 bg-white transition hover:-translate-y-0.5 hover:border-bloom-500/50">
       <button
         onClick={onOpen}
         className="block aspect-[4/3] w-full overflow-hidden bg-bloom-100"
