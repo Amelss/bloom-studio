@@ -9,17 +9,18 @@ export default {
       },
       colors: {
         bloom: {
-          // Cool editorial: greige/stone neutrals separated by tone + soft
-          // shadow (never hard outlines), with a single restrained accent.
-          50: '#f4f4f2', // app / workspace ground — cool stone off-white
-          100: '#eaebe8', // subtle fill / hover
-          200: '#ddded9', // hairline borders (low contrast on purpose)
-          500: '#7e8b82', // muted sage-slate — accent, light
-          600: '#5c6b61', // primary action — deep muted sage-slate
-          700: '#414b45', // deep accent — green-ink for headings / hero figures
-          rose: '#bd8b90', // cooled dusty rose (decorative)
-          clay: '#a5766a', // cooled clay (decorative)
-          ink: '#26282b', // cool near-black
+          // "Ivory & Wine" — warm ivory paper neutrals separated by tone + soft
+          // shadow (never hard outlines), with a single deep-wine accent. An
+          // editorial florist-atelier palette: warm, premium, restrained.
+          50: '#f8f6f2', // app / workspace ground — warm ivory paper
+          100: '#efeae1', // subtle warm fill / hover
+          200: '#e7e2d9', // hairline borders (low contrast on purpose)
+          500: '#a24956', // wine, light — secondary accent / active tint
+          600: '#7a2e3b', // primary action — deep wine
+          700: '#5c2029', // deep wine — wordmark / strong accents
+          rose: '#c98b93', // dusty rose (decorative)
+          clay: '#b07c66', // warm clay (decorative)
+          ink: '#211d1b', // espresso near-black
         },
       },
       boxShadow: {
