@@ -56,6 +56,8 @@ export interface StudioState {
   /** Right recipe/insights panel visible. */
   insightsOpen: boolean
   learningMode: boolean
+  /** The active exercise/brief id, or null when free-designing (learning mode). */
+  activeBriefId: string | null
   showFormGuide: boolean
   gridVisible: boolean
   gridSnap: boolean
@@ -117,6 +119,7 @@ export interface StudioState {
   importDesign: (doc: DesignDocument) => void
 
   setLearningMode: (on: boolean) => void
+  setActiveBrief: (id: string | null) => void
   setShowFormGuide: (on: boolean) => void
   setGridVisible: (on: boolean) => void
   setGridSnap: (on: boolean) => void
@@ -248,6 +251,7 @@ const initializer: StateCreator<StudioState> = (set, get) => {
     libraryOpen: true,
     insightsOpen: true,
     learningMode: true,
+    activeBriefId: null,
     showFormGuide: false,
     gridVisible: false,
     gridSnap: false,
@@ -627,6 +631,7 @@ const initializer: StateCreator<StudioState> = (set, get) => {
     },
 
     setLearningMode: (on) => set({ learningMode: on }),
+    setActiveBrief: (id) => set({ activeBriefId: id }),
     setShowFormGuide: (on) => set({ showFormGuide: on }),
     setGridVisible: (on) => set({ gridVisible: on }),
     setGridSnap: (on) => set({ gridSnap: on }),
@@ -725,6 +730,7 @@ export function createStudioStore(options: { persistKey?: string } = {}) {
       // cache — only UI preferences persist under this key.
       partialize: (state) => ({
         learningMode: state.learningMode,
+        activeBriefId: state.activeBriefId,
         gridVisible: state.gridVisible,
         gridSnap: state.gridSnap,
         gridStepMm: state.gridStepMm,

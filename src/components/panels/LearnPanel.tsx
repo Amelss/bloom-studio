@@ -3,6 +3,7 @@ import { useStudio } from '../../domain/store'
 import { analyzeDesign, type InsightTone } from '../../education/insights'
 import { PRINCIPLES } from '../../education/principles'
 import { FLOWER_INDEX, getColorway } from '../../data/catalog'
+import { ExercisesPanel } from './ExercisesPanel'
 
 const TONE_STYLES: Record<InsightTone, { icon: string; className: string }> = {
   positive: { icon: '✓', className: 'border-bloom-500/50 bg-bloom-100 text-bloom-700' },
@@ -26,6 +27,8 @@ export function LearnPanel() {
 
   return (
     <div className="flex flex-col gap-4">
+      <ExercisesPanel />
+
       <section aria-label="Live design feedback">
         <h3 className="panel-title mb-2">Design feedback</h3>
         <ul className="space-y-2" aria-live="polite">

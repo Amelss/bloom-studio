@@ -280,7 +280,7 @@ function countByCategory(categories: StemCategory[]): Partial<Record<StemCategor
   return counts
 }
 
-function uniqueHues(doc: DesignDocument): number[] {
+export function uniqueHues(doc: DesignDocument): number[] {
   const hues = new Set<number>()
   for (const stem of doc.stems) {
     const variety = FLOWER_INDEX[stem.varietyId]
@@ -292,7 +292,7 @@ function uniqueHues(doc: DesignDocument): number[] {
 }
 
 /** Smallest arc that contains all hues (360 − largest gap between neighbours). */
-function circularSpan(hues: number[]): number {
+export function circularSpan(hues: number[]): number {
   if (hues.length < 2) return 0
   const sorted = [...hues].sort((a, b) => a - b)
   let maxGap = 360 - sorted[sorted.length - 1] + sorted[0]
@@ -302,7 +302,7 @@ function circularSpan(hues: number[]): number {
   return 360 - maxGap
 }
 
-function hasComplementaryPair(hues: number[]): boolean {
+export function hasComplementaryPair(hues: number[]): boolean {
   for (let i = 0; i < hues.length; i++) {
     for (let j = i + 1; j < hues.length; j++) {
       let diff = Math.abs(hues[i] - hues[j])
@@ -313,7 +313,7 @@ function hasComplementaryPair(hues: number[]): boolean {
   return false
 }
 
-function meanDepth(doc: DesignDocument, category: StemCategory): number | null {
+export function meanDepth(doc: DesignDocument, category: StemCategory): number | null {
   const depths = doc.stems
     .filter((s) => FLOWER_INDEX[s.varietyId]?.category === category)
     .map(depthValue)
