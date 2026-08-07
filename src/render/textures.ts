@@ -1,6 +1,7 @@
 import { Rectangle, Texture } from 'pixi.js'
 import { VESSEL_SKETCHES, svgToDataUrl } from '../assets/vessels'
 import { FLOWER_INDEX, getColorway } from '../data/catalog'
+import type { VesselDef } from '../domain/types'
 import { SPRITE_ASPECT, VESSEL_ASPECT } from '../domain/geometry'
 import { recolorBloom } from './recolor'
 
@@ -229,12 +230,33 @@ export function getStemTexture(
   return null
 }
 
-export function getVesselTexture(sketchId: string): Texture | null {
-  const key = `vessel:${sketchId}`
+/**
+ * A single photographic vessel layer, rasterised at `aspect` and cached by URL.
+ * Used for the back/front layers of a two-layer wrap (see scene.syncVessel).
+ */
+export function getVesselPhotoTexture(url: string, aspect: number): Texture | null {
+  const key = `vessel:photo:${url}`
   const cached = vesselCache.get(key)
   if (cached) return cached
   if (pending.has(key)) return null
-  const sketch = VESSEL_SKETCHES[sketchId]
+  pending.add(key)
+  void rasterizeVesselPhoto(key, url, aspect)
+  return null
+}
+
+export function getVesselTexture(vessel: VesselDef): Texture | null {
+  // A photographic vessel is keyed and rasterised at its own aspect; the sketch
+  // stays as an offline/broken-image fallback.
+  const key = vessel.photo ? `vessel:photo:${vessel.photo}` : `vessel:${vessel.sketch}`
+  const cached = vesselCache.get(key)
+  if (cached) return cached
+  if (pending.has(key)) return null
+  if (vessel.photo) {
+    pending.add(key)
+    void rasterizeVesselPhoto(key, vessel.photo, vessel.aspect ?? VESSEL_ASPECT, VESSEL_SKETCHES[vessel.sketch]?.())
+    return null
+  }
+  const sketch = VESSEL_SKETCHES[vessel.sketch]
   if (!sketch) return null
   pending.add(key)
   void rasterizeVessel(key, sketch())
@@ -338,6 +360,36 @@ async function rasterizeVessel(key: string, svg: string) {
     const width = VESSEL_TEXTURE_WIDTH
     const height = Math.round(width / VESSEL_ASPECT)
     vesselCache.set(key, drawToTexture(image, width, height))
+  } finally {
+    pending.delete(key)
+    onTextureReady?.()
+  }
+}
+
+/**
+ * Rasterises a photographic vessel at its own aspect (so it isn't distorted),
+ * falling back to the SVG sketch if the image can't load — keeps the canvas
+ * populated offline or on a broken asset reference.
+ */
+async function rasterizeVesselPhoto(
+  key: string,
+  url: string,
+  aspect: number,
+  fallbackSvg?: string,
+) {
+  const width = VESSEL_TEXTURE_WIDTH
+  try {
+    const image = await loadImage(url)
+    vesselCache.set(key, drawToTexture(image, width, Math.round(width / aspect)))
+  } catch {
+    if (fallbackSvg) {
+      try {
+        const image = await loadImage(svgToDataUrl(fallbackSvg))
+        vesselCache.set(key, drawToTexture(image, width, Math.round(width / VESSEL_ASPECT)))
+      } catch {
+        // Give up: leave uncached; the vessel simply doesn't draw this sync.
+      }
+    }
   } finally {
     pending.delete(key)
     onTextureReady?.()

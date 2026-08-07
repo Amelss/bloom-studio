@@ -68,7 +68,7 @@ const COMPOTE_RIM_FRACTION = 0.17
 
 export function vesselRect(vessel: VesselDef, artboard: Artboard) {
   const width = vessel.widthMm
-  const height = width / VESSEL_ASPECT
+  const height = width / (vessel.aspect ?? VESSEL_ASPECT)
   return {
     x: artboard.x + artboard.width / 2 - width / 2,
     y: artboard.y + artboard.height - VESSEL_BOTTOM_MARGIN_MM - height,

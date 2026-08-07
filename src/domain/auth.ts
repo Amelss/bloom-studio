@@ -63,6 +63,24 @@ export const useAuth = create<AuthState>((set, get) => ({
   init: () => {
     if (initialized) return
     initialized = true
+    // DEV-ONLY auth bypass so the canvas is reachable without a real login.
+    // Double-gated: `import.meta.env.DEV` means it is stripped from any
+    // production build, and it only activates when VITE_DEV_NO_AUTH=true is set
+    // in a local .env. NEVER set that flag in a deployed environment.
+    if (import.meta.env.DEV && import.meta.env.VITE_DEV_NO_AUTH === 'true') {
+      set({
+        user: { id: 'dev-user', email: 'dev@localhost' } as unknown as User,
+        profile: {
+          id: 'dev-user',
+          display_name: 'Dev',
+          role: 'student',
+          onboarded: true,
+        } as unknown as Profile,
+        loading: false,
+        configured: true,
+      })
+      return
+    }
     if (!supabaseConfigured) {
       set({ loading: false })
       return

@@ -12,7 +12,10 @@
     "test:watch": "vitest",
     "lint": "eslint .",
     "assets:fetch": "node scripts/pexels-assets.mjs fetch",
-    "assets:process": "node scripts/pexels-assets.mjs process"
+    "assets:process": "node scripts/pexels-assets.mjs process",
+    "registry:seed": "vite-node scripts/seed-registry.ts",
+    "assets:manifest": "node scripts/generate-manifest.mjs",
+    "assets:catalog": "node scripts/generate-catalog.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.8",

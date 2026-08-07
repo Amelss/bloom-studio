@@ -1,149 +1,146 @@
 [
   {
-    "file": "delphinium-blue-0.png",
-    "source": "supplied-3d-render",
-    "incoming": "01.jpg",
-    "note": "externally created production asset",
-    "imported": "2026-07-13"
-  },
-  {
-    "file": "garden-rose-burgundy-0.png",
-    "source": "supplied-3d-render",
-    "incoming": "02.jpg",
-    "note": "externally created production asset",
-    "imported": "2026-07-13"
-  },
-  {
-    "file": "garden-rose-blush-0.png",
-    "source": "supplied-3d-render",
-    "incoming": "02.jpg",
-    "note": "derived colourway — programmatic bloom recolour of the supplied asset",
-    "imported": "2026-07-13"
-  },
-  {
-    "file": "garden-rose-coral-0.png",
-    "source": "supplied-3d-render",
-    "incoming": "02.jpg",
-    "note": "derived colourway — programmatic bloom recolour of the supplied asset",
-    "imported": "2026-07-13"
-  },
-  {
     "file": "astilbe-pink-0.png",
-    "source": "supplied-3d-render",
-    "incoming": "03.jpg",
-    "note": "externally created production asset",
-    "imported": "2026-07-13"
-  },
-  {
-    "file": "dahlia-burgundy-0.png",
-    "source": "supplied-3d-render",
-    "incoming": "04.jpg",
-    "note": "externally created production asset",
-    "imported": "2026-07-13"
-  },
-  {
-    "file": "eucalyptus-silver-0.png",
-    "source": "supplied-3d-render",
-    "incoming": "05.jpg",
-    "note": "externally created production asset",
-    "imported": "2026-07-13"
-  },
-  {
-    "file": "leatherleaf-green-0.png",
-    "source": "supplied-3d-render",
-    "incoming": "06.jpg",
-    "note": "externally created production asset",
-    "imported": "2026-07-13"
-  },
-  {
-    "file": "gerbera-coral-0.png",
-    "source": "supplied-3d-render",
-    "incoming": "07.jpg",
-    "note": "externally created production asset",
-    "imported": "2026-07-13"
-  },
-  {
-    "file": "gypsophila-white-0.png",
-    "source": "supplied-3d-render",
-    "incoming": "08.jpg",
-    "note": "externally created production asset",
-    "imported": "2026-07-13"
-  },
-  {
-    "file": "hydrangea-dusty-blue-0.png",
-    "source": "supplied-3d-render",
-    "incoming": "09.jpg",
-    "note": "externally created production asset",
-    "imported": "2026-07-13"
-  },
-  {
-    "file": "ruscus-green-0.png",
-    "source": "supplied-3d-render",
-    "incoming": "10.jpg",
-    "note": "externally created production asset",
-    "imported": "2026-07-13"
-  },
-  {
-    "file": "lily-white-0.png",
-    "source": "supplied-3d-render",
-    "incoming": "11.jpg",
-    "note": "externally created production asset",
-    "imported": "2026-07-13"
-  },
-  {
-    "file": "lisianthus-lilac-0.png",
-    "source": "supplied-3d-render",
-    "incoming": "12.jpg",
-    "note": "externally created production asset",
-    "imported": "2026-07-13"
+    "source": "externally created production asset",
+    "license": null,
+    "note": null
   },
   {
     "file": "carnation-dusty-pink-0.png",
-    "source": "supplied-3d-render",
-    "incoming": "13.jpg",
-    "note": "externally created production asset",
-    "imported": "2026-07-13"
+    "source": "externally created production asset",
+    "license": null,
+    "note": null
+  },
+  {
+    "file": "dahlia-burgundy-0.png",
+    "source": "externally created production asset",
+    "license": null,
+    "note": null
+  },
+  {
+    "file": "delphinium-blue-0.png",
+    "source": "externally created production asset",
+    "license": null,
+    "note": null
+  },
+  {
+    "file": "eucalyptus-silver-0.png",
+    "source": "externally created production asset",
+    "license": null,
+    "note": null
+  },
+  {
+    "file": "garden-rose-burgundy-0.png",
+    "source": "externally created production asset",
+    "license": null,
+    "note": null
+  },
+  {
+    "file": "gerbera-coral-0.png",
+    "source": "externally created production asset",
+    "license": null,
+    "note": null
+  },
+  {
+    "file": "gypsophila-white-0.png",
+    "source": "externally created production asset",
+    "license": null,
+    "note": null
+  },
+  {
+    "file": "hydrangea-dusty-blue-0.png",
+    "source": "externally created production asset",
+    "license": null,
+    "note": null
+  },
+  {
+    "file": "hydrangea-pink-0.png",
+    "source": "externally created production asset",
+    "license": null,
+    "note": null
+  },
+  {
+    "file": "hydrangea-purple-0.png",
+    "source": "externally created production asset",
+    "license": null,
+    "note": null
+  },
+  {
+    "file": "hydrangea-white-0.png",
+    "source": "externally created production asset",
+    "license": null,
+    "note": null
+  },
+  {
+    "file": "leatherleaf-green-0.png",
+    "source": "externally created production asset",
+    "license": null,
+    "note": null
+  },
+  {
+    "file": "lily-orange-0.png",
+    "source": "externally created production asset",
+    "license": null,
+    "note": null
+  },
+  {
+    "file": "lily-pink-0.png",
+    "source": "externally created production asset",
+    "license": null,
+    "note": null
+  },
+  {
+    "file": "lily-white-0.png",
+    "source": "externally created production asset",
+    "license": null,
+    "note": null
+  },
+  {
+    "file": "lily-yellow-0.png",
+    "source": "externally created production asset",
+    "license": null,
+    "note": null
+  },
+  {
+    "file": "lisianthus-lilac-0.png",
+    "source": "externally created production asset",
+    "license": null,
+    "note": null
   },
   {
     "file": "peony-pink-0.png",
-    "source": "supplied-3d-render",
-    "incoming": "14.jpg",
-    "note": "externally created production asset",
-    "imported": "2026-07-13"
+    "source": "externally created production asset",
+    "license": null,
+    "note": null
   },
   {
     "file": "ranunculus-pink-0.png",
-    "source": "supplied-3d-render",
-    "incoming": "15.jpg",
-    "note": "externally created production asset",
-    "imported": "2026-07-13"
+    "source": "externally created production asset",
+    "license": null,
+    "note": null
+  },
+  {
+    "file": "ruscus-green-0.png",
+    "source": "externally created production asset",
+    "license": null,
+    "note": null
   },
   {
     "file": "snapdragon-pink-0.png",
-    "source": "supplied-3d-render",
-    "incoming": "16.jpg",
-    "note": "externally created production asset",
-    "imported": "2026-07-13"
+    "source": "externally created production asset",
+    "license": null,
+    "note": null
   },
   {
     "file": "stock-lavender-0.png",
-    "source": "supplied-3d-render",
-    "incoming": "17.jpg",
-    "note": "externally created production asset",
-    "imported": "2026-07-13"
+    "source": "externally created production asset",
+    "license": null,
+    "note": null
   },
   {
     "file": "sunflower-yellow-0.png",
-    "source": "supplied-3d-render",
-    "incoming": "18.jpg",
-    "note": "externally created production asset",
-    "imported": "2026-07-13"
-  },
-  {
-    "file": "sunflower-yellow-1.png",
-    "source": "supplied-3d-render",
-    "incoming": "19.jpg",
-    "note": "externally created production asset",
-    "imported": "2026-07-13"
+    "source": "externally created production asset",
+    "license": null,
+    "note": null
   }
 ]

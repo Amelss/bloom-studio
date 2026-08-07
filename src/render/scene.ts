@@ -1,4 +1,4 @@
-import { Application, Container, Graphics, RenderTexture, Sprite } from 'pixi.js'
+import { Application, Container, Graphics, RenderTexture, Sprite, Texture } from 'pixi.js'
 import {
   DEPTH_BANDS,
   bandRank,
@@ -22,6 +22,7 @@ import type { GuideLine } from './smartGuides'
 import {
   getStemTexture,
   getVesselTexture,
+  getVesselPhotoTexture,
   hitTestAlpha,
   setOnTextureReady,
   variantForStem,
@@ -547,14 +548,33 @@ export class SceneManager {
     this.vesselFront.removeChildren()
     const vessel = doc.vesselId ? VESSEL_INDEX[doc.vesselId] : null
     if (!vessel) return
-    const texture = getVesselTexture(vessel.sketch)
-    if (!texture) return
     const rect = vesselRect(vessel, artboard)
-    const sprite = new Sprite(texture)
-    sprite.position.set(rect.x, rect.y)
-    sprite.width = rect.width
-    sprite.height = rect.height
-    ;(vessel.renderMode === 'front' ? this.vesselFront : this.vesselBehind).addChild(sprite)
+    const place = (texture: Texture, container: Container) => {
+      const sprite = new Sprite(texture)
+      sprite.position.set(rect.x, rect.y)
+      sprite.width = rect.width
+      sprite.height = rect.height
+      container.addChild(sprite)
+    }
+
+    // Two-layer photographic wrap: back behind the stems, front over them, so
+    // the bouquet nestles inside the wrap. Both layers share the vessel rect.
+    if (vessel.photoBack || vessel.photoFront) {
+      const aspect = rect.width / rect.height
+      if (vessel.photoBack) {
+        const back = getVesselPhotoTexture(vessel.photoBack, aspect)
+        if (back) place(back, this.vesselBehind)
+      }
+      if (vessel.photoFront) {
+        const front = getVesselPhotoTexture(vessel.photoFront, aspect)
+        if (front) place(front, this.vesselFront)
+      }
+      return
+    }
+
+    const texture = getVesselTexture(vessel)
+    if (!texture) return
+    place(texture, vessel.renderMode === 'front' ? this.vesselFront : this.vesselBehind)
   }
 
   /** Grid, guides, balance, and selection depend on zoom for line weight. */

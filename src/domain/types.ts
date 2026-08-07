@@ -110,8 +110,20 @@ export interface VesselDef {
   priceGBP: number
   /** Key into the vessel artwork registry (assets/vessels.ts). */
   sketch: string
-  /** Real width, mm. Height derives from the artwork's 1.3 aspect ratio. */
+  /** Optional single-layer photographic vessel (a public/ path); preferred over
+   *  `sketch`, which then acts as the offline/broken-image fallback. */
+  photo?: string
+  /** Two-layer photographic vessel: `photoBack` renders BEHIND the stems and
+   *  `photoFront` IN FRONT of them, so flowers nestle *inside* the wrap rather
+   *  than sitting on top of it. Both share the vessel rect. Takes precedence
+   *  over `photo`/`sketch` when set. */
+  photoBack?: string
+  photoFront?: string
+  /** Real width, mm. Height = widthMm / (aspect ?? VESSEL_ASPECT). */
   widthMm: number
+  /** Artwork width:height. Omitted → the default VESSEL_ASPECT (1.3); a photo
+   *  vessel sets its own so it isn't stretched into the sketch's box. */
+  aspect?: number
   mechanics: string
   /** 'behind' = stems render in front (vases); 'front' = vessel overlaps stem bases (wraps). */
   renderMode: 'behind' | 'front'

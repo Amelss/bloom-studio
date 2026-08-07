@@ -2,26 +2,19 @@
   "version": 1,
   "assets": [
     {
-      "varietyId": "delphinium",
-      "colorwayId": "blue",
-      "variant": 0,
-      "src": "/flowers/delphinium-blue-0.png",
-      "thumb": "/flowers/delphinium-blue-0-thumb.png"
-    },
-    {
-      "varietyId": "garden-rose",
-      "colorwayId": "burgundy",
-      "variant": 0,
-      "src": "/flowers/garden-rose-burgundy-0.png",
-      "thumb": "/flowers/garden-rose-burgundy-0-thumb.png",
-      "recolorable": true
-    },
-    {
       "varietyId": "astilbe",
       "colorwayId": "pink",
       "variant": 0,
       "src": "/flowers/astilbe-pink-0.png",
       "thumb": "/flowers/astilbe-pink-0-thumb.png"
+    },
+    {
+      "varietyId": "carnation",
+      "colorwayId": "dusty-pink",
+      "variant": 0,
+      "src": "/flowers/carnation-dusty-pink-0.png",
+      "thumb": "/flowers/carnation-dusty-pink-0-thumb.png",
+      "recolorable": true
     },
     {
       "varietyId": "dahlia",
@@ -32,6 +25,13 @@
       "recolorable": true
     },
     {
+      "varietyId": "delphinium",
+      "colorwayId": "blue",
+      "variant": 0,
+      "src": "/flowers/delphinium-blue-0.png",
+      "thumb": "/flowers/delphinium-blue-0-thumb.png"
+    },
+    {
       "varietyId": "eucalyptus",
       "colorwayId": "silver",
       "variant": 0,
@@ -39,11 +39,12 @@
       "thumb": "/flowers/eucalyptus-silver-0-thumb.png"
     },
     {
-      "varietyId": "leatherleaf",
-      "colorwayId": "green",
+      "varietyId": "garden-rose",
+      "colorwayId": "burgundy",
       "variant": 0,
-      "src": "/flowers/leatherleaf-green-0.png",
-      "thumb": "/flowers/leatherleaf-green-0-thumb.png"
+      "src": "/flowers/garden-rose-burgundy-0.png",
+      "thumb": "/flowers/garden-rose-burgundy-0-thumb.png",
+      "recolorable": true
     },
     {
       "varietyId": "gerbera",
@@ -90,18 +91,18 @@
       "thumb": "/flowers/hydrangea-white-0-thumb.png"
     },
     {
-      "varietyId": "ruscus",
+      "varietyId": "leatherleaf",
       "colorwayId": "green",
       "variant": 0,
-      "src": "/flowers/ruscus-green-0.png",
-      "thumb": "/flowers/ruscus-green-0-thumb.png"
+      "src": "/flowers/leatherleaf-green-0.png",
+      "thumb": "/flowers/leatherleaf-green-0-thumb.png"
     },
     {
       "varietyId": "lily",
-      "colorwayId": "white",
+      "colorwayId": "orange",
       "variant": 0,
-      "src": "/flowers/lily-white-0.png",
-      "thumb": "/flowers/lily-white-0-thumb.png"
+      "src": "/flowers/lily-orange-0.png",
+      "thumb": "/flowers/lily-orange-0-thumb.png"
     },
     {
       "varietyId": "lily",
@@ -112,17 +113,17 @@
     },
     {
       "varietyId": "lily",
+      "colorwayId": "white",
+      "variant": 0,
+      "src": "/flowers/lily-white-0.png",
+      "thumb": "/flowers/lily-white-0-thumb.png"
+    },
+    {
+      "varietyId": "lily",
       "colorwayId": "yellow",
       "variant": 0,
       "src": "/flowers/lily-yellow-0.png",
       "thumb": "/flowers/lily-yellow-0-thumb.png"
-    },
-    {
-      "varietyId": "lily",
-      "colorwayId": "orange",
-      "variant": 0,
-      "src": "/flowers/lily-orange-0.png",
-      "thumb": "/flowers/lily-orange-0-thumb.png"
     },
     {
       "varietyId": "lisianthus",
@@ -130,14 +131,6 @@
       "variant": 0,
       "src": "/flowers/lisianthus-lilac-0.png",
       "thumb": "/flowers/lisianthus-lilac-0-thumb.png"
-    },
-    {
-      "varietyId": "carnation",
-      "colorwayId": "dusty-pink",
-      "variant": 0,
-      "src": "/flowers/carnation-dusty-pink-0.png",
-      "thumb": "/flowers/carnation-dusty-pink-0-thumb.png",
-      "recolorable": true
     },
     {
       "varietyId": "peony",
@@ -154,6 +147,13 @@
       "src": "/flowers/ranunculus-pink-0.png",
       "thumb": "/flowers/ranunculus-pink-0-thumb.png",
       "recolorable": true
+    },
+    {
+      "varietyId": "ruscus",
+      "colorwayId": "green",
+      "variant": 0,
+      "src": "/flowers/ruscus-green-0.png",
+      "thumb": "/flowers/ruscus-green-0-thumb.png"
     },
     {
       "varietyId": "snapdragon",
