@@ -271,6 +271,98 @@ export function analyzeDesign(doc: DesignDocument): Insight[] {
     }
   }
 
+  // --- Repetition-based principles: contrast (form/scale), rhythm
+  // (repetition + line), harmony (cohesion). Computed from variety tallies and
+  // visual sizes, gated on enough stems that the reading is meaningful. ---
+  const varietyTally = new Map<string, number>()
+  for (const s of stems) varietyTally.set(s.varietyId, (varietyTally.get(s.varietyId) ?? 0) + 1)
+  const varietyCount = varietyTally.size
+  const repeatedVarieties = [...varietyTally.values()].filter((n) => n >= 3).length
+  const distinctForms = Object.keys(byCategory).length
+  const sizes = stems
+    .map((s) => (FLOWER_INDEX[s.varietyId]?.widthMm ?? 100) * s.scale)
+    .filter((n) => n > 0)
+  const sizeRatio = sizes.length ? Math.max(...sizes) / Math.min(...sizes) : 1
+
+  // Contrast — difference in form and scale, kept subordinate to harmony.
+  if (stems.length >= 6) {
+    if (distinctForms <= 2) {
+      insights.push({
+        id: 'contrast-narrow',
+        principleId: 'contrast',
+        tone: 'tip',
+        title: 'Add a note of contrast',
+        body: 'You are working with a narrow range of forms. Contrast a spike against a sphere, or feathery texture against a waxy petal — one clear contrast, kept to under about a quarter of the design, stops harmony becoming wallpaper.',
+      })
+    } else if (sizeRatio < 1.4) {
+      insights.push({
+        id: 'contrast-scale',
+        principleId: 'contrast',
+        tone: 'tip',
+        title: 'Vary the scale',
+        body: 'Your blooms are all a similar size, so nothing leads. Contrast a large focal against smaller filler or buds to build a visual hierarchy.',
+      })
+    } else {
+      insights.push({
+        id: 'contrast-good',
+        principleId: 'contrast',
+        tone: 'positive',
+        title: 'Good contrast of form',
+        body: 'A range of flower forms and scales gives the eye texture to read while the design stays cohesive.',
+      })
+    }
+  }
+
+  // Rhythm — repetition and line material lead the eye.
+  if (stems.length >= 8) {
+    if (repeatedVarieties === 0) {
+      insights.push({
+        id: 'rhythm-none',
+        principleId: 'rhythm',
+        tone: 'tip',
+        title: 'Nothing repeats yet',
+        body: 'Every stem is a one-off, so the eye has no rhythm to follow. Repeat a key flower or your focal colour at least three times, at different heights and depths, to trace a path through the design.',
+      })
+    } else if ((byCategory.line ?? 0) === 0) {
+      insights.push({
+        id: 'rhythm-no-line',
+        principleId: 'rhythm',
+        tone: 'tip',
+        title: 'Add line material for movement',
+        body: 'Line flowers (delphinium, snapdragon, arching ruscus) set the paths the eye follows. A few will introduce movement and stop the design feeling static.',
+      })
+    } else {
+      insights.push({
+        id: 'rhythm-good',
+        principleId: 'rhythm',
+        tone: 'positive',
+        title: 'Rhythm and movement',
+        body: 'Repeated materials and line work carry the eye through the design rather than letting it sit still.',
+      })
+    }
+  }
+
+  // Harmony & unity — does it read as one composition or a collection?
+  if (stems.length >= 8) {
+    if (varietyCount / stems.length > 0.6) {
+      insights.push({
+        id: 'harmony-collection',
+        principleId: 'harmony',
+        tone: 'watch',
+        title: 'Reads as a collection, not a composition',
+        body: `${varietyCount} varieties across ${stems.length} stems means little repeats — the design reads as a set of nice stems rather than one idea. Repeat materials and tighten the palette so the parts belong together.`,
+      })
+    } else {
+      insights.push({
+        id: 'harmony-unified',
+        principleId: 'harmony',
+        tone: 'positive',
+        title: 'Unified',
+        body: 'Materials and colours repeat and agree — the design reads as one composition, not a collection of stems.',
+      })
+    }
+  }
+
   return insights
 }
 

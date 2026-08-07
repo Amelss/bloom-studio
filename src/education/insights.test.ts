@@ -167,4 +167,31 @@ describe('analyzeDesign', () => {
     expect(insightIds).toContain('depth-good')
     expect(insightIds).not.toContain('no-foliage')
   })
+
+  it('flags narrow contrast and unified repetition for a single-variety mass', () => {
+    const roses = docWith(
+      Array.from({ length: 8 }, () => ({ varietyId: 'garden-rose', colorwayId: 'blush' })),
+    )
+    const insightIds = ids(roses)
+    expect(insightIds).toContain('contrast-narrow') // one form only
+    expect(insightIds).toContain('rhythm-no-line') // repeats, but no line material
+    expect(insightIds).toContain('harmony-unified') // little variety → cohesive
+  })
+
+  it('flags no rhythm and a "collection" when every stem is a different variety', () => {
+    const scattered = docWith([
+      { varietyId: 'garden-rose', colorwayId: 'blush' },
+      { varietyId: 'peony', colorwayId: 'pink' },
+      { varietyId: 'delphinium', colorwayId: 'blue' },
+      { varietyId: 'gypsophila', colorwayId: 'white' },
+      { varietyId: 'eucalyptus', colorwayId: 'silver' },
+      { varietyId: 'snapdragon', colorwayId: 'pink' },
+      { varietyId: 'lisianthus', colorwayId: 'lilac' },
+      { varietyId: 'carnation', colorwayId: 'dusty-pink' },
+    ])
+    const insightIds = ids(scattered)
+    expect(insightIds).toContain('rhythm-none') // nothing repeats 3+
+    expect(insightIds).toContain('harmony-collection') // variety ratio > 0.6
+    expect(insightIds).toContain('contrast-good') // varied forms and scale
+  })
 })
