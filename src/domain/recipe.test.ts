@@ -43,9 +43,10 @@ describe('buildRecipe', () => {
 
   it('costs seasonal flowers with wastage, markup and labour', () => {
     const doc = docWith([
-      { varietyId: 'garden-rose', colorwayId: 'blush' }, // £2.80, year-round
-      { varietyId: 'eucalyptus', colorwayId: 'silver' }, // £1.10, year-round
+      { varietyId: 'garden-rose', colorwayId: 'blush' }, // £2.80
+      { varietyId: 'eucalyptus', colorwayId: 'silver' }, // £1.10
     ])
+    doc.pricing.month = 6 // July — both at their in-season 1.0 index
     const recipe = buildRecipe(doc)
     expect(recipe.flowerCost).toBeCloseTo(3.9)
     expect(recipe.wastage).toBeCloseTo(0.39) // 10% conditioning allowance
@@ -60,9 +61,9 @@ describe('buildRecipe', () => {
     expect(buildRecipe(summer).lines[0].unitPrice).toBeCloseTo(2.4)
 
     const winter = docWith([{ varietyId: 'delphinium', colorwayId: 'blue' }])
-    winter.pricing.month = 0 // January — out of season
+    winter.pricing.month = 0 // January — out of season (index 1.8)
     const line = buildRecipe(winter).lines[0]
-    expect(line.unitPrice).toBeCloseTo(6) // £2.40 × 2.5
+    expect(line.unitPrice).toBeCloseTo(4.32) // £2.40 × 1.8
     expect(line.outOfSeason).toBe(true)
   })
 
@@ -85,6 +86,7 @@ describe('buildRecipe', () => {
 
   it('adds the vessel at the hard-goods markup, not the flower markup', () => {
     const doc = docWith([{ varietyId: 'garden-rose', colorwayId: 'blush' }], { vesselId: 'compote' })
+    doc.pricing.month = 6 // July — garden rose at its 1.0 index
     const recipe = buildRecipe(doc)
     expect(recipe.vessel?.name).toBe('Footed Compote Bowl')
     expect(recipe.materialCost).toBeCloseTo(2.8 + 8) // raw cost of goods

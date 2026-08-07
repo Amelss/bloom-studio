@@ -1,5 +1,6 @@
-import type { DesignDocument, Season } from './types'
+import type { DesignDocument } from './types'
 import { FLOWER_INDEX, VESSEL_INDEX, getColorway } from '../data/catalog'
+import { seasonalMultiplier } from './seasonalPricing'
 
 /**
  * The recipe is derived, never entered: because the design is structured data
@@ -20,31 +21,6 @@ export const PRICING_DEFAULTS = {
 } as const
 
 const round2 = (n: number) => Math.round(n * 100) / 100
-
-/** Northern-hemisphere season for a month (0 = Jan). */
-const SEASON_ORDER: Season[] = ['spring', 'summer', 'autumn', 'winter']
-export function monthToSeason(month: number): Season {
-  const m = ((month % 12) + 12) % 12
-  if (m >= 2 && m <= 4) return 'spring'
-  if (m >= 5 && m <= 7) return 'summer'
-  if (m >= 8 && m <= 10) return 'autumn'
-  return 'winter'
-}
-
-/**
- * Seasonal price multiplier on a variety's in-season guide price: 1× in season,
- * 1.6× in the shoulder (an adjacent season), 2.5× out of season. Year-round
- * varieties never move. A coarse but honest teaching model of the single
- * biggest driver of flower cost.
- */
-export function seasonMultiplier(seasons: Season[], month: number): number {
-  if (seasons.includes('year-round')) return 1
-  const now = monthToSeason(month)
-  if (seasons.includes(now)) return 1
-  const i = SEASON_ORDER.indexOf(now)
-  const adjacent = [SEASON_ORDER[(i + 1) % 4], SEASON_ORDER[(i + 3) % 4]]
-  return seasons.some((s) => adjacent.includes(s)) ? 1.6 : 2.5
-}
 
 export interface RecipeLine {
   key: string
@@ -107,8 +83,8 @@ export function buildRecipe(doc: DesignDocument): Recipe {
     const key = `${stem.varietyId}:${colorway?.id ?? 'default'}`
     const override = p.priceOverrides[stem.varietyId]
     // A price the florist actually paid overrides everything; otherwise the
-    // in-season guide price lifted by the seasonal multiplier for this month.
-    const mult = seasonMultiplier(variety.seasons, month)
+    // in-season guide price lifted by the real monthly seasonal index.
+    const mult = seasonalMultiplier(stem.varietyId, variety.seasons, month)
     const unitPrice = override ?? round2(variety.guidePriceGBP * mult)
 
     const line = grouped.get(key)
