@@ -2,11 +2,14 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { blankDocument, starterTemplate } from '../domain/templates'
 import { createDesign, deleteDesign, listDesigns, renameDesign } from '../lib/designsApi'
+import { listInbox } from '../lib/shareApi'
 import { clearLegacyDesign, readLegacyDesign } from '../lib/legacyDesign'
 import { UserMenu } from '../components/auth/UserMenu'
 import { useAuth } from '../domain/auth'
-import type { DesignListItem } from '../lib/types'
+import type { DesignListItem, FeedbackInboxItem } from '../lib/types'
 import type { DesignDocument } from '../domain/types'
+
+const INBOX_SEEN_KEY = 'bloom-inbox-seen'
 
 /** Time-of-day greeting for the hero. */
 function greeting(): string {
@@ -74,6 +77,8 @@ export default function Dashboard() {
   const [creating, setCreating] = useState(false)
   const [query, setQuery] = useState('')
   const [legacy, setLegacy] = useState<DesignDocument | null>(() => readLegacyDesign())
+  const [inbox, setInbox] = useState<FeedbackInboxItem[] | null>(null)
+  const [seenAt, setSeenAt] = useState<string>(() => localStorage.getItem(INBOX_SEEN_KEY) ?? '')
 
   const refresh = useCallback(async () => {
     try {
@@ -88,10 +93,27 @@ export default function Dashboard() {
     listDesigns()
       .then((d) => active && setDesigns(d))
       .catch((e) => active && setError(e instanceof Error ? e.message : 'Could not load your designs.'))
+    // The responses inbox is best-effort — a failure here never blocks designs.
+    listInbox()
+      .then((f) => active && setInbox(f))
+      .catch(() => {})
     return () => {
       active = false
     }
   }, [])
+
+  const unreadCount = useMemo(
+    () => (inbox ?? []).filter((f) => f.created_at > seenAt).length,
+    [inbox, seenAt],
+  )
+
+  /** Mark everything currently in the inbox as seen (clears the badge). */
+  const markInboxSeen = useCallback(() => {
+    const newest = inbox?.[0]?.created_at
+    if (!newest || newest === seenAt) return
+    localStorage.setItem(INBOX_SEEN_KEY, newest)
+    setSeenAt(newest)
+  }, [inbox, seenAt])
 
   const create = async (build: () => DesignDocument) => {
     setCreating(true)
@@ -167,6 +189,16 @@ export default function Dashboard() {
           <NavItem href="#recent" icon={<path d="M12 8v4l3 2M12 4a8 8 0 100 16 8 8 0 000-16z" />}>
             Recent
           </NavItem>
+          {inbox && inbox.length > 0 && (
+            <NavItem
+              href="#responses"
+              onClick={markInboxSeen}
+              badge={unreadCount}
+              icon={<path d="M4 5h16v11H8l-4 4V5z" />}
+            >
+              Responses
+            </NavItem>
+          )}
         </nav>
 
         <div className="mt-auto border-t border-bloom-200 pt-3">
@@ -244,6 +276,46 @@ export default function Dashboard() {
                 </button>
               </div>
             </div>
+          )}
+
+          {/* Client responses — surfaced above the fold when any exist */}
+          {inbox && inbox.length > 0 && (
+            <section id="responses" className="mb-10 scroll-mt-20">
+              <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
+                <h2 className="font-display text-xl font-semibold text-bloom-ink">
+                  Client responses
+                  {unreadCount > 0 && (
+                    <span className="ml-2 align-middle text-xs font-semibold text-bloom-600">
+                      {unreadCount} new
+                    </span>
+                  )}
+                </h2>
+                <div className="flex items-center gap-3 text-sm text-bloom-ink/45">
+                  <span>
+                    {inbox.filter((f) => f.verdict === 'approved').length} approved ·{' '}
+                    {inbox.filter((f) => f.verdict === 'changes_requested').length} to revisit
+                  </span>
+                  {unreadCount > 0 && (
+                    <button
+                      onClick={markInboxSeen}
+                      className="font-medium text-bloom-700 hover:underline"
+                    >
+                      Mark all read
+                    </button>
+                  )}
+                </div>
+              </div>
+              <ul className="space-y-3">
+                {inbox.map((f) => (
+                  <FeedbackRow
+                    key={f.id}
+                    item={f}
+                    unread={!!f.created_at && f.created_at > seenAt}
+                    onOpen={() => f.design && navigate(`/design/${f.design.id}`)}
+                  />
+                ))}
+              </ul>
+            </section>
           )}
 
           {/* Quick-start row */}
@@ -341,11 +413,15 @@ function NavItem({
   icon,
   active,
   href,
+  onClick,
+  badge,
 }: {
   children: React.ReactNode
   icon: React.ReactNode
   active?: boolean
   href?: string
+  onClick?: () => void
+  badge?: number
 }) {
   const cls = `flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors ${
     active
@@ -357,17 +433,79 @@ function NavItem({
       <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
         {icon}
       </svg>
-      {children}
+      <span className="flex-1">{children}</span>
+      {badge != null && badge > 0 && (
+        <span className="flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-bloom-600 px-1.5 text-[11px] font-semibold text-white">
+          {badge}
+        </span>
+      )}
     </>
   )
   return href ? (
-    <a href={href} className={cls}>
+    <a href={href} className={cls} onClick={onClick}>
       {inner}
     </a>
   ) : (
     <span className={cls} aria-current={active ? 'page' : undefined}>
       {inner}
     </span>
+  )
+}
+
+function FeedbackRow({
+  item,
+  unread,
+  onOpen,
+}: {
+  item: FeedbackInboxItem
+  unread: boolean
+  onOpen: () => void
+}) {
+  const approved = item.verdict === 'approved'
+  const when = new Date(item.created_at).toLocaleDateString(undefined, {
+    day: 'numeric',
+    month: 'short',
+  })
+  return (
+    <li
+      className={`flex gap-3 rounded-xl border bg-white p-3 transition hover:border-bloom-500/50 ${
+        unread ? 'border-bloom-500/40 ring-1 ring-bloom-500/15' : 'border-bloom-200'
+      }`}
+    >
+      <button
+        onClick={onOpen}
+        className="h-16 w-20 shrink-0 overflow-hidden rounded-lg bg-bloom-100"
+        aria-label={item.design ? `Open ${item.design.name}` : 'Open design'}
+      >
+        {item.design?.thumbnail_url ? (
+          <img src={item.design.thumbnail_url} alt="" className="h-full w-full object-cover" />
+        ) : (
+          <span className="flex h-full w-full items-center justify-center text-xl text-bloom-ink/20">❧</span>
+        )}
+      </button>
+
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <span
+            className={`chip ${approved ? 'bg-bloom-100 text-bloom-700' : 'bg-orange-50 text-bloom-clay'}`}
+          >
+            {approved ? 'Approved' : 'Changes requested'}
+          </span>
+          {unread && <span className="h-2 w-2 rounded-full bg-bloom-600" aria-label="New" />}
+          <button
+            onClick={onOpen}
+            className="min-w-0 truncate text-sm font-medium text-bloom-ink hover:underline"
+          >
+            {item.design?.name ?? 'Untitled design'}
+          </button>
+          <span className="ml-auto shrink-0 text-xs text-bloom-ink/40">{when}</span>
+        </div>
+        {item.note && <p className="mt-1 text-sm text-bloom-ink/75">{item.note}</p>}
+        {item.reviewer_name && (
+          <p className="mt-0.5 text-xs text-bloom-ink/45">— {item.reviewer_name}</p>
+        )}
+      </div>
+    </li>
   )
 }
 

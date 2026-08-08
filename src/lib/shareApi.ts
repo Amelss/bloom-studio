@@ -1,6 +1,6 @@
 import { supabase } from './supabase'
 import type { DesignDocument } from '../domain/types'
-import type { DesignFeedback, FeedbackVerdict, SharedDesign } from './types'
+import type { DesignFeedback, FeedbackInboxItem, FeedbackVerdict, SharedDesign } from './types'
 
 /**
  * Read-only share links. Publishing a design writes an unguessable `share_id`
@@ -87,6 +87,20 @@ export async function listFeedback(designId: string): Promise<DesignFeedback[]> 
     .order('created_at', { ascending: false })
   if (error) throw error
   return (data ?? []) as DesignFeedback[]
+}
+
+/**
+ * Owner-side responses inbox: every client response across all of my designs,
+ * joined with the design it belongs to, newest first. Row-level security scopes
+ * both the feedback and the embedded design to designs I own.
+ */
+export async function listInbox(): Promise<FeedbackInboxItem[]> {
+  const { data, error } = await supabase
+    .from('design_feedback')
+    .select('*, design:designs(id, name, thumbnail_url)')
+    .order('created_at', { ascending: false })
+  if (error) throw error
+  return (data ?? []) as FeedbackInboxItem[]
 }
 
 /** Build the absolute share URL for a token. */

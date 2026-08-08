@@ -61,16 +61,16 @@ function SharedView({ token, design }: { token: string; design: SharedDesignRow 
 
   return (
     <div className="min-h-full bg-bloom-100/40">
-      <header className="border-b border-bloom-200 bg-white/80 px-5 py-3">
+      <header className="sticky top-0 z-10 border-b border-bloom-200 bg-white/90 px-4 py-3 backdrop-blur sm:px-5">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-3">
           <span className="font-display text-lg font-semibold text-bloom-700">Florafo</span>
           <span className="chip bg-bloom-100 text-bloom-700">Shared design</span>
         </div>
       </header>
 
-      <main className="mx-auto grid max-w-5xl gap-5 px-5 py-6 lg:grid-cols-[1.4fr_1fr]">
-        <section aria-label="Design preview" className="flex flex-col">
-          <h1 className="font-display text-xl font-semibold text-bloom-ink">{design.name}</h1>
+      <main className="mx-auto grid max-w-5xl gap-4 px-4 py-5 sm:gap-5 sm:px-5 sm:py-6 lg:grid-cols-[1.4fr_1fr]">
+        <section aria-label="Design preview" className="flex min-w-0 flex-col">
+          <h1 className="font-display text-lg font-semibold text-bloom-ink sm:text-xl">{design.name}</h1>
           <p className="mt-0.5 text-xs text-bloom-ink/50">
             Updated {new Date(design.updated_at).toLocaleDateString()}
           </p>
@@ -79,7 +79,7 @@ function SharedView({ token, design }: { token: string; design: SharedDesignRow 
           </div>
         </section>
 
-        <div className="flex flex-col gap-5">
+        <div className="flex min-w-0 flex-col gap-4 sm:gap-5">
           <QuoteCard recipe={recipe} />
           <FeedbackForm token={token} />
         </div>
@@ -112,7 +112,7 @@ function QuoteCard({ recipe }: { recipe: ReturnType<typeof buildRecipe> }) {
         )}
       </ul>
       <div className="mt-3 flex items-baseline justify-between border-t border-bloom-200 pt-3">
-        <span className="text-sm font-medium text-bloom-ink">Suggested price</span>
+        <span className="text-sm font-medium text-bloom-ink">Total</span>
         <span className="font-display text-lg font-semibold tabular-nums text-bloom-700">
           £{recipe.suggestedRetail.toFixed(2)}
         </span>

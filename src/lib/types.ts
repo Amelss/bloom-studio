@@ -51,6 +51,11 @@ export interface DesignFeedback {
   created_at: string
 }
 
+/** A feedback row joined with its design, for the owner's responses inbox. */
+export interface FeedbackInboxItem extends DesignFeedback {
+  design: { id: string; name: string; thumbnail_url: string | null } | null
+}
+
 /** Trimmed row for the dashboard list — no heavy `doc`. */
 export interface DesignListItem {
   id: string
