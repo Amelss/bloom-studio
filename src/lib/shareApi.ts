@@ -20,35 +20,33 @@ function generateShareId(): string {
   return out
 }
 
-async function requireUserId(): Promise<string> {
-  const { data } = await supabase.auth.getUser()
-  const id = data.user?.id
-  if (!id) throw new Error('You are not signed in.')
-  return id
-}
-
 /**
  * Turn sharing on for a design, minting a token if one doesn't exist yet.
  * Returns the share id (existing or new). Idempotent — re-enabling keeps the
  * same link so a URL already handed out never breaks.
+ *
+ * Uses UPDATE (not upsert): the row already exists, and we're only touching the
+ * share columns. An upsert would send an INSERT-shaped payload whose NOT NULL
+ * `doc`/`doc_version` columns Postgres validates before resolving the conflict,
+ * failing the write. Row-level security scopes the update to the owner.
  */
 export async function enableShare(id: string, existing: string | null): Promise<string> {
   if (existing) return existing
-  const owner_id = await requireUserId()
   const share_id = generateShareId()
   const { error } = await supabase
     .from('designs')
-    .upsert({ id, owner_id, share_id, shared_at: new Date().toISOString() })
+    .update({ share_id, shared_at: new Date().toISOString() })
+    .eq('id', id)
   if (error) throw error
   return share_id
 }
 
 /** Revoke the link. Any URL already handed out stops resolving immediately. */
 export async function disableShare(id: string): Promise<void> {
-  const owner_id = await requireUserId()
   const { error } = await supabase
     .from('designs')
-    .upsert({ id, owner_id, share_id: null, shared_at: null })
+    .update({ share_id: null, shared_at: null })
+    .eq('id', id)
   if (error) throw error
 }
 
