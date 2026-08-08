@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { blankDocument, starterTemplate } from '../domain/templates'
 import { createDesign, deleteDesign, listDesigns, renameDesign } from '../lib/designsApi'
-import { INBOX_SEEN_KEY, listInbox } from '../lib/shareApi'
+import { listReviewBoard } from '../lib/shareApi'
 import { clearLegacyDesign, readLegacyDesign } from '../lib/legacyDesign'
 import { AppSidebar, FlorafoGlyph, MobileTopBar } from '../components/AppSidebar'
 import { useAuth } from '../domain/auth'
@@ -90,13 +90,9 @@ export default function Dashboard() {
     listDesigns()
       .then((d) => active && setDesigns(d))
       .catch((e) => active && setError(e instanceof Error ? e.message : 'Could not load your designs.'))
-    // Unread badge for the Responses page — best-effort, never blocks designs.
-    listInbox()
-      .then((f) => {
-        if (!active) return
-        const seenAt = localStorage.getItem(INBOX_SEEN_KEY) ?? ''
-        setUnreadCount(f.filter((x) => x.created_at > seenAt).length)
-      })
+    // "New" badge for the Responses page — best-effort, never blocks designs.
+    listReviewBoard()
+      .then((b) => active && setUnreadCount(b.filter((d) => d.review_status === 'new').length))
       .catch(() => {})
     return () => {
       active = false

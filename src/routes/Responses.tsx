@@ -1,40 +1,45 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AppSidebar, MobileTopBar } from '../components/AppSidebar'
-import { INBOX_SEEN_KEY, deleteFeedback, listInbox, resolveFeedback } from '../lib/shareApi'
-import type { FeedbackInboxItem } from '../lib/types'
+import { listReviewBoard, setDesignReviewStatus } from '../lib/shareApi'
+import type { ReviewBoardItem, ReviewStatus } from '../lib/types'
 
-type Tab = 'all' | 'changes_requested' | 'approved'
+type Tab = 'new' | 'in_review' | 'approved' | 'completed'
 
 const TABS: { id: Tab; label: string }[] = [
-  { id: 'all', label: 'All' },
-  { id: 'changes_requested', label: 'Changes requested' },
+  { id: 'new', label: 'New' },
+  { id: 'in_review', label: 'In Review' },
   { id: 'approved', label: 'Approved' },
+  { id: 'completed', label: 'Completed' },
 ]
 
+/** Which tabs a board item belongs to (an approved-new design shows in two). */
+function tabsFor(item: ReviewBoardItem): Tab[] {
+  const tabs: Tab[] = []
+  const approved = item.latest?.verdict === 'approved'
+  if (item.review_status === 'new') tabs.push('new')
+  if (item.review_status === 'in_review') tabs.push('in_review')
+  if (approved && (item.review_status === 'new' || item.review_status === 'read')) tabs.push('approved')
+  if (item.review_status === 'completed') tabs.push('completed')
+  return tabs
+}
+
 /**
- * The client responses page: every approve / request-changes reply across the
- * florist's shared designs, split into All · Changes requested · Approved. A
- * design only appears under Approved once its client actually approved it. The
- * florist can mark a response done (once they've actioned the change) or delete
- * it. Reached from the sidebar; opening it clears the unread badge.
+ * The review board: designs move New → In Review → Approved → Completed. A
+ * design lands in New on any client reply; change requests go to In Review once
+ * addressed, approvals are read and then completed. Reached from the sidebar.
  */
 export default function Responses() {
   const navigate = useNavigate()
-  const [inbox, setInbox] = useState<FeedbackInboxItem[] | null>(null)
+  const [board, setBoard] = useState<ReviewBoardItem[] | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [tab, setTab] = useState<Tab>('all')
+  const [tab, setTab] = useState<Tab>('new')
   const [busy, setBusy] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     let active = true
-    listInbox()
-      .then((f) => {
-        if (!active) return
-        setInbox(f)
-        // Viewing the page clears the dashboard's unread badge.
-        if (f[0]) localStorage.setItem(INBOX_SEEN_KEY, f[0].created_at)
-      })
+    listReviewBoard()
+      .then((b) => active && setBoard(b))
       .catch((e) => active && setError(e instanceof Error ? e.message : 'Could not load responses.'))
     return () => {
       active = false
@@ -42,55 +47,37 @@ export default function Responses() {
   }, [])
 
   const counts = useMemo(() => {
-    const list = inbox ?? []
-    return {
-      all: list.length,
-      changes_requested: list.filter((f) => f.verdict === 'changes_requested').length,
-      approved: list.filter((f) => f.verdict === 'approved').length,
-    }
-  }, [inbox])
+    const c: Record<Tab, number> = { new: 0, in_review: 0, approved: 0, completed: 0 }
+    for (const item of board ?? []) for (const t of tabsFor(item)) c[t] += 1
+    return c
+  }, [board])
 
   const visible = useMemo(
-    () => (inbox ?? []).filter((f) => tab === 'all' || f.verdict === tab),
-    [inbox, tab],
+    () => (board ?? []).filter((item) => tabsFor(item).includes(tab)),
+    [board, tab],
   )
 
-  const withBusy = async (id: string, fn: () => Promise<void>) => {
-    setBusy((b) => new Set(b).add(id))
-    try {
-      await fn()
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'That didn’t work — please try again.')
-    } finally {
-      setBusy((b) => {
-        const next = new Set(b)
-        next.delete(id)
-        return next
-      })
-    }
-  }
-
-  const onResolve = (item: FeedbackInboxItem, resolved: boolean) =>
-    withBusy(item.id, async () => {
-      await resolveFeedback(item.id, resolved)
-      setInbox((cur) =>
-        (cur ?? []).map((f) =>
-          f.id === item.id ? { ...f, resolved_at: resolved ? new Date().toISOString() : null } : f,
+  const setStatus = (item: ReviewBoardItem, status: ReviewStatus) => {
+    setBusy((b) => new Set(b).add(item.id))
+    void setDesignReviewStatus(item.id, status)
+      .then(() =>
+        setBoard((cur) =>
+          (cur ?? []).map((d) => (d.id === item.id ? { ...d, review_status: status } : d)),
         ),
       )
-    })
-
-  const onDelete = (item: FeedbackInboxItem) => {
-    if (!window.confirm('Delete this response? This can’t be undone.')) return
-    void withBusy(item.id, async () => {
-      await deleteFeedback(item.id)
-      setInbox((cur) => (cur ?? []).filter((f) => f.id !== item.id))
-    })
+      .catch((e) => setError(e instanceof Error ? e.message : 'That didn’t work — please try again.'))
+      .finally(() =>
+        setBusy((b) => {
+          const next = new Set(b)
+          next.delete(item.id)
+          return next
+        }),
+      )
   }
 
   return (
     <div className="flex min-h-full bg-bloom-50 text-bloom-ink">
-      <AppSidebar active="responses" />
+      <AppSidebar active="responses" unread={counts.new} />
 
       <div className="flex min-w-0 flex-1 flex-col">
         <MobileTopBar />
@@ -100,7 +87,7 @@ export default function Responses() {
             Client responses
           </h1>
           <p className="mt-1 text-[15px] text-bloom-ink/55">
-            Approvals and change requests from the links you’ve shared.
+            Track each shared design from first reply through to completed.
           </p>
 
           {/* Tabs */}
@@ -129,32 +116,26 @@ export default function Responses() {
           )}
 
           <div className="mt-5">
-            {!inbox && !error && <ListSkeleton />}
+            {!board && !error && <ListSkeleton />}
 
-            {inbox && inbox.length === 0 && (
+            {board && board.length === 0 && (
               <EmptyState message="No responses yet. Share a design and your client’s reply will land here." />
             )}
 
-            {inbox && inbox.length > 0 && visible.length === 0 && (
-              <EmptyState
-                message={
-                  tab === 'approved'
-                    ? 'No approved designs yet.'
-                    : 'Nothing waiting on changes — nice.'
-                }
-              />
+            {board && board.length > 0 && visible.length === 0 && (
+              <EmptyState message={EMPTY_BY_TAB[tab]} />
             )}
 
             {visible.length > 0 && (
               <ul className="space-y-3">
                 {visible.map((item) => (
-                  <ResponseCard
+                  <BoardCard
                     key={item.id}
                     item={item}
+                    tab={tab}
                     busy={busy.has(item.id)}
-                    onOpen={() => item.design && navigate(`/design/${item.design.id}`)}
-                    onResolve={(resolved) => void onResolve(item, resolved)}
-                    onDelete={() => onDelete(item)}
+                    onOpen={() => navigate(`/design/${item.id}`)}
+                    onSetStatus={(status) => setStatus(item, status)}
                   />
                 ))}
               </ul>
@@ -166,40 +147,44 @@ export default function Responses() {
   )
 }
 
-function ResponseCard({
+const EMPTY_BY_TAB: Record<Tab, string> = {
+  new: 'Nothing new — you’re all caught up.',
+  in_review: 'Nothing in review right now.',
+  approved: 'No approved designs yet.',
+  completed: 'No completed designs yet.',
+}
+
+function BoardCard({
   item,
+  tab,
   busy,
   onOpen,
-  onResolve,
-  onDelete,
+  onSetStatus,
 }: {
-  item: FeedbackInboxItem
+  item: ReviewBoardItem
+  tab: Tab
   busy: boolean
   onOpen: () => void
-  onResolve: (resolved: boolean) => void
-  onDelete: () => void
+  onSetStatus: (status: ReviewStatus) => void
 }) {
-  const approved = item.verdict === 'approved'
-  const resolved = !!item.resolved_at
-  const when = new Date(item.created_at).toLocaleDateString(undefined, {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  })
+  const approved = item.latest?.verdict === 'approved'
+  const when = item.latest
+    ? new Date(item.latest.created_at).toLocaleDateString(undefined, {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      })
+    : ''
 
   return (
-    <li
-      className={`flex flex-col gap-3 rounded-xl border bg-white p-3 sm:flex-row ${
-        resolved ? 'border-bloom-200 opacity-70' : 'border-bloom-200'
-      }`}
-    >
+    <li className="flex flex-col gap-3 rounded-xl border border-bloom-200 bg-white p-3 sm:flex-row">
       <button
         onClick={onOpen}
         className="h-24 w-full shrink-0 overflow-hidden rounded-lg bg-bloom-100 sm:h-20 sm:w-28"
-        aria-label={item.design ? `Open ${item.design.name}` : 'Open design'}
+        aria-label={`Open ${item.name}`}
       >
-        {item.design?.thumbnail_url ? (
-          <img src={item.design.thumbnail_url} alt="" className="h-full w-full object-cover" />
+        {item.thumbnail_url ? (
+          <img src={item.thumbnail_url} alt="" className="h-full w-full object-cover" />
         ) : (
           <span className="flex h-full w-full items-center justify-center text-xl text-bloom-ink/20">❧</span>
         )}
@@ -207,53 +192,71 @@ function ResponseCard({
 
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
-          <span className={`chip ${approved ? 'bg-bloom-100 text-bloom-700' : 'bg-orange-50 text-bloom-clay'}`}>
-            {approved ? 'Approved' : 'Changes requested'}
-          </span>
-          {resolved && <span className="chip bg-bloom-100 text-bloom-ink/60">Done</span>}
-          <button
-            onClick={onOpen}
-            className="min-w-0 truncate text-sm font-medium text-bloom-ink hover:underline"
-          >
-            {item.design?.name ?? 'Untitled design'}
+          {item.latest && (
+            <span className={`chip ${approved ? 'bg-bloom-100 text-bloom-700' : 'bg-orange-50 text-bloom-clay'}`}>
+              {approved ? 'Approved' : 'Changes requested'}
+            </span>
+          )}
+          <button onClick={onOpen} className="min-w-0 truncate text-sm font-medium text-bloom-ink hover:underline">
+            {item.name}
           </button>
-          <span className="ml-auto shrink-0 text-xs text-bloom-ink/40">{when}</span>
+          {when && <span className="ml-auto shrink-0 text-xs text-bloom-ink/40">{when}</span>}
         </div>
 
-        {item.note && <p className="mt-1.5 text-sm text-bloom-ink/80">{item.note}</p>}
-        {item.reviewer_name && (
-          <p className="mt-0.5 text-xs text-bloom-ink/45">— {item.reviewer_name}</p>
+        {item.latest?.note && <p className="mt-1.5 text-sm text-bloom-ink/80">{item.latest.note}</p>}
+        {item.latest?.reviewer_name && (
+          <p className="mt-0.5 text-xs text-bloom-ink/45">— {item.latest.reviewer_name}</p>
         )}
 
-        <div className="mt-2.5 flex items-center gap-2">
-          {resolved ? (
-            <button
-              onClick={() => onResolve(false)}
-              disabled={busy}
-              className="rounded-lg border border-bloom-200 px-2.5 py-1 text-xs font-medium text-bloom-ink/70 transition-colors hover:bg-bloom-100 disabled:opacity-50"
-            >
-              Reopen
-            </button>
-          ) : (
-            <button
-              onClick={() => onResolve(true)}
-              disabled={busy}
-              className="rounded-lg bg-bloom-600 px-2.5 py-1 text-xs font-semibold text-white transition-colors hover:bg-bloom-700 disabled:opacity-50"
-            >
-              Done
-            </button>
-          )}
-          <button
-            onClick={onDelete}
-            disabled={busy}
-            className="rounded-lg px-2.5 py-1 text-xs font-medium text-red-700/70 transition-colors hover:bg-red-50 hover:text-red-700 disabled:opacity-50"
-          >
-            Delete
-          </button>
-        </div>
+        <CardActions item={item} tab={tab} busy={busy} onSetStatus={onSetStatus} />
       </div>
     </li>
   )
+}
+
+/** The action buttons depend on which tab the card is shown in. */
+function CardActions({
+  item,
+  tab,
+  busy,
+  onSetStatus,
+}: {
+  item: ReviewBoardItem
+  tab: Tab
+  busy: boolean
+  onSetStatus: (status: ReviewStatus) => void
+}) {
+  const primary = 'rounded-lg bg-bloom-600 px-2.5 py-1 text-xs font-semibold text-white transition-colors hover:bg-bloom-700 disabled:opacity-50'
+  const secondary = 'rounded-lg border border-bloom-200 px-2.5 py-1 text-xs font-medium text-bloom-ink/70 transition-colors hover:bg-bloom-100 disabled:opacity-50'
+
+  if (tab === 'new') {
+    const approved = item.latest?.verdict === 'approved'
+    return (
+      <div className="mt-2.5">
+        {approved ? (
+          <button onClick={() => onSetStatus('read')} disabled={busy} className={secondary}>
+            Mark as read
+          </button>
+        ) : (
+          <button onClick={() => onSetStatus('in_review')} disabled={busy} className={primary}>
+            Mark as reviewed
+          </button>
+        )}
+      </div>
+    )
+  }
+
+  if (tab === 'approved') {
+    return (
+      <div className="mt-2.5">
+        <button onClick={() => onSetStatus('completed')} disabled={busy} className={primary}>
+          Completed
+        </button>
+      </div>
+    )
+  }
+
+  return null
 }
 
 function ListSkeleton() {

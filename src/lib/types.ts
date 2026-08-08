@@ -53,9 +53,21 @@ export interface DesignFeedback {
   resolved_at: string | null
 }
 
-/** A feedback row joined with its design, for the owner's responses inbox. */
-export interface FeedbackInboxItem extends DesignFeedback {
-  design: { id: string; name: string; thumbnail_url: string | null } | null
+/** Where a design sits in the review board. null = not on the board. */
+export type ReviewStatus = 'new' | 'in_review' | 'read' | 'completed'
+
+/** A design on the review board, with its most recent client reply (if any). */
+export interface ReviewBoardItem {
+  id: string
+  name: string
+  thumbnail_url: string | null
+  review_status: ReviewStatus
+  latest: {
+    verdict: FeedbackVerdict
+    note: string | null
+    reviewer_name: string | null
+    created_at: string
+  } | null
 }
 
 /** Trimmed row for the dashboard list — no heavy `doc`. */

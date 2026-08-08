@@ -132,11 +132,13 @@ function FeedbackForm({ token }: { token: string }) {
   const [reviewer, setReviewer] = useState('')
   const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
 
+  const nameMissing = reviewer.trim() === ''
+
   const send = async () => {
-    if (!verdict) return
+    if (!verdict || nameMissing) return
     setStatus('sending')
     try {
-      await submitFeedback(token, verdict, note, reviewer)
+      await submitFeedback(token, verdict, note, reviewer.trim())
       setStatus('sent')
     } catch {
       setStatus('error')
@@ -188,11 +190,16 @@ function FeedbackForm({ token }: { token: string }) {
         </button>
       </div>
 
+      <label className="mt-3 block text-xs font-medium text-bloom-ink/70">
+        Your name <span className="text-bloom-clay">*</span>
+      </label>
       <input
         value={reviewer}
         onChange={(e) => setReviewer(e.target.value)}
-        placeholder="Your name (optional)"
-        className="mt-3 w-full rounded-lg border border-bloom-200 px-3 py-2 text-sm focus:border-bloom-500 focus:outline-none"
+        required
+        aria-required="true"
+        placeholder="Your name"
+        className="mt-1 w-full rounded-lg border border-bloom-200 px-3 py-2 text-sm focus:border-bloom-500 focus:outline-none"
       />
       <textarea
         value={note}
@@ -211,11 +218,14 @@ function FeedbackForm({ token }: { token: string }) {
       <button
         type="button"
         onClick={send}
-        disabled={!verdict || status === 'sending'}
+        disabled={!verdict || nameMissing || status === 'sending'}
         className="mt-3 w-full rounded-lg bg-bloom-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-bloom-700 disabled:cursor-not-allowed disabled:opacity-40"
       >
         {status === 'sending' ? 'Sending…' : 'Send response'}
       </button>
+      {verdict && nameMissing && (
+        <p className="mt-2 text-center text-xs text-bloom-ink/45">Please add your name to send.</p>
+      )}
     </section>
   )
 }

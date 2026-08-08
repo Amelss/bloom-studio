@@ -1,7 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { loadDesign } from '../lib/designsApi'
-import { disableShare, enableShare, listFeedback, shareUrl } from '../lib/shareApi'
+import {
+  disableShare,
+  enableShare,
+  listFeedback,
+  setDesignReviewStatus,
+  shareUrl,
+} from '../lib/shareApi'
 import type { DesignFeedback } from '../lib/types'
 
 /**
@@ -53,6 +59,7 @@ export function ShareButton() {
   const [feedback, setFeedback] = useState<DesignFeedback[]>([])
   const [copied, setCopied] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [reviewed, setReviewed] = useState(false)
   const rootRef = useRef<HTMLDivElement>(null)
 
   // Load the current share state + feedback when the popover opens.
@@ -114,6 +121,17 @@ export function ShareButton() {
     setTimeout(() => setCopied(false), 1600)
   }
 
+  const markReviewed = async () => {
+    if (!id) return
+    setError(null)
+    try {
+      await setDesignReviewStatus(id, 'in_review')
+      setReviewed(true)
+    } catch (e) {
+      setError(friendlyError(e))
+    }
+  }
+
   return (
     <div ref={rootRef} className="relative">
       <button className="btn" onClick={() => setOpen((v) => !v)} aria-expanded={open} title="Share a read-only link">
@@ -151,17 +169,31 @@ export function ShareButton() {
           )}
 
           {shareId && (
-            <div className="mt-3 flex items-center gap-2">
-              <input
-                readOnly
-                value={shareUrl(shareId)}
-                onFocus={(e) => e.target.select()}
-                className="min-w-0 flex-1 rounded-lg border border-bloom-200 bg-bloom-100/50 px-2 py-1.5 text-xs text-bloom-ink/80"
-              />
-              <button className="btn shrink-0" onClick={copy}>
-                {copied ? 'Copied' : 'Copy'}
-              </button>
-            </div>
+            <>
+              <div className="mt-3 flex items-center gap-2">
+                <input
+                  readOnly
+                  value={shareUrl(shareId)}
+                  onFocus={(e) => e.target.select()}
+                  className="min-w-0 flex-1 rounded-lg border border-bloom-200 bg-bloom-100/50 px-2 py-1.5 text-xs text-bloom-ink/80"
+                />
+                <button className="btn shrink-0" onClick={copy}>
+                  {copied ? 'Copied' : 'Copy'}
+                </button>
+              </div>
+
+              {/* After re-sharing an updated design, move it into In Review. */}
+              <div className="mt-2 flex items-center gap-2">
+                <button
+                  onClick={() => void markReviewed()}
+                  disabled={reviewed}
+                  className="rounded-lg bg-bloom-600 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-bloom-700 disabled:opacity-50"
+                >
+                  {reviewed ? 'In review ✓' : 'Mark as reviewed'}
+                </button>
+                <span className="text-[11px] text-bloom-ink/50">Moves this design to In Review.</span>
+              </div>
+            </>
           )}
 
           <div className="mt-4 border-t border-bloom-100 pt-3">
