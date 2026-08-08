@@ -7,6 +7,7 @@ import Dashboard from './routes/Dashboard'
 import Account from './routes/Account'
 import Onboarding from './routes/Onboarding'
 import Editor from './routes/Editor'
+import SharedDesign from './routes/SharedDesign'
 
 /** Route table. Public auth screens + protected app (dashboard + editor). */
 export default function App() {
@@ -15,6 +16,8 @@ export default function App() {
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<SignUp />} />
       <Route path="/auth/callback" element={<AuthCallback />} />
+      {/* Public read-only share link — no account required. */}
+      <Route path="/s/:token" element={<SharedDesign />} />
       <Route element={<ProtectedRoute />}>
         <Route path="/welcome" element={<Onboarding />} />
         <Route path="/" element={<Dashboard />} />

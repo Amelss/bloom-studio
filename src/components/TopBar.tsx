@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { useStudio } from '../domain/store'
 import type { PaperOption } from '../domain/types'
 import { UserMenu } from './auth/UserMenu'
+import { ShareButton } from './ShareButton'
 
 const PAPERS: Array<{ id: PaperOption; label: string }> = [
   { id: 'white', label: 'White' },
@@ -96,6 +97,8 @@ export function TopBar() {
         <button className="btn" onClick={confirmNew} title="Start a new blank canvas">
           New
         </button>
+
+        <ShareButton />
 
         <span className="mx-1 h-6 w-px bg-bloom-200" aria-hidden />
         <UserMenu />

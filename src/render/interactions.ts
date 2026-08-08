@@ -2,7 +2,7 @@ import type { HandleKind, SceneManager, WorldRect } from './scene'
 import type { StudioState } from '../domain/store'
 import { snapToGrid } from './grid'
 import { findSmartSnap, type GuideLine } from './smartGuides'
-import { formSilhouette, nearestOnFormEllipse } from './formGuide'
+import { formGuideCurve, nearestOnFormCurve } from './formGuide'
 import { headDistance } from '../domain/geometry'
 import { FLOWER_INDEX } from '../data/catalog'
 import {
@@ -339,7 +339,7 @@ export function attachInteractions(
           const d = headDistance(variety, primaryStem.scale)
           const rad = (startPrimary.rotation * Math.PI) / 180
           const head = { x: nx + d * Math.sin(rad), y: ny - d * Math.cos(rad) }
-          const near = nearestOnFormEllipse(formSilhouette(artboard), head.x, head.y)
+          const near = nearestOnFormCurve(formGuideCurve(state.formGuideKind, artboard), head.x, head.y)
           if (near.distance <= FORM_SNAP_PX / scene.camera.scale) {
             const newRad = (near.radialRotationDeg * Math.PI) / 180
             nx = near.x - d * Math.sin(newRad)

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useStudio } from '../domain/store'
 import { FLOWER_CATALOG } from '../data/catalog'
 import type { GridStepMm } from '../domain/store'
+import { FORM_GUIDE_KINDS } from '../render/formGuide'
 
 /**
  * The primary tool rail — a compact vertical icon toolbar on the left, in the
@@ -241,6 +242,8 @@ export function Toolbar() {
   const setGridStepMm = useStudio((s) => s.setGridStepMm)
   const showFormGuide = useStudio((s) => s.showFormGuide)
   const setShowFormGuide = useStudio((s) => s.setShowFormGuide)
+  const formGuideKind = useStudio((s) => s.formGuideKind)
+  const setFormGuideKind = useStudio((s) => s.setFormGuideKind)
   const balanceVisible = useStudio((s) => s.balanceVisible)
   const setBalanceVisible = useStudio((s) => s.setBalanceVisible)
   const tiltEnabled = useStudio((s) => s.tiltEnabled)
@@ -410,6 +413,25 @@ export function Toolbar() {
       >
         <Flyout title="Learning overlays">
           <FlyRow label="Form guide" active={showFormGuide} onClick={() => setShowFormGuide(!showFormGuide)} />
+          {showFormGuide && (
+            <div className="mb-1 flex gap-1 px-2.5 pb-1" role="group" aria-label="Form guide shape">
+              {FORM_GUIDE_KINDS.map((k) => (
+                <button
+                  key={k.id}
+                  type="button"
+                  onClick={() => setFormGuideKind(k.id)}
+                  aria-pressed={formGuideKind === k.id}
+                  className={`flex-1 rounded-md border px-1.5 py-1 text-[11px] transition-colors ${
+                    formGuideKind === k.id
+                      ? 'border-bloom-500 bg-bloom-100 font-medium text-bloom-700'
+                      : 'border-bloom-200 text-bloom-ink/70 hover:bg-bloom-100'
+                  }`}
+                >
+                  {k.label}
+                </button>
+              ))}
+            </div>
+          )}
           <FlyRow label="Balance point" active={balanceVisible} onClick={() => setBalanceVisible(!balanceVisible)} />
           <FlyRow label="Depth tilt" active={tiltEnabled} onClick={() => setTiltEnabled(!tiltEnabled)} />
         </Flyout>

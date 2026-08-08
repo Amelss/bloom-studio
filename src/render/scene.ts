@@ -17,7 +17,7 @@ import { FLOWER_INDEX, VESSEL_INDEX } from '../data/catalog'
 import type { FlowerVariety } from '../domain/types'
 import { computeBalancePoint } from '../education/insights'
 import { Camera } from './camera'
-import { FORM_FOCAL_ZONE, formSilhouette } from './formGuide'
+import { formGuideCurve, type FormGuideKind } from './formGuide'
 import type { GuideLine } from './smartGuides'
 import {
   getStemTexture,
@@ -46,6 +46,7 @@ const TILT_TRAVEL_MM = 7
 
 export interface ScenePrefs {
   showFormGuide: boolean
+  formGuideKind: FormGuideKind
   learningMode: boolean
   gridVisible: boolean
   gridStepMm: number
@@ -101,6 +102,7 @@ export class SceneManager {
   private selectedIds: string[] = []
   private prefs: ScenePrefs = {
     showFormGuide: false,
+    formGuideKind: 'round',
     learningMode: true,
     gridVisible: false,
     gridStepMm: 10,
@@ -686,17 +688,31 @@ export class SceneManager {
     const artboard = this.artboard
     if (!artboard) return
     const px = 1 / this.camera.scale
-    const ellipse = formSilhouette(artboard)
-    dashedEllipse(g, ellipse.cx, ellipse.cy, ellipse.rx, ellipse.ry, 8, {
+    const curve = formGuideCurve(this.prefs.formGuideKind, artboard)
+
+    // The silhouette itself, as a dashed line following the sampled curve.
+    dashedPolyline(g, curve.points, curve.closed, 7, {
       color: 0x5c6b61,
       alpha: 0.55,
       width: 1.5 * px,
     })
-    dashedEllipse(g, ellipse.cx, artboard.y + FORM_FOCAL_ZONE.cy, FORM_FOCAL_ZONE.r, FORM_FOCAL_ZONE.r, 6, {
-      color: GUIDE_COLOR,
-      alpha: 0.6,
-      width: 1.5 * px,
-    })
+
+    // The round bouquet carries a focal ring; the open forms mark their binding
+    // point so the radial splay reads at a glance.
+    if (curve.focal) {
+      dashedEllipse(g, curve.focal.x, curve.focal.y, curve.focal.r, curve.focal.r, 6, {
+        color: GUIDE_COLOR,
+        alpha: 0.6,
+        width: 1.5 * px,
+      })
+    } else {
+      const r = 4 * px
+      g.moveTo(curve.pivot.x - r, curve.pivot.y)
+      g.lineTo(curve.pivot.x + r, curve.pivot.y)
+      g.moveTo(curve.pivot.x, curve.pivot.y - r)
+      g.lineTo(curve.pivot.x, curve.pivot.y + r)
+      g.stroke({ color: GUIDE_COLOR, alpha: 0.7, width: 1.5 * px })
+    }
   }
 
   /**
@@ -829,6 +845,45 @@ export class SceneManager {
     for (const p of Object.values(corners)) {
       const r = 4.5 * px
       g.rect(p.x - r, p.y - r, r * 2, r * 2).fill(0xffffff).stroke({ color: SELECTION_COLOR, width: 1.5 * px })
+    }
+  }
+}
+
+/** Dash a sampled polyline by arc length, optionally closing it. */
+function dashedPolyline(
+  g: Graphics,
+  points: { x: number; y: number }[],
+  closed: boolean,
+  dashMm: number,
+  stroke: { color: number; alpha: number; width: number },
+) {
+  if (points.length < 2) return
+  const gap = dashMm
+  let carry = 0 // distance walked into the current on/off cycle
+  let on = true
+  const count = closed ? points.length : points.length - 1
+  for (let i = 0; i < count; i++) {
+    const a = points[i]
+    const b = points[(i + 1) % points.length]
+    const segLen = Math.hypot(b.x - a.x, b.y - a.y)
+    if (segLen === 0) continue
+    let pos = 0
+    while (pos < segLen) {
+      const remain = (on ? dashMm : gap) - carry
+      const step = Math.min(remain, segLen - pos)
+      if (on) {
+        const t0 = pos / segLen
+        const t1 = (pos + step) / segLen
+        g.moveTo(a.x + (b.x - a.x) * t0, a.y + (b.y - a.y) * t0)
+        g.lineTo(a.x + (b.x - a.x) * t1, a.y + (b.y - a.y) * t1)
+        g.stroke(stroke)
+      }
+      pos += step
+      carry += step
+      if (carry >= (on ? dashMm : gap) - 1e-6) {
+        carry = 0
+        on = !on
+      }
     }
   }
 }

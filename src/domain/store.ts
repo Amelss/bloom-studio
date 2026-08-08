@@ -24,6 +24,7 @@ import {
   type StemCategory,
 } from './types'
 import { FLOWER_INDEX } from '../data/catalog'
+import type { FormGuideKind } from '../render/formGuide'
 
 export type GridStepMm = 5 | 10 | 25 | 50
 
@@ -60,6 +61,8 @@ export interface StudioState {
   /** The active exercise/brief id, or null when free-designing (learning mode). */
   activeBriefId: string | null
   showFormGuide: boolean
+  /** Which silhouette the form guide draws and snaps to. */
+  formGuideKind: FormGuideKind
   gridVisible: boolean
   gridSnap: boolean
   gridStepMm: GridStepMm
@@ -123,6 +126,7 @@ export interface StudioState {
   setLearningMode: (on: boolean) => void
   setActiveBrief: (id: string | null) => void
   setShowFormGuide: (on: boolean) => void
+  setFormGuideKind: (kind: FormGuideKind) => void
   setGridVisible: (on: boolean) => void
   setGridSnap: (on: boolean) => void
   setGridStepMm: (step: GridStepMm) => void
@@ -255,6 +259,7 @@ const initializer: StateCreator<StudioState> = (set, get) => {
     learningMode: true,
     activeBriefId: null,
     showFormGuide: false,
+    formGuideKind: 'round',
     gridVisible: false,
     gridSnap: false,
     gridStepMm: 10,
@@ -640,6 +645,7 @@ const initializer: StateCreator<StudioState> = (set, get) => {
     setLearningMode: (on) => set({ learningMode: on }),
     setActiveBrief: (id) => set({ activeBriefId: id }),
     setShowFormGuide: (on) => set({ showFormGuide: on }),
+    setFormGuideKind: (kind) => set({ formGuideKind: kind, showFormGuide: true }),
     setGridVisible: (on) => set({ gridVisible: on }),
     setGridSnap: (on) => set({ gridSnap: on }),
     setGridStepMm: (step) => set({ gridStepMm: step }),
@@ -738,6 +744,7 @@ export function createStudioStore(options: { persistKey?: string } = {}) {
       partialize: (state) => ({
         learningMode: state.learningMode,
         activeBriefId: state.activeBriefId,
+        formGuideKind: state.formGuideKind,
         gridVisible: state.gridVisible,
         gridSnap: state.gridSnap,
         gridStepMm: state.gridStepMm,
