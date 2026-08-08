@@ -11,3 +11,9 @@ asset-work
 .claude
 docs
 public/flowers/*.png
+
+# Supabase schema/migrations — kept local, not published to the repo
+supabase/
+*.env
+.env.*
+!.env.example
