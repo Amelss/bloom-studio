@@ -13,6 +13,22 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'completed', label: 'Completed' },
 ]
 
+/**
+ * The status chip reflects where the card sits: in New it shows the client's
+ * verdict (Approved / Changes requested); in the workflow tabs it shows the
+ * stage itself (In review / Approved / Completed).
+ */
+function statusChip(tab: Tab, item: ReviewBoardItem): { label: string; className: string } | null {
+  if (tab === 'in_review') return { label: 'In review', className: 'bg-amber-50 text-amber-700' }
+  if (tab === 'completed') return { label: 'Completed', className: 'bg-bloom-ink/[0.06] text-bloom-ink/60' }
+  if (tab === 'approved') return { label: 'Approved', className: 'bg-bloom-100 text-bloom-700' }
+  // New tab — reflect the reply itself.
+  if (!item.latest) return null
+  return item.latest.verdict === 'approved'
+    ? { label: 'Approved', className: 'bg-bloom-100 text-bloom-700' }
+    : { label: 'Changes requested', className: 'bg-orange-50 text-bloom-clay' }
+}
+
 /** Which tabs a board item belongs to (an approved-new design shows in two). */
 function tabsFor(item: ReviewBoardItem): Tab[] {
   const tabs: Tab[] = []
@@ -167,7 +183,7 @@ function BoardCard({
   onOpen: () => void
   onSetStatus: (status: ReviewStatus) => void
 }) {
-  const approved = item.latest?.verdict === 'approved'
+  const chip = statusChip(tab, item)
   const when = item.latest
     ? new Date(item.latest.created_at).toLocaleDateString(undefined, {
         day: 'numeric',
@@ -192,11 +208,7 @@ function BoardCard({
 
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
-          {item.latest && (
-            <span className={`chip ${approved ? 'bg-bloom-100 text-bloom-700' : 'bg-orange-50 text-bloom-clay'}`}>
-              {approved ? 'Approved' : 'Changes requested'}
-            </span>
-          )}
+          {chip && <span className={`chip ${chip.className}`}>{chip.label}</span>}
           <button onClick={onOpen} className="min-w-0 truncate text-sm font-medium text-bloom-ink hover:underline">
             {item.name}
           </button>

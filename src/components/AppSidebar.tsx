@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { blankDocument } from '../domain/templates'
 import { createDesign } from '../lib/designsApi'
 import { UserMenu } from './auth/UserMenu'
@@ -30,6 +30,7 @@ export function AppSidebar({
   unread?: number
 }) {
   const navigate = useNavigate()
+  const location = useLocation()
   const [creating, setCreating] = useState(false)
 
   const newDesign = async () => {
@@ -41,6 +42,18 @@ export function AppSidebar({
       navigate(`/design/${id}`)
     } catch {
       setCreating(false)
+    }
+  }
+
+  // Templates / Recent are sections on the dashboard. Scroll to them directly
+  // (hopping to the dashboard first when we're on another page).
+  const goToSection = (sectionId: string) => {
+    const scroll = () => document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    if (location.pathname !== '/') {
+      navigate('/')
+      setTimeout(scroll, 200)
+    } else {
+      scroll()
     }
   }
 
@@ -68,10 +81,10 @@ export function AppSidebar({
         <NavItem to="/" active={active === 'designs'} icon={<path d="M4 10.5 12 4l8 6.5M6 9v10a1 1 0 001 1h10a1 1 0 001-1V9" />}>
           My designs
         </NavItem>
-        <NavItem to="/#start" icon={<path d="M5 4h11a2 2 0 012 2v14l-6-3-6 3V4z" />}>
+        <NavItem onClick={() => goToSection('start')} icon={<path d="M5 4h11a2 2 0 012 2v14l-6-3-6 3V4z" />}>
           Templates
         </NavItem>
-        <NavItem to="/#recent" icon={<path d="M12 8v4l3 2M12 4a8 8 0 100 16 8 8 0 000-16z" />}>
+        <NavItem onClick={() => goToSection('recent')} icon={<path d="M12 8v4l3 2M12 4a8 8 0 100 16 8 8 0 000-16z" />}>
           Recent
         </NavItem>
         <NavItem to="/responses" active={active === 'responses'} badge={unread} icon={<path d="M4 5h16v11H8l-4 4V5z" />}>
@@ -91,21 +104,23 @@ function NavItem({
   icon,
   active,
   to,
+  onClick,
   badge,
 }: {
   children: React.ReactNode
   icon: React.ReactNode
   active?: boolean
-  to: string
+  to?: string
+  onClick?: () => void
   badge?: number
 }) {
-  const cls = `flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors ${
+  const cls = `flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm transition-colors ${
     active
       ? 'bg-bloom-600/10 font-semibold text-bloom-700'
       : 'font-medium text-bloom-ink/60 hover:bg-bloom-ink/[0.05] hover:text-bloom-ink'
   }`
-  return (
-    <Link to={to} className={cls} aria-current={active ? 'page' : undefined}>
+  const inner = (
+    <>
       <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
         {icon}
       </svg>
@@ -115,7 +130,16 @@ function NavItem({
           {badge}
         </span>
       )}
+    </>
+  )
+  return to ? (
+    <Link to={to} className={cls} aria-current={active ? 'page' : undefined}>
+      {inner}
     </Link>
+  ) : (
+    <button type="button" onClick={onClick} className={cls}>
+      {inner}
+    </button>
   )
 }
 

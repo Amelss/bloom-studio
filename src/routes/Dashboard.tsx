@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { blankDocument, starterTemplate } from '../domain/templates'
 import { createDesign, deleteDesign, listDesigns, renameDesign } from '../lib/designsApi'
 import { listReviewBoard } from '../lib/shareApi'
@@ -67,6 +67,7 @@ const QUICK_STARTS: {
 
 export default function Dashboard() {
   const navigate = useNavigate()
+  const location = useLocation()
   const profile = useAuth((s) => s.profile)
   const firstName = (profile?.display_name ?? '').split(' ')[0]
 
@@ -98,6 +99,14 @@ export default function Dashboard() {
       active = false
     }
   }, [])
+
+  // Scroll to the section named in the URL hash (sidebar Templates / Recent
+  // link here). Re-runs once designs load so the target has its final height.
+  useEffect(() => {
+    if (!location.hash) return
+    const el = document.querySelector(location.hash)
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [location.hash, location.key, designs])
 
   const create = async (build: () => DesignDocument) => {
     setCreating(true)
