@@ -49,6 +49,8 @@ export interface DesignFeedback {
   note: string | null
   reviewer_name: string | null
   created_at: string
+  /** Set once the florist has actioned this response; null while outstanding. */
+  resolved_at: string | null
 }
 
 /** A feedback row joined with its design, for the owner's responses inbox. */

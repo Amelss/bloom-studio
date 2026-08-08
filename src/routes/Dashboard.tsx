@@ -2,14 +2,12 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { blankDocument, starterTemplate } from '../domain/templates'
 import { createDesign, deleteDesign, listDesigns, renameDesign } from '../lib/designsApi'
-import { listInbox } from '../lib/shareApi'
+import { INBOX_SEEN_KEY, listInbox } from '../lib/shareApi'
 import { clearLegacyDesign, readLegacyDesign } from '../lib/legacyDesign'
-import { UserMenu } from '../components/auth/UserMenu'
+import { AppSidebar, FlorafoGlyph, MobileTopBar } from '../components/AppSidebar'
 import { useAuth } from '../domain/auth'
-import type { DesignListItem, FeedbackInboxItem } from '../lib/types'
+import type { DesignListItem } from '../lib/types'
 import type { DesignDocument } from '../domain/types'
-
-const INBOX_SEEN_KEY = 'bloom-inbox-seen'
 
 /** Time-of-day greeting for the hero. */
 function greeting(): string {
@@ -77,8 +75,7 @@ export default function Dashboard() {
   const [creating, setCreating] = useState(false)
   const [query, setQuery] = useState('')
   const [legacy, setLegacy] = useState<DesignDocument | null>(() => readLegacyDesign())
-  const [inbox, setInbox] = useState<FeedbackInboxItem[] | null>(null)
-  const [seenAt, setSeenAt] = useState<string>(() => localStorage.getItem(INBOX_SEEN_KEY) ?? '')
+  const [unreadCount, setUnreadCount] = useState(0)
 
   const refresh = useCallback(async () => {
     try {
@@ -93,27 +90,18 @@ export default function Dashboard() {
     listDesigns()
       .then((d) => active && setDesigns(d))
       .catch((e) => active && setError(e instanceof Error ? e.message : 'Could not load your designs.'))
-    // The responses inbox is best-effort — a failure here never blocks designs.
+    // Unread badge for the Responses page — best-effort, never blocks designs.
     listInbox()
-      .then((f) => active && setInbox(f))
+      .then((f) => {
+        if (!active) return
+        const seenAt = localStorage.getItem(INBOX_SEEN_KEY) ?? ''
+        setUnreadCount(f.filter((x) => x.created_at > seenAt).length)
+      })
       .catch(() => {})
     return () => {
       active = false
     }
   }, [])
-
-  const unreadCount = useMemo(
-    () => (inbox ?? []).filter((f) => f.created_at > seenAt).length,
-    [inbox, seenAt],
-  )
-
-  /** Mark everything currently in the inbox as seen (clears the badge). */
-  const markInboxSeen = useCallback(() => {
-    const newest = inbox?.[0]?.created_at
-    if (!newest || newest === seenAt) return
-    localStorage.setItem(INBOX_SEEN_KEY, newest)
-    setSeenAt(newest)
-  }, [inbox, seenAt])
 
   const create = async (build: () => DesignDocument) => {
     setCreating(true)
@@ -159,65 +147,11 @@ export default function Dashboard() {
 
   return (
     <div className="flex min-h-full bg-bloom-50 text-bloom-ink">
-      {/* ── Sidebar ─────────────────────────────────────────────── */}
-      <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-r border-bloom-200 bg-white/70 px-4 py-5 md:flex">
-        <div className="flex items-center gap-2 px-2">
-          <BrandMark />
-          <span className="font-display text-lg font-semibold tracking-tight text-bloom-700">
-            Florafo
-          </span>
-        </div>
-
-        <button
-          onClick={() => void create(QUICK_STARTS[0].build)}
-          disabled={creating}
-          className="mt-6 flex items-center justify-center gap-2 rounded-xl bg-bloom-600 px-4 py-2.5 text-sm font-semibold text-white shadow-soft transition hover:bg-bloom-700 disabled:opacity-50"
-        >
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-            <path d="M12 5v14M5 12h14" />
-          </svg>
-          New design
-        </button>
-
-        <nav className="mt-6 flex flex-col gap-0.5">
-          <NavItem active icon={<path d="M4 10.5 12 4l8 6.5M6 9v10a1 1 0 001 1h10a1 1 0 001-1V9" />}>
-            My designs
-          </NavItem>
-          <NavItem href="#start" icon={<path d="M5 4h11a2 2 0 012 2v14l-6-3-6 3V4z" />}>
-            Templates
-          </NavItem>
-          <NavItem href="#recent" icon={<path d="M12 8v4l3 2M12 4a8 8 0 100 16 8 8 0 000-16z" />}>
-            Recent
-          </NavItem>
-          {inbox && inbox.length > 0 && (
-            <NavItem
-              href="#responses"
-              onClick={markInboxSeen}
-              badge={unreadCount}
-              icon={<path d="M4 5h16v11H8l-4 4V5z" />}
-            >
-              Responses
-            </NavItem>
-          )}
-        </nav>
-
-        <div className="mt-auto border-t border-bloom-200 pt-3">
-          <UserMenu />
-        </div>
-      </aside>
+      <AppSidebar active="designs" unread={unreadCount} />
 
       {/* ── Main ────────────────────────────────────────────────── */}
       <div className="flex min-w-0 flex-1 flex-col">
-        {/* Mobile top bar — the sidebar (brand + account) is hidden on small screens */}
-        <div className="flex items-center justify-between px-6 py-3 md:hidden">
-          <div className="flex items-center gap-2">
-            <BrandMark />
-            <span className="font-display text-lg font-semibold tracking-tight text-bloom-700">
-              Florafo
-            </span>
-          </div>
-          <UserMenu />
-        </div>
+        <MobileTopBar />
 
         <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-8 lg:px-10">
           {/* Hero */}
@@ -276,46 +210,6 @@ export default function Dashboard() {
                 </button>
               </div>
             </div>
-          )}
-
-          {/* Client responses — surfaced above the fold when any exist */}
-          {inbox && inbox.length > 0 && (
-            <section id="responses" className="mb-10 scroll-mt-20">
-              <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
-                <h2 className="font-display text-xl font-semibold text-bloom-ink">
-                  Client responses
-                  {unreadCount > 0 && (
-                    <span className="ml-2 align-middle text-xs font-semibold text-bloom-600">
-                      {unreadCount} new
-                    </span>
-                  )}
-                </h2>
-                <div className="flex items-center gap-3 text-sm text-bloom-ink/45">
-                  <span>
-                    {inbox.filter((f) => f.verdict === 'approved').length} approved ·{' '}
-                    {inbox.filter((f) => f.verdict === 'changes_requested').length} to revisit
-                  </span>
-                  {unreadCount > 0 && (
-                    <button
-                      onClick={markInboxSeen}
-                      className="font-medium text-bloom-700 hover:underline"
-                    >
-                      Mark all read
-                    </button>
-                  )}
-                </div>
-              </div>
-              <ul className="space-y-3">
-                {inbox.map((f) => (
-                  <FeedbackRow
-                    key={f.id}
-                    item={f}
-                    unread={!!f.created_at && f.created_at > seenAt}
-                    onOpen={() => f.design && navigate(`/design/${f.design.id}`)}
-                  />
-                ))}
-              </ul>
-            </section>
           )}
 
           {/* Quick-start row */}
@@ -389,125 +283,6 @@ export default function Dashboard() {
 }
 
 /* ──────────────────────────── pieces ──────────────────────────── */
-
-/** The Florafo mark: a styled serif "F" (Fraunces), inheriting its container's
- *  colour. Sized via a text-size class on `className`. */
-function FlorafoGlyph({ className }: { className?: string }) {
-  return (
-    <span className={`font-display font-semibold leading-none ${className ?? ''}`} aria-hidden>
-      F
-    </span>
-  )
-}
-
-function BrandMark() {
-  return (
-    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-bloom-700 text-white">
-      <FlorafoGlyph className="text-[20px]" />
-    </span>
-  )
-}
-
-function NavItem({
-  children,
-  icon,
-  active,
-  href,
-  onClick,
-  badge,
-}: {
-  children: React.ReactNode
-  icon: React.ReactNode
-  active?: boolean
-  href?: string
-  onClick?: () => void
-  badge?: number
-}) {
-  const cls = `flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors ${
-    active
-      ? 'bg-bloom-600/10 font-semibold text-bloom-700'
-      : 'font-medium text-bloom-ink/60 hover:bg-bloom-ink/[0.05] hover:text-bloom-ink'
-  }`
-  const inner = (
-    <>
-      <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-        {icon}
-      </svg>
-      <span className="flex-1">{children}</span>
-      {badge != null && badge > 0 && (
-        <span className="flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-bloom-600 px-1.5 text-[11px] font-semibold text-white">
-          {badge}
-        </span>
-      )}
-    </>
-  )
-  return href ? (
-    <a href={href} className={cls} onClick={onClick}>
-      {inner}
-    </a>
-  ) : (
-    <span className={cls} aria-current={active ? 'page' : undefined}>
-      {inner}
-    </span>
-  )
-}
-
-function FeedbackRow({
-  item,
-  unread,
-  onOpen,
-}: {
-  item: FeedbackInboxItem
-  unread: boolean
-  onOpen: () => void
-}) {
-  const approved = item.verdict === 'approved'
-  const when = new Date(item.created_at).toLocaleDateString(undefined, {
-    day: 'numeric',
-    month: 'short',
-  })
-  return (
-    <li
-      className={`flex gap-3 rounded-xl border bg-white p-3 transition hover:border-bloom-500/50 ${
-        unread ? 'border-bloom-500/40 ring-1 ring-bloom-500/15' : 'border-bloom-200'
-      }`}
-    >
-      <button
-        onClick={onOpen}
-        className="h-16 w-20 shrink-0 overflow-hidden rounded-lg bg-bloom-100"
-        aria-label={item.design ? `Open ${item.design.name}` : 'Open design'}
-      >
-        {item.design?.thumbnail_url ? (
-          <img src={item.design.thumbnail_url} alt="" className="h-full w-full object-cover" />
-        ) : (
-          <span className="flex h-full w-full items-center justify-center text-xl text-bloom-ink/20">❧</span>
-        )}
-      </button>
-
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center gap-2">
-          <span
-            className={`chip ${approved ? 'bg-bloom-100 text-bloom-700' : 'bg-orange-50 text-bloom-clay'}`}
-          >
-            {approved ? 'Approved' : 'Changes requested'}
-          </span>
-          {unread && <span className="h-2 w-2 rounded-full bg-bloom-600" aria-label="New" />}
-          <button
-            onClick={onOpen}
-            className="min-w-0 truncate text-sm font-medium text-bloom-ink hover:underline"
-          >
-            {item.design?.name ?? 'Untitled design'}
-          </button>
-          <span className="ml-auto shrink-0 text-xs text-bloom-ink/40">{when}</span>
-        </div>
-        {item.note && <p className="mt-1 text-sm text-bloom-ink/75">{item.note}</p>}
-        {item.reviewer_name && (
-          <p className="mt-0.5 text-xs text-bloom-ink/45">— {item.reviewer_name}</p>
-        )}
-      </div>
-    </li>
-  )
-}
 
 function GridSkeleton() {
   return (

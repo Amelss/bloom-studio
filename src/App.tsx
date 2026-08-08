@@ -7,6 +7,7 @@ import Dashboard from './routes/Dashboard'
 import Account from './routes/Account'
 import Onboarding from './routes/Onboarding'
 import Editor from './routes/Editor'
+import Responses from './routes/Responses'
 import SharedDesign from './routes/SharedDesign'
 
 /** Route table. Public auth screens + protected app (dashboard + editor). */
@@ -21,6 +22,7 @@ export default function App() {
       <Route element={<ProtectedRoute />}>
         <Route path="/welcome" element={<Onboarding />} />
         <Route path="/" element={<Dashboard />} />
+        <Route path="/responses" element={<Responses />} />
         <Route path="/account" element={<Account />} />
         <Route path="/design/:id" element={<Editor />} />
       </Route>

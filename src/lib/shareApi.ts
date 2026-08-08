@@ -11,6 +11,9 @@ import type { DesignFeedback, FeedbackInboxItem, FeedbackVerdict, SharedDesign }
 
 const SHARE_ALPHABET = 'abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789'
 
+/** localStorage key: ISO time the owner last viewed their responses inbox. */
+export const INBOX_SEEN_KEY = 'bloom-inbox-seen'
+
 /** A 22-char URL-safe token from the CSPRNG (~130 bits — unguessable). */
 function generateShareId(): string {
   const bytes = new Uint8Array(22)
@@ -101,6 +104,25 @@ export async function listInbox(): Promise<FeedbackInboxItem[]> {
     .order('created_at', { ascending: false })
   if (error) throw error
   return (data ?? []) as FeedbackInboxItem[]
+}
+
+/**
+ * Mark a response resolved (or reopen it) once the florist has actioned it.
+ * Goes through the RPC (a POST) — a direct UPDATE would be a blocked PATCH.
+ * See supabase/migrations/0005_feedback_actions.sql.
+ */
+export async function resolveFeedback(feedbackId: string, resolved: boolean): Promise<void> {
+  const { error } = await supabase.rpc('set_feedback_resolved', {
+    p_feedback_id: feedbackId,
+    p_resolved: resolved,
+  })
+  if (error) throw error
+}
+
+/** Permanently remove a response. DELETE isn't CORS-blocked, so this is direct. */
+export async function deleteFeedback(feedbackId: string): Promise<void> {
+  const { error } = await supabase.from('design_feedback').delete().eq('id', feedbackId)
+  if (error) throw error
 }
 
 /** Build the absolute share URL for a token. */
