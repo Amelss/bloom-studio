@@ -25,28 +25,31 @@ function generateShareId(): string {
  * Returns the share id (existing or new). Idempotent — re-enabling keeps the
  * same link so a URL already handed out never breaks.
  *
- * Uses UPDATE (not upsert): the row already exists, and we're only touching the
- * share columns. An upsert would send an INSERT-shaped payload whose NOT NULL
- * `doc`/`doc_version` columns Postgres validates before resolving the conflict,
- * failing the write. Row-level security scopes the update to the owner.
+ * Goes through the `set_design_share` RPC rather than a table write: rpc() is a
+ * POST (a direct partial UPDATE would be a PATCH, which some deployments block
+ * at CORS), and doing the write server-side avoids the INSERT-shaped payload
+ * that trips the designs.doc NOT NULL constraint. Ownership is enforced in the
+ * function. See supabase/migrations/0004_share_toggle.sql.
  */
 export async function enableShare(id: string, existing: string | null): Promise<string> {
   if (existing) return existing
-  const share_id = generateShareId()
-  const { error } = await supabase
-    .from('designs')
-    .update({ share_id, shared_at: new Date().toISOString() })
-    .eq('id', id)
+  const token = generateShareId()
+  const { data, error } = await supabase.rpc('set_design_share', {
+    p_design_id: id,
+    p_enabled: true,
+    p_token: token,
+  })
   if (error) throw error
-  return share_id
+  return (data as string | null) ?? token
 }
 
 /** Revoke the link. Any URL already handed out stops resolving immediately. */
 export async function disableShare(id: string): Promise<void> {
-  const { error } = await supabase
-    .from('designs')
-    .update({ share_id: null, shared_at: null })
-    .eq('id', id)
+  const { error } = await supabase.rpc('set_design_share', {
+    p_design_id: id,
+    p_enabled: false,
+    p_token: null,
+  })
   if (error) throw error
 }
 
