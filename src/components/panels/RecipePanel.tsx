@@ -84,6 +84,7 @@ export function RecipePanel() {
                 <td className="py-1.5 pr-1">
                   <span className="font-medium">{line.varietyName}</span>
                   <span className="block text-bloom-ink/50">{line.colorwayName}</span>
+                  {line.seasonMultiplier >= 1.3 && <SeasonBadge mult={line.seasonMultiplier} />}
                 </td>
                 <td className="py-1.5 pr-1 text-right tabular-nums">{line.count}</td>
                 <td className="py-1.5 pr-1 text-right">
@@ -304,6 +305,23 @@ export function RecipePanel() {
         }}
       />
     </div>
+  )
+}
+
+/** Flags a line whose seasonal price is inflated: "Limited" (shoulder) or
+ *  "Out of season" (big uplift), with how far above the in-season price it is. */
+function SeasonBadge({ mult }: { mult: number }) {
+  const outOfSeason = mult >= 1.9
+  const pct = Math.round((mult - 1) * 100)
+  return (
+    <span
+      title={`${outOfSeason ? 'Out of season' : 'Limited availability'} — about ${pct}% above the in-season price`}
+      className={`mt-1 inline-flex w-fit items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-semibold ${
+        outOfSeason ? 'bg-amber-100 text-amber-800' : 'bg-amber-50 text-amber-700'
+      }`}
+    >
+      {outOfSeason ? 'Out of season' : 'Limited'} · +{pct}%
+    </span>
   )
 }
 
