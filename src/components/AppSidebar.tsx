@@ -26,7 +26,7 @@ export function AppSidebar({
   active,
   unread = 0,
 }: {
-  active: 'designs' | 'responses'
+  active: 'recent' | 'designs' | 'responses'
   unread?: number
 }) {
   const navigate = useNavigate()
@@ -78,14 +78,14 @@ export function AppSidebar({
       </button>
 
       <nav className="mt-6 flex flex-col gap-0.5">
-        <NavItem to="/" active={active === 'designs'} icon={<path d="M4 10.5 12 4l8 6.5M6 9v10a1 1 0 001 1h10a1 1 0 001-1V9" />}>
+        <NavItem to="/" active={active === 'recent'} icon={<path d="M12 8v4l3 2M12 4a8 8 0 100 16 8 8 0 000-16z" />}>
+          Recent
+        </NavItem>
+        <NavItem to="/designs" active={active === 'designs'} icon={<path d="M4 10.5 12 4l8 6.5M6 9v10a1 1 0 001 1h10a1 1 0 001-1V9" />}>
           My designs
         </NavItem>
         <NavItem onClick={() => goToSection('start')} icon={<path d="M5 4h11a2 2 0 012 2v14l-6-3-6 3V4z" />}>
           Templates
-        </NavItem>
-        <NavItem onClick={() => goToSection('recent')} icon={<path d="M12 8v4l3 2M12 4a8 8 0 100 16 8 8 0 000-16z" />}>
-          Recent
         </NavItem>
         <NavItem to="/responses" active={active === 'responses'} badge={unread} icon={<path d="M4 5h16v11H8l-4 4V5z" />}>
           Responses
