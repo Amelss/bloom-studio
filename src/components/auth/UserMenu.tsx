@@ -2,8 +2,12 @@ import type { MouseEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../domain/auth'
 
-/** Account chip: initial avatar → dropdown with dashboard, account, sign out. */
-export function UserMenu() {
+/**
+ * Account chip: initial avatar → dropdown with dashboard, account, sign out.
+ * `direction` controls whether the menu opens below (default, for top bars) or
+ * above (for the sidebar, where the chip sits at the bottom of the screen).
+ */
+export function UserMenu({ direction = 'down' }: { direction?: 'up' | 'down' }) {
   const navigate = useNavigate()
   const profile = useAuth((s) => s.profile)
   const user = useAuth((s) => s.user)
@@ -32,7 +36,11 @@ export function UserMenu() {
           initial
         )}
       </summary>
-      <div className="absolute right-0 z-50 mt-1.5 w-56 rounded-xl bg-white p-1 shadow-pop ring-1 ring-bloom-ink/[0.06]">
+      <div
+        className={`absolute z-50 w-56 rounded-xl bg-white p-1 shadow-pop ring-1 ring-bloom-ink/[0.06] ${
+          direction === 'up' ? 'bottom-full left-0 mb-1.5' : 'right-0 mt-1.5'
+        }`}
+      >
         <div className="px-2 py-1.5">
           <p className="truncate text-sm font-medium">{profile?.display_name ?? 'Signed in'}</p>
           {user?.email && <p className="truncate text-xs text-bloom-ink/50">{user.email}</p>}

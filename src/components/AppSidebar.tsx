@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { blankDocument } from '../domain/templates'
 import { createDesign } from '../lib/designsApi'
 import { UserMenu } from './auth/UserMenu'
@@ -30,7 +30,6 @@ export function AppSidebar({
   unread?: number
 }) {
   const navigate = useNavigate()
-  const location = useLocation()
   const [creating, setCreating] = useState(false)
 
   const newDesign = async () => {
@@ -42,18 +41,6 @@ export function AppSidebar({
       navigate(`/design/${id}`)
     } catch {
       setCreating(false)
-    }
-  }
-
-  // Templates / Recent are sections on the dashboard. Scroll to them directly
-  // (hopping to the dashboard first when we're on another page).
-  const goToSection = (sectionId: string) => {
-    const scroll = () => document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    if (location.pathname !== '/') {
-      navigate('/')
-      setTimeout(scroll, 200)
-    } else {
-      scroll()
     }
   }
 
@@ -84,16 +71,13 @@ export function AppSidebar({
         <NavItem to="/designs" active={active === 'designs'} icon={<path d="M4 10.5 12 4l8 6.5M6 9v10a1 1 0 001 1h10a1 1 0 001-1V9" />}>
           My designs
         </NavItem>
-        <NavItem onClick={() => goToSection('start')} icon={<path d="M5 4h11a2 2 0 012 2v14l-6-3-6 3V4z" />}>
-          Templates
-        </NavItem>
         <NavItem to="/responses" active={active === 'responses'} badge={unread} icon={<path d="M4 5h16v11H8l-4 4V5z" />}>
           Responses
         </NavItem>
       </nav>
 
       <div className="mt-auto border-t border-bloom-200 pt-3">
-        <UserMenu />
+        <UserMenu direction="up" />
       </div>
     </aside>
   )
