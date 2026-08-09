@@ -8,6 +8,9 @@ import {
   setDesignReviewStatus,
   shareUrl,
 } from '../lib/shareApi'
+import { createSnapshot } from '../lib/snapshotsApi'
+import { captureThumbnail } from '../lib/thumbnail'
+import { useStudio } from '../domain/store'
 import type { DesignFeedback } from '../lib/types'
 
 /**
@@ -106,6 +109,14 @@ export function ShareButton() {
         setShareId(null)
       } else {
         setShareId(await enableShare(id, null))
+        // Freeze "what I sent the client" as a version, best-effort.
+        try {
+          const doc = useStudio.getState().doc
+          const thumbnail = await captureThumbnail().catch(() => null)
+          await createSnapshot({ designId: id, doc, thumbnail, label: null, kind: 'shared' })
+        } catch {
+          // sharing already succeeded; a missing snapshot isn't worth surfacing
+        }
       }
     } catch (e) {
       setError(friendlyError(e))

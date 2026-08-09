@@ -70,6 +70,20 @@ export interface ReviewBoardItem {
   } | null
 }
 
+/** What caused a snapshot to be taken. */
+export type SnapshotKind = 'manual' | 'shared' | 'approved' | 'auto'
+
+/** A frozen version of a design in its history — everything but the heavy `doc`. */
+export interface SnapshotMeta {
+  id: string
+  design_id: string
+  doc_version: number
+  thumbnail_url: string | null
+  label: string | null
+  kind: SnapshotKind
+  created_at: string
+}
+
 /** Trimmed row for the dashboard list — no heavy `doc`. */
 export interface DesignListItem {
   id: string

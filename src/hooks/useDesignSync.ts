@@ -4,7 +4,7 @@ import { useStudio } from '../domain/store'
 import { migrateDocument } from '../domain/migrate'
 import type { DesignDocument } from '../domain/types'
 import { loadDesign, saveDesign } from '../lib/designsApi'
-import { canvasRegistry } from '../render/registry'
+import { captureThumbnail } from '../lib/thumbnail'
 
 const SAVE_DEBOUNCE_MS = 1500
 
@@ -56,7 +56,7 @@ export function useDesignSync(id: string | undefined) {
       writeCache(id, doc)
       let thumbnail: string | null = null
       try {
-        thumbnail = await makeThumbnail()
+        thumbnail = await captureThumbnail()
       } catch {
         // thumbnail is best-effort
       }
@@ -105,32 +105,4 @@ function readCache(id: string): DesignDocument | null {
   } catch {
     return null
   }
-}
-
-/** Small JPEG thumbnail of the current canvas for the dashboard. */
-async function makeThumbnail(): Promise<string | null> {
-  const png = await canvasRegistry.api?.exportPng()
-  return png ? await downscale(png, 400) : null
-}
-
-function downscale(dataUrl: string, maxWidth: number): Promise<string> {
-  return new Promise((resolve) => {
-    const img = new Image()
-    img.onload = () => {
-      const scale = Math.min(1, maxWidth / img.width)
-      const w = Math.max(1, Math.round(img.width * scale))
-      const h = Math.max(1, Math.round(img.height * scale))
-      const canvas = document.createElement('canvas')
-      canvas.width = w
-      canvas.height = h
-      const ctx = canvas.getContext('2d')
-      if (!ctx) return resolve(dataUrl)
-      ctx.fillStyle = '#ffffff' // JPEG has no alpha
-      ctx.fillRect(0, 0, w, h)
-      ctx.drawImage(img, 0, 0, w, h)
-      resolve(canvas.toDataURL('image/jpeg', 0.72))
-    }
-    img.onerror = () => resolve(dataUrl)
-    img.src = dataUrl
-  })
 }
