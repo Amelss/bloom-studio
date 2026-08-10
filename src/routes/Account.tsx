@@ -3,12 +3,18 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../domain/auth'
 import { UserMenu } from '../components/auth/UserMenu'
 import { fieldClass, labelClass } from '../components/auth/AuthShell'
-import type { ExperienceLevel } from '../lib/types'
+import type { ExperienceLevel, UserRole } from '../lib/types'
 
 const EXPERIENCE: Array<{ id: ExperienceLevel; label: string }> = [
   { id: 'beginner', label: 'Beginner' },
   { id: 'intermediate', label: 'Intermediate' },
   { id: 'advanced', label: 'Advanced' },
+  { id: 'professional', label: 'Professional' },
+]
+
+const ROLES: Array<{ id: UserRole; label: string }> = [
+  { id: 'student', label: 'Student' },
+  { id: 'educator', label: 'Educator' },
   { id: 'professional', label: 'Professional' },
 ]
 
@@ -21,6 +27,7 @@ export default function Account() {
   const nameRef = useRef<HTMLInputElement>(null)
   const orgRef = useRef<HTMLInputElement>(null)
   const expRef = useRef<HTMLSelectElement>(null)
+  const roleRef = useRef<HTMLSelectElement>(null)
 
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
@@ -43,6 +50,7 @@ export default function Account() {
     const exp = expRef.current?.value ?? ''
     const { error } = await updateProfile({
       display_name: displayName,
+      role: (roleRef.current?.value as UserRole) || undefined,
       organisation: org || null,
       experience_level: (exp || null) as ExperienceLevel | null,
     })
@@ -145,10 +153,25 @@ export default function Account() {
             <span className={labelClass}>Email</span>
             <p className="text-sm text-bloom-ink/70">{user?.email ?? '—'}</p>
           </div>
-          <div className="mt-3">
-            <span className={labelClass}>Role</span>
-            <p className="text-sm capitalize text-bloom-ink/70">{profile?.role ?? '—'}</p>
-          </div>
+          <label className={`${labelClass} mt-4`} htmlFor="role">
+            Role
+          </label>
+          <select
+            id="role"
+            ref={roleRef}
+            key={`role-${profile?.id ?? ''}-${profile?.role ?? ''}`}
+            defaultValue={profile?.role ?? 'student'}
+            className={fieldClass}
+          >
+            {ROLES.map((r) => (
+              <option key={r.id} value={r.id}>
+                {r.label}
+              </option>
+            ))}
+          </select>
+          <p className="mt-1 text-xs text-bloom-ink/45">
+            Educators create courses; students join and submit. Switch to test both sides of the Classroom.
+          </p>
 
           {error && <p className="mt-3 text-xs text-red-700">{error}</p>}
           {status && <p className="mt-3 text-xs text-bloom-700">{status}</p>}

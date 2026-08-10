@@ -26,7 +26,7 @@ export function AppSidebar({
   active,
   unread = 0,
 }: {
-  active: 'recent' | 'designs' | 'responses'
+  active: 'recent' | 'designs' | 'progress' | 'classroom' | 'responses'
   unread?: number
 }) {
   const navigate = useNavigate()
@@ -70,6 +70,12 @@ export function AppSidebar({
         </NavItem>
         <NavItem to="/designs" active={active === 'designs'} icon={<path d="M4 10.5 12 4l8 6.5M6 9v10a1 1 0 001 1h10a1 1 0 001-1V9" />}>
           My designs
+        </NavItem>
+        <NavItem to="/progress" active={active === 'progress'} icon={<path d="M4 19V5M4 19h16M8 16v-4M12 16V8M16 16v-6" />}>
+          Progress
+        </NavItem>
+        <NavItem to="/classroom" active={active === 'classroom'} icon={<path d="M3 7l9-4 9 4-9 4-9-4zM7 10v5c0 1 2 2 5 2s5-1 5-2v-5" />}>
+          Classroom
         </NavItem>
         <NavItem to="/responses" active={active === 'responses'} badge={unread} icon={<path d="M4 5h16v11H8l-4 4V5z" />}>
           Responses

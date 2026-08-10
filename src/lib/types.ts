@@ -84,6 +84,81 @@ export interface SnapshotMeta {
   created_at: string
 }
 
+/** A logged completion of an exercise brief. */
+export interface ExerciseCompletion {
+  id: string
+  brief_id: string
+  design_id: string | null
+  overall_score: number | null
+  completed_at: string
+}
+
+/** One timestamped per-principle score, sampled at a deliberate moment. */
+export interface SkillSample {
+  id: string
+  design_id: string | null
+  principle_id: string
+  score: number
+  tone: 'positive' | 'tip' | 'watch'
+  created_at: string
+}
+
+/** Derived (never stored): a principle's current mastery + recent trend. */
+export interface PrincipleMastery {
+  principleId: string
+  name: string
+  /** 0–100, the average of the most recent samples. */
+  mastery: number
+  samples: number
+  trend: 'up' | 'down' | 'steady'
+}
+
+/* ───────────────────────────── classroom (M5) ──────────────────────────── */
+
+/** A course an educator runs; students join with its `join_code`. */
+export interface Course {
+  id: string
+  educator_id: string
+  name: string
+  join_code: string
+  created_at: string
+}
+
+/** A student's place on a course roster (name denormalised at join time). */
+export interface RosterMember {
+  id: string
+  course_id: string
+  student_id: string
+  student_name: string
+  joined_at: string
+}
+
+/** A brief set as coursework, tied to one of the built-in exercise briefs. */
+export interface Assignment {
+  id: string
+  course_id: string
+  brief_id: string
+  title: string
+  due_at: string | null
+  created_at: string
+}
+
+/** A submission list row — everything but the frozen `doc`. */
+export interface SubmissionMeta {
+  id: string
+  assignment_id: string
+  student_id: string
+  student_name: string
+  design_id: string | null
+  thumbnail_url: string | null
+  auto_score: number | null
+  status: 'submitted' | 'graded'
+  grade: number | null
+  feedback: string | null
+  submitted_at: string
+  graded_at: string | null
+}
+
 /** Trimmed row for the dashboard list — no heavy `doc`. */
 export interface DesignListItem {
   id: string

@@ -132,7 +132,7 @@ export function ShortcutsOverlay() {
               setTourOpen(true)
             }}
           >
-            Take the 60-second tour
+            Take the quick tour
           </button>
         </div>
       </div>

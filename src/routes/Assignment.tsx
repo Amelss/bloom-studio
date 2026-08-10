@@ -1,0 +1,395 @@
+import { useEffect, useState } from 'react'
+import { Link, useParams } from 'react-router-dom'
+import { AppSidebar, MobileTopBar } from '../components/AppSidebar'
+import { SharePreview } from '../components/canvas/SharePreview'
+import { useAuth } from '../domain/auth'
+import { BRIEF_INDEX } from '../education/briefs'
+import { scoreDesign } from '../education/report'
+import { useDesigns } from '../hooks/useDesigns'
+import { loadDesign } from '../lib/designsApi'
+import {
+  classroomErrorMessage as errMsg,
+  getAssignment,
+  getCourse,
+  getMySubmission,
+  getSubmissionDoc,
+  gradeSubmission,
+  listSubmissions,
+  submitAssignment,
+} from '../lib/classroomApi'
+import type { Assignment as AssignmentT, SubmissionMeta } from '../lib/types'
+import type { DesignDocument } from '../domain/types'
+
+function ScoreBadge({ score }: { score: number | null }) {
+  if (score == null) return null
+  const cls = score >= 85 ? 'bg-bloom-100 text-bloom-700' : score >= 55 ? 'bg-amber-50 text-amber-700' : 'bg-orange-50 text-bloom-clay'
+  return <span className={`chip ${cls}`}>{score}</span>
+}
+
+/** One assignment (route `/classroom/:courseId/a/:assignmentId`). Role-aware. */
+export default function Assignment() {
+  const { courseId, assignmentId } = useParams<{ courseId: string; assignmentId: string }>()
+  const myId = useAuth((s) => s.user?.id)
+  const [assignment, setAssignment] = useState<AssignmentT | null>(null)
+  const [isEducator, setIsEducator] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [preview, setPreview] = useState<DesignDocument | null>(null)
+
+  // Educator state
+  const [submissions, setSubmissions] = useState<SubmissionMeta[]>([])
+  // Student state
+  const [mine, setMine] = useState<SubmissionMeta | null>(null)
+
+  const brief = assignment ? BRIEF_INDEX[assignment.brief_id] : null
+
+  const load = async () => {
+    if (!assignmentId || !courseId) return
+    setLoading(true)
+    try {
+      const [a, c] = await Promise.all([getAssignment(assignmentId), getCourse(courseId)])
+      setAssignment(a)
+      const educator = !!c && c.educator_id === myId
+      setIsEducator(educator)
+      if (educator) setSubmissions(await listSubmissions(assignmentId))
+      else setMine(await getMySubmission(assignmentId))
+    } catch (e) {
+      setError(errMsg(e))
+    } finally {
+      setLoading(false)
+    }
+  }
+  useEffect(() => {
+    void load()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [assignmentId, courseId, myId])
+
+  const openPreview = async (submissionId: string) => {
+    try {
+      setPreview(await getSubmissionDoc(submissionId))
+    } catch (e) {
+      setError(errMsg(e))
+    }
+  }
+
+  return (
+    <div className="flex min-h-full bg-bloom-50 text-bloom-ink">
+      <AppSidebar active="classroom" />
+      <div className="flex min-w-0 flex-1 flex-col">
+        <MobileTopBar />
+        <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-8 lg:px-10">
+          <Link to={`/classroom/${courseId}`} className="text-sm font-medium text-bloom-700 hover:underline">
+            ← Course
+          </Link>
+
+          {error && (
+            <p className="mt-4 rounded-xl bg-bloom-600/[0.06] px-4 py-3 text-sm text-bloom-700 ring-1 ring-bloom-600/15">
+              {error}
+            </p>
+          )}
+          {loading && !error && <p className="mt-6 text-sm text-bloom-ink/45">Loading…</p>}
+
+          {assignment && (
+            <>
+              <div className="mb-5 mt-3">
+                <h1 className="font-display text-3xl font-semibold tracking-tight text-bloom-ink">{assignment.title}</h1>
+                {brief && (
+                  <p className="mt-1 text-sm text-bloom-ink/60">
+                    {brief.scenario}
+                    {assignment.due_at ? ` · due ${new Date(assignment.due_at).toLocaleDateString()}` : ''}
+                  </p>
+                )}
+              </div>
+
+              {brief && (
+                <ul className="mb-8 flex flex-wrap gap-1.5">
+                  {brief.constraints.map((c) => (
+                    <li key={c.id} className="chip bg-bloom-100 text-bloom-700">
+                      {c.label}
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              {isEducator ? (
+                <EducatorView
+                  submissions={submissions}
+                  onPreview={openPreview}
+                  onGraded={() => void load()}
+                />
+              ) : (
+                <StudentView
+                  assignmentId={assignment.id}
+                  mine={mine}
+                  onPreview={openPreview}
+                  onSubmitted={() => void load()}
+                  setError={setError}
+                />
+              )}
+            </>
+          )}
+        </main>
+      </div>
+
+      {preview && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-bloom-ink/40 p-4"
+          onPointerDown={(e) => e.target === e.currentTarget && setPreview(null)}
+        >
+          <div className="flex h-[80vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
+            <div className="flex items-center justify-between border-b border-bloom-200 px-4 py-2.5">
+              <h4 className="font-display text-sm font-semibold text-bloom-ink">Submission preview</h4>
+              <button onClick={() => setPreview(null)} className="rounded-lg px-2 py-1 text-sm text-bloom-ink/60 hover:bg-bloom-100" aria-label="Close">
+                ✕
+              </button>
+            </div>
+            <div className="min-h-0 flex-1 bg-bloom-50">
+              <SharePreview doc={preview} />
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+/* ─────────────────────────────── educator ──────────────────────────────── */
+
+function EducatorView({
+  submissions,
+  onPreview,
+  onGraded,
+}: {
+  submissions: SubmissionMeta[]
+  onPreview: (id: string) => void
+  onGraded: () => void
+}) {
+  return (
+    <section>
+      <h2 className="mb-3 font-display text-xl font-semibold text-bloom-ink">
+        Submissions <span className="text-sm font-normal text-bloom-ink/45">({submissions.length})</span>
+      </h2>
+      {submissions.length === 0 ? (
+        <p className="rounded-xl border border-bloom-200 bg-white px-4 py-6 text-sm text-bloom-ink/50">
+          No submissions yet.
+        </p>
+      ) : (
+        <ul className="space-y-2">
+          {submissions.map((s) => (
+            <SubmissionRow key={s.id} submission={s} onPreview={onPreview} onGraded={onGraded} />
+          ))}
+        </ul>
+      )}
+    </section>
+  )
+}
+
+function SubmissionRow({
+  submission: s,
+  onPreview,
+  onGraded,
+}: {
+  submission: SubmissionMeta
+  onPreview: (id: string) => void
+  onGraded: () => void
+}) {
+  const [grading, setGrading] = useState(false)
+  const [grade, setGrade] = useState(s.grade != null ? String(s.grade) : '')
+  const [feedback, setFeedback] = useState(s.feedback ?? '')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const save = async () => {
+    setBusy(true)
+    setError(null)
+    try {
+      await gradeSubmission(s.id, grade ? Number(grade) : 0, feedback)
+      setGrading(false)
+      onGraded()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not save the grade.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <li className="rounded-xl border border-bloom-200 bg-white p-3">
+      <div className="flex items-center gap-3">
+        <button
+          onClick={() => onPreview(s.id)}
+          title="Preview submission"
+          className="h-12 w-12 shrink-0 overflow-hidden rounded-md bg-bloom-50 ring-1 ring-bloom-200"
+        >
+          {s.thumbnail_url ? <img src={s.thumbnail_url} alt="" className="h-full w-full object-cover" /> : null}
+        </button>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold text-bloom-ink">{s.student_name}</p>
+          <p className="text-[11px] text-bloom-ink/50">
+            Submitted {new Date(s.submitted_at).toLocaleDateString()}
+            {s.status === 'graded' && s.grade != null ? ` · graded ${s.grade}` : ''}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] text-bloom-ink/45">auto</span>
+          <ScoreBadge score={s.auto_score} />
+          <button
+            onClick={() => setGrading((v) => !v)}
+            className="rounded-lg border border-bloom-200 px-2.5 py-1.5 text-xs font-semibold text-bloom-700 hover:bg-bloom-100"
+          >
+            {s.status === 'graded' ? 'Edit grade' : 'Grade'}
+          </button>
+        </div>
+      </div>
+
+      {grading && (
+        <div className="mt-3 border-t border-bloom-100 pt-3">
+          <div className="flex items-center gap-2">
+            <label className="text-xs text-bloom-ink/60">Grade</label>
+            <input
+              type="number"
+              min={0}
+              max={100}
+              value={grade}
+              onChange={(e) => setGrade(e.target.value)}
+              className="w-20 rounded-lg border border-bloom-200 px-2 py-1.5 text-sm"
+            />
+            <span className="text-xs text-bloom-ink/40">/ 100</span>
+          </div>
+          <textarea
+            value={feedback}
+            onChange={(e) => setFeedback(e.target.value)}
+            placeholder="Feedback for the student…"
+            rows={3}
+            className="mt-2 w-full rounded-lg border border-bloom-200 px-2.5 py-2 text-sm"
+          />
+          {error && <p className="mt-1 text-xs text-bloom-clay">{error}</p>}
+          <div className="mt-2 flex justify-end gap-2">
+            <button onClick={() => setGrading(false)} className="rounded-lg px-3 py-1.5 text-xs text-bloom-ink/60 hover:bg-bloom-100">
+              Cancel
+            </button>
+            <button
+              onClick={() => void save()}
+              disabled={busy}
+              className="rounded-lg bg-bloom-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-bloom-700 disabled:opacity-50"
+            >
+              Save grade
+            </button>
+          </div>
+        </div>
+      )}
+    </li>
+  )
+}
+
+/* ──────────────────────────────── student ──────────────────────────────── */
+
+function StudentView({
+  assignmentId,
+  mine,
+  onPreview,
+  onSubmitted,
+  setError,
+}: {
+  assignmentId: string
+  mine: SubmissionMeta | null
+  onPreview: (id: string) => void
+  onSubmitted: () => void
+  setError: (m: string) => void
+}) {
+  const { designs } = useDesigns()
+  const [picking, setPicking] = useState(false)
+  const [busy, setBusy] = useState<string | null>(null)
+
+  const submit = async (designId: string) => {
+    setBusy(designId)
+    try {
+      const row = await loadDesign(designId) // owner-only; gets the doc to score
+      const score = scoreDesign(row.doc).overall
+      await submitAssignment({ assignmentId, designId, autoScore: score })
+      setPicking(false)
+      onSubmitted()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not submit.')
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  return (
+    <section>
+      <h2 className="mb-3 font-display text-xl font-semibold text-bloom-ink">Your submission</h2>
+
+      {mine ? (
+        <div className="rounded-xl border border-bloom-200 bg-white p-4">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => onPreview(mine.id)}
+              className="h-14 w-14 shrink-0 overflow-hidden rounded-md bg-bloom-50 ring-1 ring-bloom-200"
+              title="Preview your submission"
+            >
+              {mine.thumbnail_url ? <img src={mine.thumbnail_url} alt="" className="h-full w-full object-cover" /> : null}
+            </button>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-bloom-ink">
+                {mine.status === 'graded' ? 'Graded' : 'Submitted'}
+              </p>
+              <p className="text-[11px] text-bloom-ink/50">{new Date(mine.submitted_at).toLocaleString()}</p>
+            </div>
+            {mine.status === 'graded' && mine.grade != null && (
+              <span className="rounded-lg bg-bloom-100 px-3 py-1.5 text-sm font-bold text-bloom-700">{mine.grade}/100</span>
+            )}
+          </div>
+          {mine.feedback && (
+            <p className="mt-3 rounded-lg bg-bloom-50 px-3 py-2 text-sm text-bloom-ink/80">
+              <span className="font-semibold">Feedback: </span>
+              {mine.feedback}
+            </p>
+          )}
+          <button onClick={() => setPicking((v) => !v)} className="mt-3 text-xs font-medium text-bloom-700 hover:underline">
+            {picking ? 'Cancel' : 'Resubmit a different design'}
+          </button>
+        </div>
+      ) : (
+        <button
+          onClick={() => setPicking(true)}
+          className="rounded-lg bg-bloom-600 px-4 py-2 text-sm font-semibold text-white hover:bg-bloom-700"
+        >
+          Submit a design
+        </button>
+      )}
+
+      {picking && (
+        <div className="mt-4">
+          <p className="mb-2 text-xs font-semibold text-bloom-ink/70">Choose a design to submit</p>
+          {!designs ? (
+            <p className="text-sm text-bloom-ink/45">Loading your designs…</p>
+          ) : designs.length === 0 ? (
+            <p className="text-sm text-bloom-ink/50">You have no designs yet.</p>
+          ) : (
+            <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {designs.map((d) => (
+                <li key={d.id}>
+                  <button
+                    onClick={() => void submit(d.id)}
+                    disabled={busy !== null}
+                    className="block w-full overflow-hidden rounded-xl border border-bloom-200 bg-white text-left transition hover:border-bloom-500/50 disabled:opacity-50"
+                  >
+                    <div className="aspect-[4/3] bg-bloom-50">
+                      {d.thumbnail_url ? (
+                        <img src={d.thumbnail_url} alt="" className="h-full w-full object-cover" />
+                      ) : null}
+                    </div>
+                    <p className="truncate px-2 py-1.5 text-xs font-medium text-bloom-ink">
+                      {busy === d.id ? 'Submitting…' : d.name}
+                    </p>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+    </section>
+  )
+}

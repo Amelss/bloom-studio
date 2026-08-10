@@ -6,6 +6,7 @@ import type { ExperienceLevel, Profile, UserRole } from '../lib/types'
 /** Editable profile fields (from Account settings). */
 export interface ProfilePatch {
   display_name?: string
+  role?: UserRole
   organisation?: string | null
   experience_level?: ExperienceLevel | null
   avatar_url?: string | null
@@ -117,16 +118,19 @@ export const useAuth = create<AuthState>((set, get) => ({
         id: user.id,
         display_name: patch.display_name ?? current?.display_name ?? '',
       }
+      if (patch.role !== undefined) row.role = patch.role
       if (patch.organisation !== undefined) row.organisation = patch.organisation
       if (patch.experience_level !== undefined) row.experience_level = patch.experience_level
       if (patch.avatar_url !== undefined) row.avatar_url = patch.avatar_url
 
       const { error } = await supabase.from('profiles').upsert(row)
       if (error) return { error: error.message }
-      // Mirror the name onto auth metadata (shown in the Supabase dashboard).
-      if (patch.display_name) {
-        await supabase.auth.updateUser({ data: { display_name: patch.display_name } })
-      }
+      // Mirror name/role onto auth metadata (shown in the Supabase dashboard,
+      // and read by the new-user trigger on future sign-ins).
+      const meta: Record<string, unknown> = {}
+      if (patch.display_name) meta.display_name = patch.display_name
+      if (patch.role) meta.role = patch.role
+      if (Object.keys(meta).length) await supabase.auth.updateUser({ data: meta })
       await get().loadProfile()
       return { error: null }
     } catch (e) {

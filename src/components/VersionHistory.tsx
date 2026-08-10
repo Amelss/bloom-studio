@@ -10,6 +10,9 @@ import {
   renameSnapshot,
 } from '../lib/snapshotsApi'
 import { SharePreview } from './canvas/SharePreview'
+import { scoreDesign } from '../education/report'
+import { samplesFromReport } from '../education/mastery'
+import { recordSkillSamples } from '../lib/progressApi'
 import type { DesignDocument } from '../domain/types'
 import type { SnapshotKind, SnapshotMeta } from '../lib/types'
 
@@ -124,6 +127,8 @@ export function VersionHistory() {
       const doc = useStudio.getState().doc
       const thumbnail = await captureThumbnail().catch(() => null)
       await createSnapshot({ designId: id, doc, thumbnail, label, kind: 'manual' })
+      // A deliberate save is a good moment to sample skill mastery.
+      void recordSkillSamples(id, samplesFromReport(scoreDesign(doc))).catch(() => {})
       await refresh()
     } catch (e) {
       setError(friendlyError(e))

@@ -484,7 +484,7 @@ export function Toolbar() {
             <p className="px-2 pb-1 pt-0.5 text-[10px] font-semibold uppercase tracking-wide text-bloom-ink/40">
               Help
             </p>
-            <FlyRow label="Take the 60-second tour" onClick={run(() => setTourOpen(true))} />
+            <FlyRow label="Take the quick tour" onClick={run(() => setTourOpen(true))} />
             <FlyRow label="Keyboard shortcuts" shortcut="?" onClick={run(() => setShortcutsOpen(true))} />
           </div>
         )}

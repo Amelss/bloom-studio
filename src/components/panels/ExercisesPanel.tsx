@@ -1,7 +1,11 @@
 import { useMemo } from 'react'
+import { useParams } from 'react-router-dom'
 import { useStudio } from '../../domain/store'
 import { computeMetrics } from '../../education/metrics'
 import { BRIEFS, BRIEF_INDEX, evaluateBrief } from '../../education/briefs'
+import { scoreDesign } from '../../education/report'
+import { samplesFromReport } from '../../education/mastery'
+import { recordExerciseCompletion, recordSkillSamples } from '../../lib/progressApi'
 
 /**
  * Exercises: pick a client brief and watch its goals tick off as you design.
@@ -9,6 +13,7 @@ import { BRIEFS, BRIEF_INDEX, evaluateBrief } from '../../education/briefs'
  * exercise grades itself live — the same computation that powers the feedback.
  */
 export function ExercisesPanel() {
+  const { id: designId } = useParams<{ id: string }>()
   const doc = useStudio((s) => s.doc)
   const activeBriefId = useStudio((s) => s.activeBriefId)
   const setActiveBrief = useStudio((s) => s.setActiveBrief)
@@ -24,11 +29,22 @@ export function ExercisesPanel() {
     if (b?.vesselId) setVessel(b.vesselId) // set the brief's vessel context
   }
 
+  /** Log the completion + a mastery sample for each principle, then exit. */
+  const finish = (briefId: string) => {
+    const report = scoreDesign(doc)
+    void recordExerciseCompletion({
+      briefId,
+      designId: designId ?? null,
+      overallScore: report.overall,
+    }).catch(() => {})
+    void recordSkillSamples(designId ?? null, samplesFromReport(report)).catch(() => {})
+    setActiveBrief(null)
+  }
+
   // ── Picker ────────────────────────────────────────────────────────────
   if (!brief || !result) {
     return (
       <section aria-label="Exercises">
-        <h3 className="panel-title mb-1">Exercises</h3>
         <p className="mb-2 text-xs text-bloom-ink/55">
           Practise a real brief — your goals tick off as you design.
         </p>
@@ -125,7 +141,7 @@ export function ExercisesPanel() {
 
       {result.complete && (
         <button
-          onClick={() => setActiveBrief(null)}
+          onClick={() => finish(brief.id)}
           className="mt-3 w-full rounded-lg bg-bloom-600 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-bloom-700"
         >
           Finish exercise
