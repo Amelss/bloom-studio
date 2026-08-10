@@ -118,8 +118,9 @@ export async function listRoster(courseId: string): Promise<RosterMember[]> {
 
 export async function createAssignment(input: {
   courseId: string
-  briefId: string
+  briefId: string | null
   title: string
+  notes: string | null
   dueAt: string | null
 }): Promise<Assignment> {
   const { data, error } = await supabase
@@ -128,12 +129,27 @@ export async function createAssignment(input: {
       course_id: input.courseId,
       brief_id: input.briefId,
       title: input.title.trim(),
+      notes: input.notes?.trim() || null,
       due_at: input.dueAt,
     })
     .select('*')
     .single()
   if (error) throw error
   return data as Assignment
+}
+
+/** Edit an existing assignment (RPC — a direct UPDATE would be a blocked PATCH). */
+export async function updateAssignment(
+  id: string,
+  patch: { title: string; notes: string | null; dueAt: string | null },
+): Promise<void> {
+  const { error } = await supabase.rpc('update_assignment', {
+    p_id: id,
+    p_title: patch.title.trim(),
+    p_notes: patch.notes ?? '',
+    p_due_at: patch.dueAt,
+  })
+  if (error) throw error
 }
 
 export async function listAssignments(courseId: string): Promise<Assignment[]> {

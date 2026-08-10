@@ -133,12 +133,13 @@ export interface RosterMember {
   joined_at: string
 }
 
-/** A brief set as coursework, tied to one of the built-in exercise briefs. */
+/** Coursework: a built-in exercise brief (brief_id set) or a custom one (null). */
 export interface Assignment {
   id: string
   course_id: string
-  brief_id: string
+  brief_id: string | null
   title: string
+  notes: string | null
   due_at: string | null
   created_at: string
 }

@@ -11,6 +11,10 @@ import Designs from './routes/Designs'
 import Progress from './routes/Progress'
 import Classroom from './routes/Classroom'
 import Course from './routes/Course'
+import CreateAssignment from './routes/CreateAssignment'
+import CourseAssignments from './routes/CourseAssignments'
+import CourseSubmissions from './routes/CourseSubmissions'
+import CourseStudents from './routes/CourseStudents'
 import Assignment from './routes/Assignment'
 import Responses from './routes/Responses'
 import SharedDesign from './routes/SharedDesign'
@@ -31,6 +35,10 @@ export default function App() {
         <Route path="/progress" element={<Progress />} />
         <Route path="/classroom" element={<Classroom />} />
         <Route path="/classroom/:courseId" element={<Course />} />
+        <Route path="/classroom/:courseId/new" element={<CreateAssignment />} />
+        <Route path="/classroom/:courseId/assignments" element={<CourseAssignments />} />
+        <Route path="/classroom/:courseId/submissions" element={<CourseSubmissions />} />
+        <Route path="/classroom/:courseId/students" element={<CourseStudents />} />
         <Route path="/classroom/:courseId/a/:assignmentId" element={<Assignment />} />
         <Route path="/responses" element={<Responses />} />
         <Route path="/account" element={<Account />} />
