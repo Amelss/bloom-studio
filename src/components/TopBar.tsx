@@ -85,7 +85,7 @@ export function TopBar() {
           </select>
         </label>
 
-        <label className="btn cursor-pointer select-none" title="Show live feedback and flower notes while you design">
+        <label data-tour="learning" className="btn cursor-pointer select-none" title="Show live feedback and flower notes while you design">
           <input
             type="checkbox"
             className="accent-bloom-600"

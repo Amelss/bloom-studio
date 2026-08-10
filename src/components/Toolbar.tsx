@@ -274,6 +274,7 @@ export function Toolbar() {
   return (
     <div
       ref={rootRef}
+      data-tour="toolbar"
       role="toolbar"
       aria-orientation="vertical"
       aria-label="Tools"

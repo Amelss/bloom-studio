@@ -8,6 +8,7 @@ import { SidePanel } from '../components/SidePanel'
 import { SelectionToolbar } from '../components/SelectionToolbar'
 import { ContextMenu } from '../components/ContextMenu'
 import { ShortcutsOverlay } from '../components/ShortcutsOverlay'
+import { Tour } from '../components/Tour'
 import { Announcer } from '../components/Announcer'
 import { PixiStage } from '../components/canvas/PixiStage'
 import { CanvasControls } from '../components/canvas/CanvasControls'
@@ -37,7 +38,7 @@ export default function Editor() {
           <CollapsedTab side="left" label="Flower library" onExpand={() => setLibraryOpen(true)} />
         )}
         <Toolbar />
-        <main className="flex min-w-0 flex-1 flex-col" aria-label="Design workspace">
+        <main data-tour="canvas" className="flex min-w-0 flex-1 flex-col" aria-label="Design workspace">
           <SelectionToolbar />
           <div className="relative min-h-0 flex-1">
             <PixiStage />
@@ -52,6 +53,7 @@ export default function Editor() {
       </div>
       <ContextMenu />
       <ShortcutsOverlay />
+      <Tour />
       <Announcer />
     </div>
   )

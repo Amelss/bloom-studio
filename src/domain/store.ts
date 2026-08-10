@@ -53,6 +53,8 @@ export interface StudioState {
   lockedBands: DepthBand[]
   contextMenu: ContextMenuState | null
   shortcutsOpen: boolean
+  /** The guided first-run editor tour is running. */
+  tourOpen: boolean
   /** Left flower-library panel visible (collapse to widen the canvas). */
   libraryOpen: boolean
   /** Right recipe/insights panel visible. */
@@ -151,6 +153,7 @@ export interface StudioState {
   toggleBandLocked: (band: DepthBand) => void
   setContextMenu: (menu: ContextMenuState | null) => void
   setShortcutsOpen: (open: boolean) => void
+  setTourOpen: (open: boolean) => void
   setLibraryOpen: (open: boolean) => void
   setInsightsOpen: (open: boolean) => void
 }
@@ -254,6 +257,7 @@ const initializer: StateCreator<StudioState> = (set, get) => {
     lockedBands: [],
     contextMenu: null,
     shortcutsOpen: false,
+    tourOpen: false,
     libraryOpen: true,
     insightsOpen: true,
     learningMode: true,
@@ -724,6 +728,7 @@ const initializer: StateCreator<StudioState> = (set, get) => {
 
     setContextMenu: (menu) => set({ contextMenu: menu }),
     setShortcutsOpen: (open) => set({ shortcutsOpen: open }),
+    setTourOpen: (open) => set({ tourOpen: open }),
     setLibraryOpen: (open) => set({ libraryOpen: open }),
     setInsightsOpen: (open) => set({ insightsOpen: open }),
   }

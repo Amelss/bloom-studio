@@ -13,7 +13,7 @@ export function SidePanel({ onCollapse }: { onCollapse?: () => void }) {
   const tab: Tab = !learningMode && selectedTab === 'learn' ? 'recipe' : selectedTab
 
   return (
-    <aside className="flex w-80 shrink-0 flex-col border-l border-bloom-200 bg-white/70">
+    <aside data-tour="insights" className="flex w-80 shrink-0 flex-col border-l border-bloom-200 bg-white/70">
       <div className="flex items-stretch border-b border-bloom-200" role="tablist" aria-label="Design details">
         <TabButton id="recipe" label="Recipe" active={tab === 'recipe'} onSelect={() => setTab('recipe')} />
         <TabButton id="depth" label="Depth" active={tab === 'depth'} onSelect={() => setTab('depth')} />

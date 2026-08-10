@@ -60,6 +60,7 @@ const GROUPS: ShortcutGroup[] = [
 export function ShortcutsOverlay() {
   const open = useStudio((s) => s.shortcutsOpen)
   const setOpen = useStudio((s) => s.setShortcutsOpen)
+  const setTourOpen = useStudio((s) => s.setTourOpen)
   const [query, setQuery] = useState('')
 
   const groups = useMemo(() => {
@@ -119,10 +120,21 @@ export function ShortcutsOverlay() {
             </section>
           ))}
         </div>
-        <p className="mt-4 text-xs text-bloom-ink/50">
-          Every shortcut also exists as a visible control — the keyboard is acceleration, never
-          the only path.
-        </p>
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-bloom-100 pt-3">
+          <p className="text-xs text-bloom-ink/50">
+            Every shortcut also exists as a visible control — the keyboard is acceleration, never
+            the only path.
+          </p>
+          <button
+            className="shrink-0 rounded-lg bg-bloom-100 px-3 py-1.5 text-xs font-semibold text-bloom-700 transition-colors hover:bg-bloom-200"
+            onClick={() => {
+              setOpen(false)
+              setTourOpen(true)
+            }}
+          >
+            Take the 60-second tour
+          </button>
+        </div>
       </div>
     </div>
   )

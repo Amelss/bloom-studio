@@ -45,6 +45,7 @@ export function LibraryPanel({ onCollapse }: { onCollapse?: () => void }) {
 
   return (
     <aside
+      data-tour="library"
       className="scroll-slim flex w-72 shrink-0 flex-col gap-3 overflow-y-auto border-r border-bloom-200 bg-white/70 p-3"
       aria-label="Flower library"
     >
