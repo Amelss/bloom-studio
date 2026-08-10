@@ -1,7 +1,9 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { blankDocument } from '../domain/templates'
 import { createDesign } from '../lib/designsApi'
+import { countNewSubmissions } from '../lib/classroomApi'
+import { useAuth } from '../domain/auth'
 import { UserMenu } from './auth/UserMenu'
 
 /** The Florafo mark: a styled serif "F" (Fraunces), inheriting its colour. */
@@ -31,6 +33,24 @@ export function AppSidebar({
 }) {
   const navigate = useNavigate()
   const [creating, setCreating] = useState(false)
+
+  // Educators get a badge of submissions awaiting review, across all courses.
+  const role = useAuth((s) => s.profile?.role)
+  const isEducator = role === 'educator' || role === 'admin'
+  const [newSubmissions, setNewSubmissions] = useState(0)
+  useEffect(() => {
+    if (!isEducator) {
+      setNewSubmissions(0)
+      return
+    }
+    let active = true
+    countNewSubmissions()
+      .then((n) => active && setNewSubmissions(n))
+      .catch(() => {})
+    return () => {
+      active = false
+    }
+  }, [isEducator])
 
   const newDesign = async () => {
     setCreating(true)
@@ -74,7 +94,7 @@ export function AppSidebar({
         <NavItem to="/progress" active={active === 'progress'} icon={<path d="M4 19V5M4 19h16M8 16v-4M12 16V8M16 16v-6" />}>
           Progress
         </NavItem>
-        <NavItem to="/classroom" active={active === 'classroom'} icon={<path d="M3 7l9-4 9 4-9 4-9-4zM7 10v5c0 1 2 2 5 2s5-1 5-2v-5" />}>
+        <NavItem to="/classroom" active={active === 'classroom'} badge={newSubmissions} icon={<path d="M3 7l9-4 9 4-9 4-9-4zM7 10v5c0 1 2 2 5 2s5-1 5-2v-5" />}>
           Classroom
         </NavItem>
         <NavItem to="/responses" active={active === 'responses'} badge={unread} icon={<path d="M4 5h16v11H8l-4 4V5z" />}>

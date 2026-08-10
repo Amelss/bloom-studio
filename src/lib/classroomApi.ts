@@ -168,6 +168,32 @@ export async function submitAssignment(input: {
   if (error) throw error
 }
 
+/**
+ * How many ungraded submissions the caller can see. For an educator that's the
+ * review queue across all their courses (RLS scopes it); used for the sidebar
+ * badge. A head+count query, so no rows are transferred.
+ */
+export async function countNewSubmissions(): Promise<number> {
+  const { count, error } = await supabase
+    .from('submissions')
+    .select('id', { count: 'exact', head: true })
+    .eq('status', 'submitted')
+  if (error) throw error
+  return count ?? 0
+}
+
+/** Every submission across a course's assignments (educator course overview). */
+export async function listSubmissionsForCourse(assignmentIds: string[]): Promise<SubmissionMeta[]> {
+  if (assignmentIds.length === 0) return []
+  const { data, error } = await supabase
+    .from('submissions')
+    .select(SUBMISSION_COLS)
+    .in('assignment_id', assignmentIds)
+    .order('submitted_at', { ascending: false })
+  if (error) throw error
+  return (data ?? []) as SubmissionMeta[]
+}
+
 /** Every submission for an assignment (educator view). */
 export async function listSubmissions(assignmentId: string): Promise<SubmissionMeta[]> {
   const { data, error } = await supabase
