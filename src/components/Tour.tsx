@@ -28,6 +28,8 @@ interface Step {
   title: string
   body: string
   placement: Placement
+  /** Optional highlighted hint shown beneath the body (e.g. a key to learn). */
+  tip?: string
 }
 
 const STEPS: Step[] = [
@@ -60,6 +62,7 @@ const STEPS: Step[] = [
     title: 'Learning mode',
     body: 'Flip this on for live design feedback, a scored report card, and guided exercises as you work.',
     placement: 'bottom',
+    tip: 'Press ? any time to see keyboard shortcuts — or replay this tour from the ? menu at the bottom of the toolbar.',
   },
 ]
 
@@ -233,6 +236,15 @@ export function Tour() {
         </div>
         <h3 className="mt-1.5 font-display text-base font-semibold text-bloom-ink">{current.title}</h3>
         <p className="mt-1 text-sm leading-relaxed text-bloom-ink/70">{current.body}</p>
+
+        {current.tip && (
+          <p className="mt-2.5 flex gap-2 rounded-lg bg-bloom-100/70 px-2.5 py-2 text-xs leading-relaxed text-bloom-ink/70">
+            <kbd className="mt-px h-4 shrink-0 rounded border border-bloom-200 bg-white px-1.5 font-mono text-[11px] font-semibold text-bloom-700">
+              ?
+            </kbd>
+            <span>{current.tip}</span>
+          </p>
+        )}
 
         {/* Progress dots */}
         <div className="mt-3 flex items-center gap-1.5">

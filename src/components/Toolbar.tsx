@@ -93,6 +93,13 @@ const IconGuides = svg(
     <circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none" />
   </>,
 )
+const IconHelp = svg(
+  <>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M9.6 9.2a2.5 2.5 0 0 1 4.8 1c0 1.6-2.4 2-2.4 3.3" />
+    <circle cx="12" cy="17.2" r="0.6" fill="currentColor" stroke="none" />
+  </>,
+)
 /* --------------------------- building blocks --------------------------- */
 
 interface FlyItem {
@@ -248,6 +255,8 @@ export function Toolbar() {
   const setBalanceVisible = useStudio((s) => s.setBalanceVisible)
   const tiltEnabled = useStudio((s) => s.tiltEnabled)
   const setTiltEnabled = useStudio((s) => s.setTiltEnabled)
+  const setTourOpen = useStudio((s) => s.setTourOpen)
+  const setShortcutsOpen = useStudio((s) => s.setShortcutsOpen)
 
   // Close the open fly-out on Escape or a click outside the rail.
   useEffect(() => {
@@ -437,6 +446,49 @@ export function Toolbar() {
           <FlyRow label="Depth tilt" active={tiltEnabled} onClick={() => setTiltEnabled(!tiltEnabled)} />
         </Flyout>
       </Tool>
+
+      {/* Help sits at the very bottom of the rail — a quiet, always-there way
+          back to the tour and shortcuts. Its popover opens upward so it never
+          clips off the bottom of the screen. */}
+      <div className="mt-auto" aria-hidden />
+      <Divider />
+      <div className="group relative">
+        <button
+          type="button"
+          aria-label="Help & tips"
+          aria-haspopup="menu"
+          aria-expanded={open === 'help'}
+          onClick={() => toggle('help')}
+          className={`relative flex h-9 w-9 items-center justify-center rounded-lg transition-colors ${
+            open === 'help'
+              ? 'bg-bloom-100 text-bloom-ink'
+              : 'text-bloom-ink/55 hover:bg-bloom-100 hover:text-bloom-ink'
+          }`}
+        >
+          <IconHelp />
+        </button>
+        {open !== 'help' && (
+          <span
+            role="tooltip"
+            className="pointer-events-none absolute left-[calc(100%+8px)] top-1/2 z-[60] hidden -translate-y-1/2 whitespace-nowrap rounded-md bg-bloom-ink px-2 py-1 text-xs font-medium text-white shadow-lg group-hover:block"
+          >
+            Help &amp; tips
+          </span>
+        )}
+        {open === 'help' && (
+          <div
+            role="menu"
+            aria-label="Help"
+            className="absolute bottom-0 left-[calc(100%+8px)] z-50 min-w-[13rem] rounded-xl bg-white p-1.5 shadow-pop ring-1 ring-bloom-ink/[0.06]"
+          >
+            <p className="px-2 pb-1 pt-0.5 text-[10px] font-semibold uppercase tracking-wide text-bloom-ink/40">
+              Help
+            </p>
+            <FlyRow label="Take the 60-second tour" onClick={run(() => setTourOpen(true))} />
+            <FlyRow label="Keyboard shortcuts" shortcut="?" onClick={run(() => setShortcutsOpen(true))} />
+          </div>
+        )}
+      </div>
     </div>
   )
 }
