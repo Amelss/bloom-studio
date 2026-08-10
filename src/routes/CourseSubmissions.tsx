@@ -14,7 +14,7 @@ type Filter = 'all' | 'new' | 'graded'
 /** All submissions across a course (route `/classroom/:courseId/submissions`). */
 export default function CourseSubmissions() {
   const { courseId } = useParams<{ courseId: string }>()
-  const { course } = useCourse(courseId)
+  const { course, isOwner } = useCourse(courseId)
   const [submissions, setSubmissions] = useState<SubmissionMeta[] | null>(null)
   const [titleById, setTitleById] = useState<Map<string, string>>(new Map())
   const [error, setError] = useState<string | null>(null)
@@ -51,23 +51,28 @@ export default function CourseSubmissions() {
 
   return (
     <ClassroomShell back={back}>
-      <h1 className="mb-4 mt-3 font-display text-3xl font-semibold tracking-tight text-bloom-ink">Submissions</h1>
+      <h1 className="mb-4 mt-3 font-display text-3xl font-semibold tracking-tight text-bloom-ink">
+        {isOwner ? 'Submissions' : 'My submissions'}
+      </h1>
 
       {error && <p className="mb-4 rounded-xl bg-orange-50 px-4 py-3 text-sm text-bloom-clay">{error}</p>}
 
       <div className="mb-4 flex gap-1.5">
-        {(['all', 'new', 'graded'] as Filter[]).map((f) => (
-          <button
-            key={f}
-            onClick={() => setFilter(f)}
-            className={`rounded-lg px-3 py-1.5 text-sm font-medium capitalize transition-colors ${
-              filter === f ? 'bg-bloom-600 text-white' : 'text-bloom-ink/60 hover:bg-bloom-100'
-            }`}
-          >
-            {f}
-            {f === 'new' && newCount > 0 ? ` (${newCount})` : ''}
-          </button>
-        ))}
+        {(['all', 'new', 'graded'] as Filter[]).map((f) => {
+          const label = f === 'new' ? (isOwner ? 'New' : 'Awaiting') : f
+          return (
+            <button
+              key={f}
+              onClick={() => setFilter(f)}
+              className={`rounded-lg px-3 py-1.5 text-sm font-medium capitalize transition-colors ${
+                filter === f ? 'bg-bloom-600 text-white' : 'text-bloom-ink/60 hover:bg-bloom-100'
+              }`}
+            >
+              {label}
+              {f === 'new' && newCount > 0 ? ` (${newCount})` : ''}
+            </button>
+          )
+        })}
       </div>
 
       {!filtered ? (
@@ -88,14 +93,17 @@ export default function CourseSubmissions() {
                   {s.thumbnail_url ? <img src={s.thumbnail_url} alt="" className="h-full w-full object-cover" /> : null}
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold text-bloom-ink">{s.student_name}</p>
+                  <p className="truncate text-sm font-semibold text-bloom-ink">
+                    {isOwner ? s.student_name : (titleById.get(s.assignment_id) ?? 'Assignment')}
+                  </p>
                   <p className="truncate text-xs text-bloom-ink/55">
-                    {titleById.get(s.assignment_id) ?? 'Assignment'} · {new Date(s.submitted_at).toLocaleDateString()}
+                    {isOwner ? `${titleById.get(s.assignment_id) ?? 'Assignment'} · ` : ''}
+                    {new Date(s.submitted_at).toLocaleDateString()}
                   </p>
                 </div>
                 {s.auto_score != null && <span className="shrink-0 text-xs text-bloom-ink/50">auto {s.auto_score}</span>}
                 <span className={`chip shrink-0 ${s.status === 'graded' ? 'bg-bloom-100 text-bloom-700' : 'bg-amber-100 text-amber-700'}`}>
-                  {s.status === 'graded' ? `Graded ${s.grade ?? ''}` : 'New'}
+                  {s.status === 'graded' ? `Graded ${s.grade ?? ''}` : isOwner ? 'New' : 'Awaiting grade'}
                 </span>
               </Link>
             </li>

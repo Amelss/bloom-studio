@@ -26,7 +26,8 @@ export default function CourseAssignments() {
         const a = await listAssignments(courseId)
         if (!active) return
         setAssignments(a)
-        if (isOwner) setSubmissions(await listSubmissionsForCourse(a.map((x) => x.id)))
+        // Educators get every submission; RLS scopes a student to their own.
+        setSubmissions(await listSubmissionsForCourse(a.map((x) => x.id)))
       } catch (e) {
         if (active) setError(errMsg(e))
       }
@@ -34,8 +35,9 @@ export default function CourseAssignments() {
     return () => {
       active = false
     }
-  }, [courseId, isOwner])
+  }, [courseId])
 
+  // Educator: totals per assignment. Student: their own submission per assignment.
   const countsByAssignment = useMemo(() => {
     const m = new Map<string, { total: number; nw: number }>()
     for (const s of submissions) {
@@ -44,6 +46,12 @@ export default function CourseAssignments() {
       if (s.status === 'submitted') c.nw += 1
       m.set(s.assignment_id, c)
     }
+    return m
+  }, [submissions])
+
+  const mineByAssignment = useMemo(() => {
+    const m = new Map<string, SubmissionMeta>()
+    for (const s of submissions) m.set(s.assignment_id, s)
     return m
   }, [submissions])
 
@@ -76,6 +84,7 @@ export default function CourseAssignments() {
           {assignments.map((a) => {
             const brief = a.brief_id ? BRIEF_INDEX[a.brief_id] : null
             const counts = countsByAssignment.get(a.id)
+            const mine = mineByAssignment.get(a.id)
             return (
               <li key={a.id}>
                 <Link
@@ -89,13 +98,16 @@ export default function CourseAssignments() {
                       {a.due_at ? ` · due ${new Date(a.due_at).toLocaleDateString()}` : ''}
                     </p>
                   </div>
-                  {isOwner && counts && (
+
+                  {isOwner ? (
                     <div className="flex shrink-0 items-center gap-2">
-                      {counts.nw > 0 && <span className="chip bg-amber-100 text-amber-700">{counts.nw} new</span>}
+                      {counts && counts.nw > 0 && <span className="chip bg-amber-100 text-amber-700">{counts.nw} new</span>}
                       <span className="text-xs text-bloom-ink/50">
-                        {counts.total} submission{counts.total === 1 ? '' : 's'}
+                        {counts?.total ?? 0} submission{(counts?.total ?? 0) === 1 ? '' : 's'}
                       </span>
                     </div>
+                  ) : (
+                    <StudentStatusChip mine={mine} />
                   )}
                   <span className="shrink-0 text-bloom-ink/30" aria-hidden>→</span>
                 </Link>
@@ -106,4 +118,13 @@ export default function CourseAssignments() {
       )}
     </ClassroomShell>
   )
+}
+
+/** The student's own status for an assignment. */
+function StudentStatusChip({ mine }: { mine: SubmissionMeta | undefined }) {
+  if (!mine) return <span className="chip shrink-0 bg-bloom-ink/[0.06] text-bloom-ink/55">Not started</span>
+  if (mine.status === 'graded') {
+    return <span className="chip shrink-0 bg-bloom-100 text-bloom-700">Graded{mine.grade != null ? ` ${mine.grade}` : ''}</span>
+  }
+  return <span className="chip shrink-0 bg-amber-100 text-amber-700">Submitted</span>
 }

@@ -57,7 +57,7 @@ export default function Course() {
           {isEducator ? (
             <EducatorDashboard courseId={course.id} name={course.name} joinCode={course.join_code} />
           ) : (
-            <StudentView courseId={course.id} name={course.name} />
+            <StudentDashboard courseId={course.id} name={course.name} />
           )}
         </>
       )}
@@ -256,56 +256,106 @@ function NavCard({
   )
 }
 
-/* ─────────────────────────────── student view ─────────────────────────────── */
+/* ────────────────────────────── student dashboard ─────────────────────────── */
 
-function StudentView({ courseId, name }: { courseId: string; name: string }) {
-  const [assignments, setAssignments] = useState<Assignment[] | null>(null)
+function StudentDashboard({ courseId, name }: { courseId: string; name: string }) {
+  const [assignments, setAssignments] = useState<Assignment[]>([])
+  const [mySubs, setMySubs] = useState<SubmissionMeta[]>([])
   const [err, setErr] = useState<string | null>(null)
+  const [loaded, setLoaded] = useState(false)
 
   useEffect(() => {
     let active = true
-    listAssignments(courseId)
-      .then((a) => active && setAssignments(a))
-      .catch((e) => active && setErr(errMsg(e)))
+    ;(async () => {
+      try {
+        const a = await listAssignments(courseId)
+        // RLS scopes submissions to the student's own, so this is "my work".
+        const subs = await listSubmissionsForCourse(a.map((x) => x.id))
+        if (!active) return
+        setAssignments(a)
+        setMySubs(subs)
+        setLoaded(true)
+      } catch (e) {
+        if (active) setErr(errMsg(e))
+      }
+    })()
     return () => {
       active = false
     }
   }, [courseId])
 
+  const submittedIds = useMemo(() => new Set(mySubs.map((s) => s.assignment_id)), [mySubs])
+  const toDo = useMemo(() => assignments.filter((a) => !submittedIds.has(a.id)), [assignments, submittedIds])
+  const gradedCount = useMemo(() => mySubs.filter((s) => s.status === 'graded').length, [mySubs])
+
   return (
     <>
-      <div className="mb-6 mt-3">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-bloom-ink/40">Course</p>
+      <div className="mb-7 mt-3">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-bloom-ink/40">Your dashboard</p>
         <h1 className="font-display text-3xl font-semibold tracking-tight text-bloom-ink">{name}</h1>
-        <p className="mt-1 text-sm text-bloom-ink/55">You’re enrolled in this course</p>
       </div>
+
       {err && <p className="mb-4 rounded-xl bg-orange-50 px-4 py-3 text-sm text-bloom-clay">{err}</p>}
-      <h2 className="mb-3 font-display text-xl font-semibold text-bloom-ink">Assignments</h2>
-      {!assignments ? (
-        <p className="text-sm text-bloom-ink/45">Loading…</p>
-      ) : assignments.length === 0 ? (
-        <p className="rounded-xl border border-bloom-200 bg-white px-4 py-6 text-sm text-bloom-ink/50">No assignments yet.</p>
-      ) : (
-        <ul className="space-y-2.5">
-          {assignments.map((a) => {
-            const brief = a.brief_id ? BRIEF_INDEX[a.brief_id] : null
-            return (
-              <li key={a.id}>
-                <Link
-                  to={`/classroom/${courseId}/a/${a.id}`}
-                  className="block rounded-xl border border-bloom-200 bg-white px-4 py-3 transition hover:border-bloom-500/50"
-                >
-                  <p className="text-sm font-semibold text-bloom-ink">{a.title}</p>
-                  <p className="mt-0.5 text-xs text-bloom-ink/55">
-                    {brief ? brief.title : 'Custom brief'}
-                    {a.due_at ? ` · due ${new Date(a.due_at).toLocaleDateString()}` : ''}
-                  </p>
-                </Link>
-              </li>
-            )
-          })}
-        </ul>
-      )}
+
+      {/* Stats */}
+      <div className="mb-8 grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <Stat label="Assignments" value={assignments.length} />
+        <Stat label="Submitted" value={mySubs.length} />
+        <Stat label="To do" value={toDo.length} sub={toDo.length ? 'outstanding' : undefined} highlight={toDo.length > 0} />
+        <Stat label="Graded" value={gradedCount} />
+      </div>
+
+      {/* Navigation cards */}
+      <div className="mb-8 grid gap-3 sm:grid-cols-2">
+        <NavCard
+          to={`/classroom/${courseId}/assignments`}
+          title="Assignments"
+          hint={toDo.length ? `${toDo.length} to do` : 'All submitted'}
+          badge={toDo.length}
+          icon={<path d="M5 4h11a2 2 0 012 2v14l-6-3-6 3V4z" />}
+        />
+        <NavCard
+          to={`/classroom/${courseId}/submissions`}
+          title="My submissions"
+          hint={mySubs.length ? `${mySubs.length} submitted · ${gradedCount} graded` : 'Nothing submitted yet'}
+          icon={<path d="M4 6h16M4 12h16M4 18h10" />}
+        />
+      </div>
+
+      {/* To do */}
+      <section>
+        <h2 className="mb-3 font-display text-xl font-semibold text-bloom-ink">To do</h2>
+        {!loaded ? (
+          <p className="text-sm text-bloom-ink/45">Loading…</p>
+        ) : toDo.length === 0 ? (
+          <p className="rounded-xl border border-dashed border-bloom-300 bg-white px-4 py-8 text-center text-sm text-bloom-ink/50">
+            {assignments.length === 0 ? 'No assignments yet.' : 'You’re all caught up — everything’s submitted. 🎉'}
+          </p>
+        ) : (
+          <ul className="space-y-2.5">
+            {toDo.map((a) => {
+              const brief = a.brief_id ? BRIEF_INDEX[a.brief_id] : null
+              return (
+                <li key={a.id}>
+                  <Link
+                    to={`/classroom/${courseId}/a/${a.id}`}
+                    className="flex items-center gap-3 rounded-xl border border-bloom-200 bg-white px-4 py-3 transition hover:border-bloom-500/50 hover:shadow-soft"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold text-bloom-ink">{a.title}</p>
+                      <p className="mt-0.5 text-xs text-bloom-ink/55">
+                        {brief ? brief.title : 'Custom brief'}
+                        {a.due_at ? ` · due ${new Date(a.due_at).toLocaleDateString()}` : ''}
+                      </p>
+                    </div>
+                    <span className="shrink-0 rounded-lg bg-bloom-600 px-3 py-1.5 text-xs font-semibold text-white">Submit</span>
+                  </Link>
+                </li>
+              )
+            })}
+          </ul>
+        )}
+      </section>
     </>
   )
 }
