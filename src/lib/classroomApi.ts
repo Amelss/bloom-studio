@@ -87,13 +87,20 @@ export async function getCourse(id: string): Promise<Course | null> {
   return (data as Course) ?? null
 }
 
-/** Join a course by code; returns the course id + name. */
+/**
+ * Join a course by code; returns the course id + name. In dev we pass
+ * `p_allow_self` so one account can enrol in its own course for solo testing;
+ * production builds never send it (import.meta.env.DEV is false).
+ */
 export async function joinCourse(code: string): Promise<{ courseId: string; courseName: string }> {
-  const { data, error } = await supabase.rpc('join_course', { p_code: code })
+  const { data, error } = await supabase.rpc('join_course', {
+    p_code: code,
+    p_allow_self: import.meta.env.DEV,
+  })
   if (error) throw error
-  const row = (data as Array<{ course_id: string; course_name: string }> | null)?.[0]
+  const row = (data as Array<{ out_course_id: string; out_course_name: string }> | null)?.[0]
   if (!row) throw new Error('Could not join that course.')
-  return { courseId: row.course_id, courseName: row.course_name }
+  return { courseId: row.out_course_id, courseName: row.out_course_name }
 }
 
 /** The course roster (educator-only in practice, via RLS). */

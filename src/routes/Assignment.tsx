@@ -3,6 +3,8 @@ import { Link, useParams } from 'react-router-dom'
 import { AppSidebar, MobileTopBar } from '../components/AppSidebar'
 import { SharePreview } from '../components/canvas/SharePreview'
 import { useAuth } from '../domain/auth'
+import { readDevStudentView, writeDevStudentView } from '../lib/dev'
+import { DevRoleToggle } from '../components/DevRoleToggle'
 import { BRIEF_INDEX } from '../education/briefs'
 import { scoreDesign } from '../education/report'
 import { useDesigns } from '../hooks/useDesigns'
@@ -32,6 +34,8 @@ export default function Assignment() {
   const myId = useAuth((s) => s.user?.id)
   const [assignment, setAssignment] = useState<AssignmentT | null>(null)
   const [isEducator, setIsEducator] = useState(false)
+  const [isOwner, setIsOwner] = useState(false)
+  const [asStudent, setAsStudent] = useState(readDevStudentView())
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [preview, setPreview] = useState<DesignDocument | null>(null)
@@ -49,7 +53,9 @@ export default function Assignment() {
     try {
       const [a, c] = await Promise.all([getAssignment(assignmentId), getCourse(courseId)])
       setAssignment(a)
-      const educator = !!c && c.educator_id === myId
+      const owner = !!c && c.educator_id === myId
+      setIsOwner(owner)
+      const educator = owner && !asStudent // dev "view as student" flips this
       setIsEducator(educator)
       if (educator) setSubmissions(await listSubmissions(assignmentId))
       else setMine(await getMySubmission(assignmentId))
@@ -62,7 +68,12 @@ export default function Assignment() {
   useEffect(() => {
     void load()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [assignmentId, courseId, myId])
+  }, [assignmentId, courseId, myId, asStudent])
+
+  const toggleAsStudent = (v: boolean) => {
+    writeDevStudentView(v)
+    setAsStudent(v)
+  }
 
   const openPreview = async (submissionId: string) => {
     try {
@@ -88,6 +99,12 @@ export default function Assignment() {
             </p>
           )}
           {loading && !error && <p className="mt-6 text-sm text-bloom-ink/45">Loading…</p>}
+
+          {isOwner && (
+            <div className="mt-4">
+              <DevRoleToggle asStudent={asStudent} onChange={toggleAsStudent} />
+            </div>
+          )}
 
           {assignment && (
             <>

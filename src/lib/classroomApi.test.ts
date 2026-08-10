@@ -74,9 +74,12 @@ describe('createCourse', () => {
 
 describe('joinCourse', () => {
   it('calls the join_course RPC and maps the result', async () => {
-    h.state.rpcResult = { data: [{ course_id: 'c9', course_name: 'Weddings' }], error: null }
+    h.state.rpcResult = { data: [{ out_course_id: 'c9', out_course_name: 'Weddings' }], error: null }
     const out = await joinCourse('abc123')
-    expect(h.state.rpcCalls[0]).toEqual(['join_course', { p_code: 'abc123' }])
+    const [name, args] = h.state.rpcCalls[0] as [string, { p_code: string; p_allow_self: boolean }]
+    expect(name).toBe('join_course')
+    expect(args.p_code).toBe('abc123')
+    expect(typeof args.p_allow_self).toBe('boolean')
     expect(out).toEqual({ courseId: 'c9', courseName: 'Weddings' })
   })
 })

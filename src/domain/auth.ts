@@ -110,6 +110,13 @@ export const useAuth = create<AuthState>((set, get) => ({
     const user = get().user
     if (!user) return { error: 'You are not signed in.' }
     const current = get().profile
+    // Dev no-auth bypass: `dev-user` isn't a real UUID and there's no session,
+    // so a Supabase write would fail. Apply the edit to the in-memory profile
+    // only — enough to flip role and exercise the role-gated UI locally.
+    if (import.meta.env.DEV && import.meta.env.VITE_DEV_NO_AUTH === 'true') {
+      set({ profile: { ...(current as Profile), ...patch } as Profile })
+      return { error: null }
+    }
     try {
       // upsert (POST) rather than update (PATCH) — some deployments block PATCH
       // at the CORS layer. display_name is always included so the insert-shaped

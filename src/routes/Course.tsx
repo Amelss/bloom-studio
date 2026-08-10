@@ -3,11 +3,14 @@ import { Link, useParams } from 'react-router-dom'
 import { AppSidebar, MobileTopBar } from '../components/AppSidebar'
 import { useAuth } from '../domain/auth'
 import { copyText } from '../utils/clipboard'
+import { readDevStudentView, writeDevStudentView } from '../lib/dev'
+import { DevRoleToggle } from '../components/DevRoleToggle'
 import { BRIEFS, BRIEF_INDEX } from '../education/briefs'
 import {
   classroomErrorMessage as errMsg,
   createAssignment,
   getCourse,
+  joinCourse,
   listAssignments,
   listRoster,
 } from '../lib/classroomApi'
@@ -23,8 +26,10 @@ export default function Course() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [copied, setCopied] = useState(false)
+  const [asStudent, setAsStudent] = useState(readDevStudentView())
 
-  const isEducator = !!course && course.educator_id === myId
+  const isOwner = !!course && course.educator_id === myId
+  const isEducator = isOwner && !asStudent // dev "view as student" flips this
 
   const load = async () => {
     if (!courseId) return
@@ -56,6 +61,23 @@ export default function Course() {
     if (ok) setTimeout(() => setCopied(false), 1500)
   }
 
+  const toggleAsStudent = (v: boolean) => {
+    writeDevStudentView(v)
+    setAsStudent(v)
+  }
+
+  // Dev-only: enrol yourself in your own course so you can submit to it.
+  const enrolSelf = async () => {
+    if (!course) return
+    try {
+      await joinCourse(course.join_code)
+      toggleAsStudent(true)
+      await load()
+    } catch (e) {
+      setError(errMsg(e))
+    }
+  }
+
   return (
     <div className="flex min-h-full bg-bloom-50 text-bloom-ink">
       <AppSidebar active="classroom" />
@@ -75,6 +97,11 @@ export default function Course() {
 
           {course && (
             <>
+              {isOwner && (
+                <div className="mt-4">
+                  <DevRoleToggle asStudent={asStudent} onChange={toggleAsStudent} onEnrol={() => void enrolSelf()} />
+                </div>
+              )}
               <div className="mb-6 mt-3 flex flex-wrap items-end justify-between gap-3">
                 <div>
                   <h1 className="font-display text-3xl font-semibold tracking-tight text-bloom-ink">{course.name}</h1>
