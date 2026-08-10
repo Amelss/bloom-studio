@@ -40,6 +40,12 @@ const STEPS: Step[] = [
     placement: 'right',
   },
   {
+    target: '[data-tour="vessel"]',
+    title: 'Vessel & mechanics',
+    body: 'Choose what holds the arrangement — a wrap, vase or compote. It sets the mechanics and adds its cost to the recipe.',
+    placement: 'right',
+  },
+  {
     target: '[data-tour="toolbar"]',
     title: 'Design tools',
     body: 'Select, move, rotate, arrange, group and delete. Every tool has a shortcut — press ? any time to see them.',
@@ -52,10 +58,28 @@ const STEPS: Step[] = [
     placement: 'top',
   },
   {
+    target: '[data-tour="collapse"]',
+    title: 'More room to work',
+    body: 'Tap the arrows on a panel to tuck it away and widen the canvas. Click the tab on the edge to bring the panel back.',
+    placement: 'right',
+  },
+  {
     target: '[data-tour="insights"]',
     title: 'Live recipe & costing',
-    body: 'Your arrangement is priced as you build — stems, vessel, labour and VAT. Export it or share it with a client.',
+    body: 'Your arrangement is priced as you build — stems, vessel, labour and VAT — so you always know what it costs.',
     placement: 'left',
+  },
+  {
+    target: '[data-tour="export"]',
+    title: 'Download & export',
+    body: 'Download the recipe and shopping list as a spreadsheet, Word or PDF — or export the design itself as a PNG or shareable file.',
+    placement: 'left',
+  },
+  {
+    target: '[data-tour="share"]',
+    title: 'Share with a client',
+    body: 'Send a read-only link. Clients can view the design and approve it or request changes — no account needed.',
+    placement: 'bottom',
   },
   {
     target: '[data-tour="learning"]',
@@ -101,6 +125,15 @@ export function Tour() {
   useEffect(() => {
     if (open) setStep(0)
   }, [open])
+
+  // Bring a lower/off-screen target (vessel list, export menu) into view before
+  // we measure it. Runs before the measure effect below, so the rect is fresh.
+  useLayoutEffect(() => {
+    if (!open) return
+    const sel = STEPS[step]?.target
+    const el = sel ? (document.querySelector(sel) as HTMLElement | null) : null
+    el?.scrollIntoView({ block: 'center', inline: 'nearest' })
+  }, [open, step])
 
   // Track the current target's position (and the viewport), live.
   useLayoutEffect(() => {

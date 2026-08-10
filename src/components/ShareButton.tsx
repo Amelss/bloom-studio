@@ -144,7 +144,7 @@ export function ShareButton() {
   }
 
   return (
-    <div ref={rootRef} className="relative">
+    <div ref={rootRef} data-tour="share" className="relative">
       <button className="btn" onClick={() => setOpen((v) => !v)} aria-expanded={open} title="Share a read-only link">
         Share
       </button>

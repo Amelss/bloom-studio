@@ -54,6 +54,7 @@ export function LibraryPanel({ onCollapse }: { onCollapse?: () => void }) {
         {onCollapse && (
           <button
             type="button"
+            data-tour="collapse"
             onClick={onCollapse}
             title="Hide flower library"
             aria-label="Hide flower library"
@@ -154,6 +155,7 @@ export function LibraryPanel({ onCollapse }: { onCollapse?: () => void }) {
         <p className="text-xs text-bloom-ink/50">No flowers match — try a different search.</p>
       )}
 
+      <div data-tour="vessel" className="flex flex-col gap-1.5">
       <h2 className="panel-title mt-2">Vessel & mechanics</h2>
       <div className="flex flex-col gap-1.5" role="group" aria-label="Choose a vessel">
         <button
@@ -182,6 +184,7 @@ export function LibraryPanel({ onCollapse }: { onCollapse?: () => void }) {
             </span>
           </button>
         ))}
+      </div>
       </div>
     </aside>
   )

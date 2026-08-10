@@ -229,7 +229,7 @@ export function RecipePanel() {
         </p>
       )}
 
-      <div className="flex flex-col gap-1">
+      <div data-tour="export" className="flex flex-col gap-1">
         {/* Recipe & shopping list, in the format the studio prefers.
             Shared `name` makes the two menus mutually exclusive: opening one
             closes the other. */}
