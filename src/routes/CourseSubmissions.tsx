@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { ClassroomShell } from '../components/ClassroomShell'
 import { useCourse } from '../hooks/useCourse'
+import { markGradeSeen } from '../lib/classroomSeen'
 import {
   classroomErrorMessage as errMsg,
   listAssignments,
@@ -38,6 +39,13 @@ export default function CourseSubmissions() {
       active = false
     }
   }, [courseId])
+
+  // A student viewing their submissions has "seen" their grades.
+  useEffect(() => {
+    if (course && !isOwner && submissions) {
+      submissions.filter((s) => s.status === 'graded').forEach(markGradeSeen)
+    }
+  }, [course, isOwner, submissions])
 
   const filtered = useMemo(() => {
     if (!submissions) return null

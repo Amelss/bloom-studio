@@ -4,6 +4,7 @@ import { ClassroomShell } from '../components/ClassroomShell'
 import { SharePreview } from '../components/canvas/SharePreview'
 import { useAuth } from '../domain/auth'
 import { readDevStudentView, writeDevStudentView } from '../lib/dev'
+import { markAssignmentSeen, markGradeSeen } from '../lib/classroomSeen'
 import { DevRoleToggle } from '../components/DevRoleToggle'
 import { BRIEF_INDEX } from '../education/briefs'
 import { scoreDesign } from '../education/report'
@@ -64,7 +65,11 @@ export default function Assignment() {
         setSubmissions(subs)
         setRoster(r)
       } else {
-        setMine(await getMySubmission(assignmentId))
+        const m = await getMySubmission(assignmentId)
+        setMine(m)
+        // Viewing the assignment clears its notifications for this student.
+        markAssignmentSeen(assignmentId)
+        if (m && m.status === 'graded') markGradeSeen(m)
       }
     } catch (e) {
       setError(errMsg(e))

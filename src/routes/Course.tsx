@@ -5,6 +5,7 @@ import { DevRoleToggle } from '../components/DevRoleToggle'
 import { useCourse } from '../hooks/useCourse'
 import { copyText } from '../utils/clipboard'
 import { readDevStudentView, writeDevStudentView } from '../lib/dev'
+import { isAssignmentSeen, isGradeSeen } from '../lib/classroomSeen'
 import { BRIEF_INDEX } from '../education/briefs'
 import {
   classroomErrorMessage as errMsg,
@@ -256,6 +257,33 @@ function NavCard({
   )
 }
 
+function NotifyBanner({
+  to,
+  icon,
+  text,
+  cta,
+}: {
+  to: string
+  icon: React.ReactNode
+  text: string
+  cta: string
+}) {
+  return (
+    <Link
+      to={to}
+      className="flex items-center gap-3 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 transition hover:bg-amber-100"
+    >
+      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-400/25 text-amber-700">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+          {icon}
+        </svg>
+      </span>
+      <span className="min-w-0 flex-1 text-sm font-semibold text-amber-800">{text}</span>
+      <span className="shrink-0 text-xs font-semibold text-amber-800">{cta} →</span>
+    </Link>
+  )
+}
+
 /* ────────────────────────────── student dashboard ─────────────────────────── */
 
 function StudentDashboard({ courseId, name }: { courseId: string; name: string }) {
@@ -287,6 +315,12 @@ function StudentDashboard({ courseId, name }: { courseId: string; name: string }
   const submittedIds = useMemo(() => new Set(mySubs.map((s) => s.assignment_id)), [mySubs])
   const toDo = useMemo(() => assignments.filter((a) => !submittedIds.has(a.id)), [assignments, submittedIds])
   const gradedCount = useMemo(() => mySubs.filter((s) => s.status === 'graded').length, [mySubs])
+  // Unseen notifications (cleared once the student opens the assignment).
+  const newCount = useMemo(() => assignments.filter((a) => !isAssignmentSeen(a.id)).length, [assignments])
+  const gradedUnseen = useMemo(
+    () => mySubs.filter((s) => s.status === 'graded' && !isGradeSeen(s)).length,
+    [mySubs],
+  )
 
   return (
     <>
@@ -296,6 +330,28 @@ function StudentDashboard({ courseId, name }: { courseId: string; name: string }
       </div>
 
       {err && <p className="mb-4 rounded-xl bg-orange-50 px-4 py-3 text-sm text-bloom-clay">{err}</p>}
+
+      {/* Notifications: new assignments and newly graded results */}
+      {(newCount > 0 || gradedUnseen > 0) && (
+        <div className="mb-6 space-y-2">
+          {newCount > 0 && (
+            <NotifyBanner
+              to={`/classroom/${courseId}/assignments`}
+              icon={<path d="M5 4h11a2 2 0 012 2v14l-6-3-6 3V4z" />}
+              text={`${newCount} new assignment${newCount === 1 ? '' : 's'}`}
+              cta="View"
+            />
+          )}
+          {gradedUnseen > 0 && (
+            <NotifyBanner
+              to={`/classroom/${courseId}/submissions`}
+              icon={<path d="M20 6L9 17l-5-5" />}
+              text={`${gradedUnseen} result${gradedUnseen === 1 ? '' : 's'} graded — see your feedback`}
+              cta="See feedback"
+            />
+          )}
+        </div>
+      )}
 
       {/* Stats */}
       <div className="mb-8 grid grid-cols-2 gap-3 lg:grid-cols-4">

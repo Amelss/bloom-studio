@@ -168,6 +168,27 @@ export async function getAssignment(id: string): Promise<Assignment | null> {
   return (data as Assignment) ?? null
 }
 
+/** Every assignment the caller can see, across all their courses (RLS-scoped).
+ *  For a student that's every enrolled course's assignments. */
+export async function listMyAssignments(): Promise<Assignment[]> {
+  const { data, error } = await supabase
+    .from('assignments')
+    .select('*')
+    .order('created_at', { ascending: false })
+  if (error) throw error
+  return (data ?? []) as Assignment[]
+}
+
+/** Every submission the caller can see (RLS scopes a student to their own). */
+export async function listMySubmissions(): Promise<SubmissionMeta[]> {
+  const { data, error } = await supabase
+    .from('submissions')
+    .select(SUBMISSION_COLS)
+    .order('submitted_at', { ascending: false })
+  if (error) throw error
+  return (data ?? []) as SubmissionMeta[]
+}
+
 /* ───────────────────────────── submissions ─────────────────────────────── */
 
 /** Submit (or resubmit) a design to an assignment, with its client score. */

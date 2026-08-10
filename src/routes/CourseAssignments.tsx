@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import { ClassroomShell } from '../components/ClassroomShell'
 import { useCourse } from '../hooks/useCourse'
 import { BRIEF_INDEX } from '../education/briefs'
+import { markAssignmentSeen } from '../lib/classroomSeen'
 import {
   classroomErrorMessage as errMsg,
   listAssignments,
@@ -54,6 +55,12 @@ export default function CourseAssignments() {
     for (const s of submissions) m.set(s.assignment_id, s)
     return m
   }, [submissions])
+
+  // A student viewing the list has "seen" these assignments — clears their
+  // new-assignment notifications.
+  useEffect(() => {
+    if (course && !isOwner && assignments) assignments.forEach((a) => markAssignmentSeen(a.id))
+  }, [course, isOwner, assignments])
 
   const back = { to: `/classroom/${courseId}`, label: course?.name ?? 'Course' }
 
