@@ -156,8 +156,12 @@ export interface PlacedStem {
   clusterId?: string
 }
 
-export const STEM_SCALE_MIN = 0.85
-export const STEM_SCALE_MAX = 1.15
+// How far a stem may be scaled from its botanically-true size (each variety has
+// a real widthMm; the rendered size is widthMm × scale). Kept generous so a
+// flower can read as a bud or a fully-open bloom, but bounded to avoid sub-pixel
+// or absurdly large stems that hurt usability/performance. Tune these two.
+export const STEM_SCALE_MIN = 0.3
+export const STEM_SCALE_MAX = 3
 
 export interface DesignPricing {
   /** Retail markup applied to flowers (materials + wastage). */

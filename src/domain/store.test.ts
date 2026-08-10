@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { createStudioStore } from './store'
-import { depthValue } from './types'
+import { depthValue, STEM_SCALE_MAX, STEM_SCALE_MIN } from './types'
 
 // Fresh, non-persisted store per test.
 let store: ReturnType<typeof createStudioStore>
@@ -47,12 +47,12 @@ describe('studio store — basics', () => {
     expect(s().doc.stems).toHaveLength(1)
   })
 
-  it('clamps scale to the botanical-variation bounds', () => {
+  it('clamps scale to the stem-scale bounds', () => {
     s().addStem('garden-rose')
-    for (let i = 0; i < 10; i++) s().scaleSelected(0.05)
-    expect(s().doc.stems[0].scale).toBe(1.15)
-    for (let i = 0; i < 20; i++) s().scaleSelected(-0.05)
-    expect(s().doc.stems[0].scale).toBe(0.85)
+    for (let i = 0; i < 60; i++) s().scaleSelected(0.05)
+    expect(s().doc.stems[0].scale).toBe(STEM_SCALE_MAX)
+    for (let i = 0; i < 80; i++) s().scaleSelected(-0.05)
+    expect(s().doc.stems[0].scale).toBe(STEM_SCALE_MIN)
   })
 
   it('markup and price overrides flow through undo', () => {

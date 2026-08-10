@@ -36,7 +36,7 @@ const GROUPS: ShortcutGroup[] = [
     items: [
       ['Drag', 'Move (smart guides + form guide + grid snap)'],
       ['⌘ while dragging', 'Suspend all snapping'],
-      ['Corner handles', 'Resize (bounded ±15%)'],
+      ['Corner handles', 'Resize the selection'],
       ['Top handle', 'Rotate — hold ⇧ for 15° steps'],
       ['R / ⇧R', 'Rotate ±15°'],
       ['Arrows / ⇧ Arrows', 'Nudge 1mm / 10mm'],

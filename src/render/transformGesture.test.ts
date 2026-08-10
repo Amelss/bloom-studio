@@ -50,12 +50,13 @@ describe('scalePatches', () => {
   it('spreads positions and scales each stem within bounds', () => {
     const patches = scalePatches(stems, { x: 150, y: 200 }, 1.5)
     expect(patches.a.x).toBeCloseTo(75) // 150 + (100−150)×1.5
-    expect(patches.a.scale).toBe(1.15) // clamped botanical bound
+    expect(patches.a.scale).toBe(1.5) // within the stem-scale bounds
     expect(patches.b.x).toBeCloseTo(225)
   })
 
-  it('clamps the position factor so the gesture cannot explode', () => {
+  it('clamps the gesture factor so one drag cannot explode', () => {
     const patches = scalePatches(stems, { x: 150, y: 200 }, 50)
-    expect(patches.a.x).toBeCloseTo(150 + (100 - 150) * 2)
+    expect(patches.a.x).toBeCloseTo(150 + (100 - 150) * 4) // factor capped at 4
+    expect(patches.a.scale).toBe(3) // clamped to STEM_SCALE_MAX
   })
 })

@@ -53,9 +53,10 @@ export function scalePatches(
   center: { x: number; y: number },
   factor: number,
 ): Record<string, StemPatch> {
-  // Positions spread with the gesture; each stem's own size stays inside the
-  // botanical-variation bounds (flowers never stretch beyond real variation).
-  const f = clamp(factor, 0.5, 2)
+  // Positions spread with the gesture; each stem's own size is clamped to the
+  // stem-scale bounds. The per-gesture factor is capped so one drag stays
+  // controllable while still able to reach the bounds.
+  const f = clamp(factor, 0.25, 4)
   const patches: Record<string, StemPatch> = {}
   for (const s of start) {
     patches[s.id] = {

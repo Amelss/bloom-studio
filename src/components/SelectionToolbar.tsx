@@ -15,7 +15,8 @@ import {
  * delete) live on the left tool rail; this bar is strictly the "inspector"
  * half of that split, so a control never appears in two places. Every field
  * maps to an invertible command; multi-stem edits batch into ONE undo step.
- * Scale is bounded botanical variation (±15%) — flowers never stretch.
+ * Scale keeps each variety's real proportions (no stretching), bounded to a
+ * sane range (see STEM_SCALE_MIN/MAX).
  */
 export function SelectionToolbar() {
   const selectedIds = useStudio((s) => s.selectedIds)

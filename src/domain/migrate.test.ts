@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { migrateDocument } from './migrate'
 import { blankDocument } from './templates'
-import { DESIGN_DOC_VERSION } from './types'
+import { DESIGN_DOC_VERSION, STEM_SCALE_MAX } from './types'
 
 /** A representative v1 document (px world, head-anchored stems, raw z). */
 function v1Doc() {
@@ -51,9 +51,11 @@ describe('migrateDocument v1 → v2', () => {
     expect(euc.order).toBe(1)
   })
 
-  it('clamps legacy scales into the botanical-variation bounds', () => {
-    const doc = migrateDocument(v1Doc())
-    expect(doc.stems.find((s) => s.id === 'b')!.scale).toBe(1.15)
+  it('clamps out-of-range legacy scales into the stem-scale bounds', () => {
+    const raw = v1Doc()
+    raw.stems[1].scale = 6 // absurd legacy value, beyond the max
+    const doc = migrateDocument(raw)
+    expect(doc.stems.find((s) => s.id === 'b')!.scale).toBe(STEM_SCALE_MAX)
   })
 
   it('preserves pricing, vessel, and identity fields', () => {

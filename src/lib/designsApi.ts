@@ -1,4 +1,12 @@
 import { supabase } from './supabase'
+import { IS_DEV_NO_AUTH } from './dev'
+import {
+  devCreateDesign,
+  devDeleteDesign,
+  devListDesigns,
+  devLoadDesign,
+  devSaveDesign,
+} from './devDesigns'
 import type { DesignDocument } from '../domain/types'
 import type { DesignListItem, DesignRow } from './types'
 
@@ -16,6 +24,7 @@ async function requireUserId(): Promise<string> {
 }
 
 export async function listDesigns(): Promise<DesignListItem[]> {
+  if (IS_DEV_NO_AUTH) return devListDesigns()
   const { data, error } = await supabase
     .from('designs')
     .select('id, name, thumbnail_url, updated_at')
@@ -25,6 +34,7 @@ export async function listDesigns(): Promise<DesignListItem[]> {
 }
 
 export async function createDesign(name: string, doc: DesignDocument): Promise<string> {
+  if (IS_DEV_NO_AUTH) return devCreateDesign(name, doc)
   const owner_id = await requireUserId()
   const { data, error } = await supabase
     .from('designs')
@@ -36,6 +46,7 @@ export async function createDesign(name: string, doc: DesignDocument): Promise<s
 }
 
 export async function loadDesign(id: string): Promise<DesignRow> {
+  if (IS_DEV_NO_AUTH) return devLoadDesign(id)
   const { data, error } = await supabase.from('designs').select('*').eq('id', id).single()
   if (error) throw error
   return data as DesignRow
@@ -52,6 +63,7 @@ export async function saveDesign(
   id: string,
   patch: { doc?: DesignDocument; name?: string; thumbnail?: string | null },
 ): Promise<void> {
+  if (IS_DEV_NO_AUTH) return devSaveDesign(id, patch)
   const row: Record<string, unknown> = { id }
   if (patch.doc !== undefined) {
     row.doc = patch.doc
@@ -66,12 +78,14 @@ export async function saveDesign(
 }
 
 export async function renameDesign(id: string, name: string): Promise<void> {
+  if (IS_DEV_NO_AUTH) return devSaveDesign(id, { name })
   const owner_id = await requireUserId()
   const { error } = await supabase.from('designs').upsert({ id, owner_id, name })
   if (error) throw error
 }
 
 export async function deleteDesign(id: string): Promise<void> {
+  if (IS_DEV_NO_AUTH) return devDeleteDesign(id)
   const { error } = await supabase.from('designs').delete().eq('id', id)
   if (error) throw error
 }
