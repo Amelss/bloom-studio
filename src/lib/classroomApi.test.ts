@@ -86,10 +86,11 @@ describe('joinCourse', () => {
 
 describe('submitAssignment / gradeSubmission', () => {
   it('submits through the submit_assignment RPC', async () => {
-    await submitAssignment({ assignmentId: 'a1', designId: 'd1', autoScore: 77 })
+    const report = [{ principleId: 'balance', score: 80, tone: 'positive' as const }]
+    await submitAssignment({ assignmentId: 'a1', designId: 'd1', autoScore: 77, report })
     expect(h.state.rpcCalls[0]).toEqual([
       'submit_assignment',
-      { p_assignment_id: 'a1', p_design_id: 'd1', p_auto_score: 77 },
+      { p_assignment_id: 'a1', p_design_id: 'd1', p_auto_score: 77, p_report: report },
     ])
   })
 

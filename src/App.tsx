@@ -15,6 +15,7 @@ import CreateAssignment from './routes/CreateAssignment'
 import CourseAssignments from './routes/CourseAssignments'
 import CourseSubmissions from './routes/CourseSubmissions'
 import CourseStudents from './routes/CourseStudents'
+import CourseInsights from './routes/CourseInsights'
 import Assignment from './routes/Assignment'
 import Responses from './routes/Responses'
 import SharedDesign from './routes/SharedDesign'
@@ -39,6 +40,7 @@ export default function App() {
         <Route path="/classroom/:courseId/assignments" element={<CourseAssignments />} />
         <Route path="/classroom/:courseId/submissions" element={<CourseSubmissions />} />
         <Route path="/classroom/:courseId/students" element={<CourseStudents />} />
+        <Route path="/classroom/:courseId/insights" element={<CourseInsights />} />
         <Route path="/classroom/:courseId/a/:assignmentId" element={<Assignment />} />
         <Route path="/responses" element={<Responses />} />
         <Route path="/account" element={<Account />} />

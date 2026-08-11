@@ -1,5 +1,6 @@
 import { supabase } from './supabase'
 import { migrateDocument } from '../domain/migrate'
+import type { SampleInput } from './progressApi'
 import type { DesignDocument } from '../domain/types'
 import type { Assignment, Course, RosterMember, SubmissionMeta } from './types'
 
@@ -191,18 +192,33 @@ export async function listMySubmissions(): Promise<SubmissionMeta[]> {
 
 /* ───────────────────────────── submissions ─────────────────────────────── */
 
-/** Submit (or resubmit) a design to an assignment, with its client score. */
+/** Submit (or resubmit) a design, with its overall score + per-principle report. */
 export async function submitAssignment(input: {
   assignmentId: string
   designId: string
   autoScore: number | null
+  report: SampleInput[]
 }): Promise<void> {
   const { error } = await supabase.rpc('submit_assignment', {
     p_assignment_id: input.assignmentId,
     p_design_id: input.designId,
     p_auto_score: input.autoScore,
+    p_report: input.report,
   })
   if (error) throw error
+}
+
+/** Per-principle reports for every submission in a course — cohort analytics. */
+export async function listCourseReports(
+  assignmentIds: string[],
+): Promise<Array<SampleInput[] | null>> {
+  if (assignmentIds.length === 0) return []
+  const { data, error } = await supabase
+    .from('submissions')
+    .select('report')
+    .in('assignment_id', assignmentIds)
+  if (error) throw error
+  return ((data ?? []) as Array<{ report: SampleInput[] | null }>).map((r) => r.report)
 }
 
 /**

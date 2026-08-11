@@ -8,6 +8,7 @@ import { markAssignmentSeen, markGradeSeen } from '../lib/classroomSeen'
 import { DevRoleToggle } from '../components/DevRoleToggle'
 import { BRIEF_INDEX } from '../education/briefs'
 import { scoreDesign } from '../education/report'
+import { samplesFromReport } from '../education/mastery'
 import { useDesigns } from '../hooks/useDesigns'
 import { loadDesign } from '../lib/designsApi'
 import {
@@ -438,8 +439,13 @@ function StudentView({
     setBusy(designId)
     try {
       const row = await loadDesign(designId) // owner-only; gets the doc to score
-      const score = scoreDesign(row.doc).overall
-      await submitAssignment({ assignmentId, designId, autoScore: score })
+      const report = scoreDesign(row.doc)
+      await submitAssignment({
+        assignmentId,
+        designId,
+        autoScore: report.overall,
+        report: samplesFromReport(report),
+      })
       setPicking(false)
       onSubmitted()
     } catch (e) {

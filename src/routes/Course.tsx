@@ -148,7 +148,7 @@ function EducatorDashboard({ courseId, name, joinCode }: { courseId: string; nam
       </div>
 
       {/* Navigation cards */}
-      <div className="mb-8 grid gap-3 sm:grid-cols-3">
+      <div className="mb-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <NavCard
           to={`/classroom/${courseId}/assignments`}
           title="Assignments"
@@ -167,6 +167,12 @@ function EducatorDashboard({ courseId, name, joinCode }: { courseId: string; nam
           title="Enrolled students"
           hint={`${studentCount} enrolled`}
           icon={<path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM22 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" />}
+        />
+        <NavCard
+          to={`/classroom/${courseId}/insights`}
+          title="Class insights"
+          hint="Common strengths & gaps"
+          icon={<path d="M4 19V5M4 19h16M8 16v-4M12 16V8M16 16v-6" />}
         />
       </div>
 
