@@ -41,7 +41,7 @@ export function AppSidebar({
   const role = useAuth((s) => s.profile?.role)
   const isEducator = role === 'educator' || role === 'admin'
   // Progress + Classroom are the course/tracking layer: student/educator/admin
-  // only. Beginner florists (self-learners) and professionals don't get them.
+  // only. Professionals (any experience level) don't get them.
   const hasClassroom = role === 'student' || role === 'educator' || role === 'admin'
   const [classroomBadge, setClassroomBadge] = useState(0)
   useEffect(() => {

@@ -1,14 +1,9 @@
 import { useState, type FormEvent } from 'react'
 import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { useAuth } from '../domain/auth'
-import type { UserRole } from '../lib/types'
+import type { ExperienceLevel, UserRole } from '../lib/types'
+import { EXPERIENCE_LEVELS, SIGNUP_ROLES } from '../lib/profileOptions'
 import { AuthShell, GoogleIcon, fieldClass, labelClass } from '../components/auth/AuthShell'
-
-const ROLES: Array<{ id: UserRole; label: string }> = [
-  { id: 'student', label: 'Student' },
-  { id: 'educator', label: 'Educator' },
-  { id: 'professional', label: 'Professional florist' },
-]
 
 export default function SignUp() {
   const user = useAuth((s) => s.user)
@@ -21,6 +16,7 @@ export default function SignUp() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [role, setRole] = useState<UserRole>('student')
+  const [experience, setExperience] = useState<ExperienceLevel | ''>('')
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [confirm, setConfirm] = useState(false)
@@ -29,9 +25,20 @@ export default function SignUp() {
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault()
+    // Experience level is mandatory for professionals only.
+    if (role === 'professional' && !experience) {
+      setError('Please select your experience level.')
+      return
+    }
     setBusy(true)
     setError(null)
-    const { error, needsConfirmation } = await signUp({ email, password, displayName, role })
+    const { error, needsConfirmation } = await signUp({
+      email,
+      password,
+      displayName,
+      role,
+      experienceLevel: role === 'professional' ? (experience as ExperienceLevel) : null,
+    })
     setBusy(false)
     if (error) setError(error)
     else if (needsConfirmation) setConfirm(true)
@@ -123,13 +130,35 @@ export default function SignUp() {
             value={role}
             onChange={(e) => setRole(e.target.value as UserRole)}
           >
-            {ROLES.map((r) => (
+            {SIGNUP_ROLES.map((r) => (
               <option key={r.id} value={r.id}>
                 {r.label}
               </option>
             ))}
           </select>
         </div>
+        {role === 'professional' && (
+          <div>
+            <label htmlFor="experience" className={labelClass}>
+              Experience level
+            </label>
+            <select
+              id="experience"
+              className={fieldClass}
+              value={experience}
+              onChange={(e) => setExperience(e.target.value as ExperienceLevel | '')}
+            >
+              <option value="" disabled>
+                Select…
+              </option>
+              {EXPERIENCE_LEVELS.map((x) => (
+                <option key={x.id} value={x.id}>
+                  {x.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
         {error && <p className="text-xs text-red-700">{error}</p>}
         <button
           type="submit"

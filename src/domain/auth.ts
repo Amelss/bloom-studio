@@ -40,12 +40,14 @@ interface AuthState {
   completeOnboarding: (args: {
     displayName: string
     role: UserRole
+    experienceLevel: ExperienceLevel | null
   }) => Promise<{ error: string | null }>
   signUp: (args: {
     email: string
     password: string
     displayName: string
     role: UserRole
+    experienceLevel: ExperienceLevel | null
   }) => Promise<{ error: string | null; needsConfirmation: boolean }>
   signInWithPassword: (email: string, password: string) => Promise<{ error: string | null }>
   signInWithGoogle: () => Promise<{ error: string | null }>
@@ -163,27 +165,27 @@ export const useAuth = create<AuthState>((set, get) => ({
     }
   },
 
-  signUp: async ({ email, password, displayName, role }) => {
+  signUp: async ({ email, password, displayName, role, experienceLevel }) => {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       // Read by the handle_new_user() trigger to seed the profile row.
-      options: { data: { display_name: displayName, role } },
+      options: { data: { display_name: displayName, role, experience_level: experienceLevel } },
     })
     if (error) return { error: error.message, needsConfirmation: false }
     // No session means email confirmation is required before first login.
     return { error: null, needsConfirmation: !data.session }
   },
 
-  completeOnboarding: async ({ displayName, role }) => {
+  completeOnboarding: async ({ displayName, role, experienceLevel }) => {
     const user = get().user
     if (!user) return { error: 'You are not signed in.' }
     try {
       const { error } = await supabase
         .from('profiles')
-        .upsert({ id: user.id, display_name: displayName, role, onboarded: true })
+        .upsert({ id: user.id, display_name: displayName, role, experience_level: experienceLevel, onboarded: true })
       if (error) return { error: error.message }
-      await supabase.auth.updateUser({ data: { display_name: displayName, role } })
+      await supabase.auth.updateUser({ data: { display_name: displayName, role, experience_level: experienceLevel } })
       await get().loadProfile()
       return { error: null }
     } catch (e) {
@@ -218,18 +220,23 @@ export const useAuth = create<AuthState>((set, get) => ({
 }))
 
 /**
- * Two capability tiers sit on `profiles.role`:
+ * Two capability tiers:
  *
- * - Canvas learning (the Learn tab + educational annotations): everyone EXCEPT
- *   professional florists. Beginner florists get it; pros don't.
+ * - Canvas learning (the Learn tab + educational annotations): students,
+ *   educators and admins always; a professional only if they told us at sign-up
+ *   that they're a Beginner. Other professional levels don't get it.
  * - Classroom + Progress (the course/tracking layer): only student / educator /
- *   admin. Beginner florists self-learn without courses; pros have neither.
+ *   admin. Professionals (any level) have neither.
  *
  * Design overlays (form guide / balance / tilt) are NOT gated here — they're a
  * plain design tool available to every account, always, from the toolbar.
  */
 export function useHasCanvasLearning(): boolean {
-  return useAuth((s) => s.profile?.role !== 'professional')
+  return useAuth((s) => {
+    const p = s.profile
+    if (p?.role === 'professional') return p.experience_level === 'beginner'
+    return true // student / educator / admin (and unknown-during-load)
+  })
 }
 
 export function useHasClassroom(): boolean {
