@@ -3,7 +3,7 @@ import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { useAuth } from '../domain/auth'
 import type { ExperienceLevel, UserRole } from '../lib/types'
 import { EXPERIENCE_LEVELS, SIGNUP_ROLES } from '../lib/profileOptions'
-import { AuthShell, GoogleIcon, fieldClass, labelClass } from '../components/auth/AuthShell'
+import { AuthShell, GoogleIcon, RequiredMark, fieldClass, labelClass } from '../components/auth/AuthShell'
 
 export default function SignUp() {
   const user = useAuth((s) => s.user)
@@ -12,7 +12,8 @@ export default function SignUp() {
   const signInWithGoogle = useAuth((s) => s.signInWithGoogle)
   const navigate = useNavigate()
 
-  const [displayName, setDisplayName] = useState('')
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [role, setRole] = useState<UserRole>('student')
@@ -35,7 +36,8 @@ export default function SignUp() {
     const { error, needsConfirmation } = await signUp({
       email,
       password,
-      displayName,
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
       role,
       experienceLevel: role === 'professional' ? (experience as ExperienceLevel) : null,
     })
@@ -77,23 +79,42 @@ export default function SignUp() {
       }
     >
       <form onSubmit={onSubmit} className="flex flex-col gap-3">
-        <div>
-          <label htmlFor="name" className={labelClass}>
-            Name
-          </label>
-          <input
-            id="name"
-            type="text"
-            autoComplete="name"
-            required
-            className={fieldClass}
-            value={displayName}
-            onChange={(e) => setDisplayName(e.target.value)}
-          />
+        <div className="flex gap-3">
+          <div className="flex-1">
+            <label htmlFor="firstName" className={labelClass}>
+              First name
+              <RequiredMark />
+            </label>
+            <input
+              id="firstName"
+              type="text"
+              autoComplete="given-name"
+              required
+              className={fieldClass}
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+            />
+          </div>
+          <div className="flex-1">
+            <label htmlFor="lastName" className={labelClass}>
+              Last name
+              <RequiredMark />
+            </label>
+            <input
+              id="lastName"
+              type="text"
+              autoComplete="family-name"
+              required
+              className={fieldClass}
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+            />
+          </div>
         </div>
         <div>
           <label htmlFor="email" className={labelClass}>
             Email
+            <RequiredMark />
           </label>
           <input
             id="email"
@@ -108,6 +129,7 @@ export default function SignUp() {
         <div>
           <label htmlFor="password" className={labelClass}>
             Password
+            <RequiredMark />
           </label>
           <input
             id="password"
@@ -123,6 +145,7 @@ export default function SignUp() {
         <div>
           <label htmlFor="role" className={labelClass}>
             I’m a…
+            <RequiredMark />
           </label>
           <select
             id="role"
@@ -141,6 +164,7 @@ export default function SignUp() {
           <div>
             <label htmlFor="experience" className={labelClass}>
               Experience level
+              <RequiredMark />
             </label>
             <select
               id="experience"

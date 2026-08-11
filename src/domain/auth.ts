@@ -5,6 +5,8 @@ import type { ExperienceLevel, Profile, UserRole } from '../lib/types'
 
 /** Editable profile fields (from Account settings). */
 export interface ProfilePatch {
+  first_name?: string | null
+  last_name?: string | null
   display_name?: string
   role?: UserRole
   organisation?: string | null
@@ -38,14 +40,16 @@ interface AuthState {
   updateProfile: (patch: ProfilePatch) => Promise<{ error: string | null }>
   uploadAvatar: (file: File) => Promise<{ error: string | null }>
   completeOnboarding: (args: {
-    displayName: string
+    firstName: string
+    lastName: string
     role: UserRole
     experienceLevel: ExperienceLevel | null
   }) => Promise<{ error: string | null }>
   signUp: (args: {
     email: string
     password: string
-    displayName: string
+    firstName: string
+    lastName: string
     role: UserRole
     experienceLevel: ExperienceLevel | null
   }) => Promise<{ error: string | null; needsConfirmation: boolean }>
@@ -75,6 +79,8 @@ export const useAuth = create<AuthState>((set, get) => ({
         user: { id: 'dev-user', email: 'dev@localhost' } as unknown as User,
         profile: {
           id: 'dev-user',
+          first_name: 'Dev',
+          last_name: 'User',
           display_name: 'Dev',
           role: 'student',
           onboarded: true,
@@ -127,6 +133,8 @@ export const useAuth = create<AuthState>((set, get) => ({
         id: user.id,
         display_name: patch.display_name ?? current?.display_name ?? '',
       }
+      if (patch.first_name !== undefined) row.first_name = patch.first_name
+      if (patch.last_name !== undefined) row.last_name = patch.last_name
       if (patch.role !== undefined) row.role = patch.role
       if (patch.organisation !== undefined) row.organisation = patch.organisation
       if (patch.experience_level !== undefined) row.experience_level = patch.experience_level
@@ -165,27 +173,44 @@ export const useAuth = create<AuthState>((set, get) => ({
     }
   },
 
-  signUp: async ({ email, password, displayName, role, experienceLevel }) => {
+  signUp: async ({ email, password, firstName, lastName, role, experienceLevel }) => {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      // Read by the handle_new_user() trigger to seed the profile row.
-      options: { data: { display_name: displayName, role, experience_level: experienceLevel } },
+      // Read by the handle_new_user() trigger, which derives a unique display name.
+      options: {
+        data: { first_name: firstName, last_name: lastName, role, experience_level: experienceLevel },
+      },
     })
     if (error) return { error: error.message, needsConfirmation: false }
     // No session means email confirmation is required before first login.
     return { error: null, needsConfirmation: !data.session }
   },
 
-  completeOnboarding: async ({ displayName, role, experienceLevel }) => {
+  completeOnboarding: async ({ firstName, lastName, role, experienceLevel }) => {
     const user = get().user
     if (!user) return { error: 'You are not signed in.' }
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .upsert({ id: user.id, display_name: displayName, role, experience_level: experienceLevel, onboarded: true })
+      // Default display name = "First Last", de-duplicated server-side.
+      const base = `${firstName} ${lastName}`.trim()
+      const { data: unique, error: rpcErr } = await supabase.rpc('generate_unique_display_name', {
+        p_base: base,
+      })
+      if (rpcErr) return { error: rpcErr.message }
+      const displayName = (unique as string | null) || base
+      const { error } = await supabase.from('profiles').upsert({
+        id: user.id,
+        first_name: firstName,
+        last_name: lastName,
+        display_name: displayName,
+        role,
+        experience_level: experienceLevel,
+        onboarded: true,
+      })
       if (error) return { error: error.message }
-      await supabase.auth.updateUser({ data: { display_name: displayName, role, experience_level: experienceLevel } })
+      await supabase.auth.updateUser({
+        data: { display_name: displayName, first_name: firstName, last_name: lastName, role, experience_level: experienceLevel },
+      })
       await get().loadProfile()
       return { error: null }
     } catch (e) {

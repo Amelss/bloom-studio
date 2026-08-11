@@ -9,6 +9,9 @@ export type ExperienceLevel = 'beginner' | 'intermediate' | 'advanced' | 'expert
 
 export interface Profile {
   id: string
+  first_name: string | null
+  last_name: string | null
+  /** Public handle; defaults to "First Last" (de-duplicated), then user-editable. */
   display_name: string
   role: UserRole
   onboarded: boolean

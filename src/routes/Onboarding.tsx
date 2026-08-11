@@ -3,7 +3,13 @@ import { Navigate, useNavigate } from 'react-router-dom'
 import { useAuth } from '../domain/auth'
 import type { ExperienceLevel, UserRole } from '../lib/types'
 import { EXPERIENCE_LEVELS, SIGNUP_ROLES } from '../lib/profileOptions'
-import { AuthShell, fieldClass, labelClass } from '../components/auth/AuthShell'
+import { AuthShell, RequiredMark, fieldClass, labelClass } from '../components/auth/AuthShell'
+
+/** Split a stored display name into first + rest (last), for pre-filling. */
+function splitName(full: string | undefined): { first: string; last: string } {
+  const parts = (full ?? '').trim().split(/\s+/).filter(Boolean)
+  return { first: parts[0] ?? '', last: parts.slice(1).join(' ') }
+}
 
 /**
  * First-run profile setup. Email sign-ups already provide name + role (+ any
@@ -16,7 +22,9 @@ export default function Onboarding() {
   const completeOnboarding = useAuth((s) => s.completeOnboarding)
   const navigate = useNavigate()
 
-  const nameRef = useRef<HTMLInputElement>(null)
+  const firstRef = useRef<HTMLInputElement>(null)
+  const lastRef = useRef<HTMLInputElement>(null)
+  const seeded = splitName(profile?.display_name)
   const [role, setRole] = useState<UserRole>(profile?.role ?? 'student')
   const [experience, setExperience] = useState<ExperienceLevel | ''>(profile?.experience_level ?? '')
   const [busy, setBusy] = useState(false)
@@ -27,9 +35,10 @@ export default function Onboarding() {
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault()
-    const displayName = nameRef.current?.value.trim() ?? ''
-    if (!displayName) {
-      setError('Please enter your name.')
+    const first = firstRef.current?.value.trim() ?? ''
+    const last = lastRef.current?.value.trim() ?? ''
+    if (!first || !last) {
+      setError('Please enter your first and last name.')
       return
     }
     if (role === 'professional' && !experience) {
@@ -39,7 +48,8 @@ export default function Onboarding() {
     setBusy(true)
     setError(null)
     const { error } = await completeOnboarding({
-      displayName,
+      firstName: first,
+      lastName: last,
       role,
       experienceLevel: role === 'professional' ? (experience as ExperienceLevel) : null,
     })
@@ -51,23 +61,43 @@ export default function Onboarding() {
   return (
     <AuthShell subtitle="Welcome — let’s set up your profile">
       <form onSubmit={onSubmit} className="flex flex-col gap-3">
-        <div>
-          <label htmlFor="name" className={labelClass}>
-            Your name
-          </label>
-          {/* Uncontrolled + remount key: pre-fills once the profile loads. */}
-          <input
-            id="name"
-            ref={nameRef}
-            key={profile?.display_name ?? ''}
-            defaultValue={profile?.display_name ?? ''}
-            className={fieldClass}
-            autoComplete="name"
-          />
+        {/* Uncontrolled + remount key: pre-fills once the profile loads. */}
+        <div className="flex gap-3">
+          <div className="flex-1">
+            <label htmlFor="firstName" className={labelClass}>
+              First name
+              <RequiredMark />
+            </label>
+            <input
+              id="firstName"
+              ref={firstRef}
+              key={`first-${profile?.display_name ?? ''}`}
+              defaultValue={seeded.first}
+              required
+              className={fieldClass}
+              autoComplete="given-name"
+            />
+          </div>
+          <div className="flex-1">
+            <label htmlFor="lastName" className={labelClass}>
+              Last name
+              <RequiredMark />
+            </label>
+            <input
+              id="lastName"
+              ref={lastRef}
+              key={`last-${profile?.display_name ?? ''}`}
+              defaultValue={seeded.last}
+              required
+              className={fieldClass}
+              autoComplete="family-name"
+            />
+          </div>
         </div>
         <div>
           <label htmlFor="role" className={labelClass}>
             I’m a…
+            <RequiredMark />
           </label>
           <select
             id="role"
@@ -86,6 +116,7 @@ export default function Onboarding() {
           <div>
             <label htmlFor="experience" className={labelClass}>
               Experience level
+              <RequiredMark />
             </label>
             <select
               id="experience"

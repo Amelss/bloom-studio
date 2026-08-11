@@ -1,10 +1,9 @@
-import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
+import { useRef, useState, type ChangeEvent, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../domain/auth'
 import { UserMenu } from '../components/auth/UserMenu'
 import { fieldClass, labelClass } from '../components/auth/AuthShell'
 import { EXPERIENCE_LEVELS, SIGNUP_ROLES } from '../lib/profileOptions'
-import type { ExperienceLevel, UserRole } from '../lib/types'
 
 export default function Account() {
   const profile = useAuth((s) => s.profile)
@@ -12,18 +11,10 @@ export default function Account() {
   const updateProfile = useAuth((s) => s.updateProfile)
   const uploadAvatar = useAuth((s) => s.uploadAvatar)
 
-  const nameRef = useRef<HTMLInputElement>(null)
+  const firstRef = useRef<HTMLInputElement>(null)
+  const lastRef = useRef<HTMLInputElement>(null)
+  const nameRef = useRef<HTMLInputElement>(null) // display name
   const orgRef = useRef<HTMLInputElement>(null)
-  // Role + experience are controlled so the experience field can appear only for
-  // professionals. Resynced from the profile once it loads.
-  const [role, setRole] = useState<UserRole>(profile?.role ?? 'student')
-  const [experience, setExperience] = useState<ExperienceLevel | ''>(profile?.experience_level ?? '')
-  useEffect(() => {
-    if (profile) {
-      setRole(profile.role)
-      setExperience(profile.experience_level ?? '')
-    }
-  }, [profile?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
@@ -31,16 +22,22 @@ export default function Account() {
   const [error, setError] = useState<string | null>(null)
 
   const initial = (profile?.display_name?.trim()[0] ?? '?').toUpperCase()
+  // Role + experience are set at sign-up and can't be changed here.
+  const roleLabel = SIGNUP_ROLES.find((r) => r.id === profile?.role)?.label ?? profile?.role ?? '—'
+  const experienceLabel =
+    EXPERIENCE_LEVELS.find((x) => x.id === profile?.experience_level)?.label ?? null
 
   const onSave = async (e: FormEvent) => {
     e.preventDefault()
+    const first = firstRef.current?.value.trim() ?? ''
+    const last = lastRef.current?.value.trim() ?? ''
     const displayName = nameRef.current?.value.trim() ?? ''
-    if (!displayName) {
-      setError('Please enter a name.')
+    if (!first || !last) {
+      setError('Please enter your first and last name.')
       return
     }
-    if (role === 'professional' && !experience) {
-      setError('Please select your experience level.')
+    if (!displayName) {
+      setError('Please enter a display name.')
       return
     }
     setSaving(true)
@@ -48,11 +45,10 @@ export default function Account() {
     setStatus(null)
     const org = orgRef.current?.value.trim() ?? ''
     const { error } = await updateProfile({
+      first_name: first,
+      last_name: last,
       display_name: displayName,
-      role,
       organisation: org || null,
-      // Experience level only applies to professionals; cleared otherwise.
-      experience_level: role === 'professional' ? (experience as ExperienceLevel) : null,
     })
     setSaving(false)
     if (error) setError(error)
@@ -107,17 +103,46 @@ export default function Account() {
             </label>
           </div>
 
-          <label className={labelClass} htmlFor="displayName">
+          {/* Uncontrolled + remount key: fields refresh once the profile loads. */}
+          <div className="flex gap-3">
+            <div className="flex-1">
+              <label className={labelClass} htmlFor="firstName">
+                First name
+              </label>
+              <input
+                id="firstName"
+                ref={firstRef}
+                key={`first-${profile?.id ?? ''}`}
+                defaultValue={profile?.first_name ?? ''}
+                className={fieldClass}
+                autoComplete="given-name"
+              />
+            </div>
+            <div className="flex-1">
+              <label className={labelClass} htmlFor="lastName">
+                Last name
+              </label>
+              <input
+                id="lastName"
+                ref={lastRef}
+                key={`last-${profile?.id ?? ''}`}
+                defaultValue={profile?.last_name ?? ''}
+                className={fieldClass}
+                autoComplete="family-name"
+              />
+            </div>
+          </div>
+
+          <label className={`${labelClass} mt-4`} htmlFor="displayName">
             Display name
           </label>
-          {/* Uncontrolled + remount key: fields refresh once the profile loads. */}
           <input
             id="displayName"
             ref={nameRef}
             key={`name-${profile?.id ?? ''}`}
             defaultValue={profile?.display_name ?? ''}
             className={fieldClass}
-            autoComplete="name"
+            autoComplete="nickname"
           />
 
           <label className={`${labelClass} mt-4`} htmlFor="organisation">
@@ -135,50 +160,17 @@ export default function Account() {
             <span className={labelClass}>Email</span>
             <p className="text-sm text-bloom-ink/70">{user?.email ?? '—'}</p>
           </div>
-          <label className={`${labelClass} mt-4`} htmlFor="role">
-            Role
-          </label>
-          <select
-            id="role"
-            value={role}
-            onChange={(e) => setRole(e.target.value as UserRole)}
-            className={fieldClass}
-          >
-            {SIGNUP_ROLES.map((r) => (
-              <option key={r.id} value={r.id}>
-                {r.label}
-              </option>
-            ))}
-          </select>
-          <p className="mt-1 text-xs text-bloom-ink/45">
-            Students &amp; educators get the Classroom, Progress tracking and learning features.
-            Professionals get the design studio — plus learning features if they’re a Beginner.
-          </p>
 
-          {role === 'professional' && (
-            <>
-              <label className={`${labelClass} mt-4`} htmlFor="experience">
-                Experience level
-              </label>
-              <select
-                id="experience"
-                value={experience}
-                onChange={(e) => setExperience(e.target.value as ExperienceLevel | '')}
-                className={fieldClass}
-              >
-                <option value="" disabled>
-                  Select…
-                </option>
-                {EXPERIENCE_LEVELS.map((x) => (
-                  <option key={x.id} value={x.id}>
-                    {x.label}
-                  </option>
-                ))}
-              </select>
-              <p className="mt-1 text-xs text-bloom-ink/45">
-                Beginner unlocks Learning Mode; other levels keep the studio clutter-free.
-              </p>
-            </>
+          <div className="mt-4">
+            <span className={labelClass}>Role</span>
+            <p className="text-sm text-bloom-ink/70">{roleLabel}</p>
+          </div>
+
+          {experienceLabel && (
+            <div className="mt-4">
+              <span className={labelClass}>Experience level</span>
+              <p className="text-sm text-bloom-ink/70">{experienceLabel}</p>
+            </div>
           )}
 
           {error && <p className="mt-3 text-xs text-red-700">{error}</p>}

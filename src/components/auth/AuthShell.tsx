@@ -51,3 +51,13 @@ export const fieldClass =
   'w-full rounded-lg bg-bloom-100/60 px-3 py-2 text-sm text-bloom-ink placeholder:text-bloom-ink/40 outline-none transition-colors focus:bg-white focus:ring-2 focus:ring-bloom-600'
 
 export const labelClass = 'mb-1 block text-xs font-medium text-bloom-ink/70'
+
+/** Red asterisk marking a required field. Decorative — inputs enforce `required`. */
+export function RequiredMark() {
+  return (
+    <span className="text-red-600" aria-hidden="true">
+      {' '}
+      *
+    </span>
+  )
+}
