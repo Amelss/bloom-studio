@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState, type MouseEvent } from 'react'
 import { useStudio, migrateDocument } from '../../domain/store'
-import { useHasCanvasLearning } from '../../domain/auth'
+import { useLearningMode } from '../../domain/learning'
 import { buildRecipe, PRICING_DEFAULTS, recipeToCSV, recipeToDocx, recipeToPdf } from '../../domain/recipe'
 import { downloadBlob, downloadFile, downloadUrl } from '../../utils/download'
 import { canvasRegistry } from '../../render/registry'
@@ -18,7 +18,7 @@ export function RecipePanel() {
   const setMarkup = useStudio((s) => s.setMarkup)
   const setPriceOverride = useStudio((s) => s.setPriceOverride)
   const updatePricing = useStudio((s) => s.updatePricing)
-  const learningMode = useHasCanvasLearning()
+  const learningMode = useLearningMode()
   const importDesign = useStudio((s) => s.importDesign)
 
   const recipe = useMemo(() => buildRecipe(doc), [doc])

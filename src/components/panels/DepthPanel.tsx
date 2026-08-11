@@ -1,5 +1,5 @@
 import { useStudio } from '../../domain/store'
-import { useHasCanvasLearning } from '../../domain/auth'
+import { useLearningMode } from '../../domain/learning'
 import { FLOWER_INDEX, getColorway } from '../../data/catalog'
 import { BAND_LABELS, DEPTH_BANDS, type DepthBand } from '../../domain/types'
 
@@ -18,7 +18,7 @@ export function DepthPanel() {
   const toggleBandHidden = useStudio((s) => s.toggleBandHidden)
   const soloBand = useStudio((s) => s.soloBand)
   const toggleBandLocked = useStudio((s) => s.toggleBandLocked)
-  const learningMode = useHasCanvasLearning()
+  const learningMode = useLearningMode()
 
   const bandsFrontFirst = [...DEPTH_BANDS].reverse()
 

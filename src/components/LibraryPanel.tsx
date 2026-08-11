@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { FLOWER_CATALOG, VESSEL_CATALOG } from '../data/catalog'
 import { photoThumbSrc } from '../render/textures'
 import { useStudio } from '../domain/store'
-import { useHasCanvasLearning } from '../domain/auth'
+import { useLearningMode } from '../domain/learning'
 import type { StemCategory } from '../domain/types'
 
 const CATEGORY_LABELS: Record<StemCategory, string> = {
@@ -28,7 +28,7 @@ export function LibraryPanel({ onCollapse }: { onCollapse?: () => void }) {
   const addStem = useStudio((s) => s.addStem)
   const setVessel = useStudio((s) => s.setVessel)
   const vesselId = useStudio((s) => s.doc.vesselId)
-  const learningMode = useHasCanvasLearning()
+  const learningMode = useLearningMode()
   const photoAssetsReady = useStudio((s) => s.photoAssetsReady)
 
   const flowers = useMemo(() => {

@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { useStudio } from '../domain/store'
+import { useHasCanvasLearning } from '../domain/auth'
 import type { PaperOption } from '../domain/types'
 import { UserMenu } from './auth/UserMenu'
 import { ShareButton } from './ShareButton'
@@ -20,6 +21,12 @@ export function TopBar() {
   const redo = useStudio((s) => s.redo)
   const canUndo = useStudio((s) => s.past.length > 0)
   const canRedo = useStudio((s) => s.future.length > 0)
+  const learningMode = useStudio((s) => s.learningMode)
+  const setLearningMode = useStudio((s) => s.setLearningMode)
+  // The toggle only makes sense for accounts that have learning features
+  // (everyone but professional florists). It controls the Learn tab + notes,
+  // not the design overlays (which live in the toolbar and are always on).
+  const hasLearning = useHasCanvasLearning()
   const newDesign = useStudio((s) => s.newDesign)
   const paper = useStudio((s) => s.doc.artboards[0]?.paper ?? 'white')
   const setPaper = useStudio((s) => s.setPaper)
@@ -82,6 +89,22 @@ export function TopBar() {
             ))}
           </select>
         </label>
+
+        {hasLearning && (
+          <label
+            data-tour="learning"
+            className="btn cursor-pointer select-none"
+            title="Show live feedback, flower notes and a scored report card while you design"
+          >
+            <input
+              type="checkbox"
+              className="accent-bloom-600"
+              checked={learningMode}
+              onChange={(e) => setLearningMode(e.target.checked)}
+            />
+            Learning mode
+          </label>
+        )}
 
         <button className="btn" onClick={confirmNew} title="Start a new blank canvas">
           New

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useHasCanvasLearning } from '../domain/auth'
+import { useLearningMode } from '../domain/learning'
 import { RecipePanel } from './panels/RecipePanel'
 import { DepthPanel } from './panels/DepthPanel'
 import { LearnPanel } from './panels/LearnPanel'
@@ -7,8 +7,8 @@ import { LearnPanel } from './panels/LearnPanel'
 type Tab = 'recipe' | 'depth' | 'learn'
 
 export function SidePanel({ onCollapse }: { onCollapse?: () => void }) {
-  // The Learn tab is a learning feature — everyone but professional accounts.
-  const showLearn = useHasCanvasLearning()
+  // The Learn tab follows learning mode (account-capable + toggle on).
+  const showLearn = useLearningMode()
   const [selectedTab, setTab] = useState<Tab>('recipe')
   // Derive rather than sync, so the tab falls back if Learn isn't available.
   const tab: Tab = !showLearn && selectedTab === 'learn' ? 'recipe' : selectedTab
