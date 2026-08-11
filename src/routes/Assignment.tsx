@@ -9,6 +9,8 @@ import { DevRoleToggle } from '../components/DevRoleToggle'
 import { BRIEF_INDEX } from '../education/briefs'
 import { scoreDesign } from '../education/report'
 import { samplesFromReport } from '../education/mastery'
+import { RubricEditor } from '../components/RubricEditor'
+import { hasRubric, rubricTotal, validCriteria } from '../education/rubric'
 import { useDesigns } from '../hooks/useDesigns'
 import { loadDesign } from '../lib/designsApi'
 import {
@@ -23,7 +25,7 @@ import {
   submitAssignment,
   updateAssignment,
 } from '../lib/classroomApi'
-import type { Assignment as AssignmentT, RosterMember, SubmissionMeta } from '../lib/types'
+import type { Assignment as AssignmentT, RosterMember, Rubric, RubricScore, SubmissionMeta } from '../lib/types'
 import type { DesignDocument } from '../domain/types'
 
 /** One assignment (route `/classroom/:courseId/a/:assignmentId`). Role-aware. */
@@ -161,11 +163,18 @@ export default function Assignment() {
           )}
 
           {isEducator ? (
-            <EducatorView submissions={submissions} roster={roster} onPreview={openPreview} onGraded={() => void load()} />
+            <EducatorView
+              submissions={submissions}
+              roster={roster}
+              rubric={assignment.rubric}
+              onPreview={openPreview}
+              onGraded={() => void load()}
+            />
           ) : (
             <StudentView
               assignmentId={assignment.id}
               mine={mine}
+              rubric={assignment.rubric}
               onPreview={openPreview}
               onSubmitted={() => void load()}
               setError={setError}
@@ -210,6 +219,7 @@ function EditAssignment({
   const [title, setTitle] = useState(assignment.title)
   const [notes, setNotes] = useState(assignment.notes ?? '')
   const [dueAt, setDueAt] = useState(assignment.due_at ? assignment.due_at.slice(0, 10) : '')
+  const [rubric, setRubric] = useState<Rubric | null>(assignment.rubric)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const fieldCls = 'w-full rounded-lg border border-bloom-200 bg-white px-3 py-2 text-sm focus:border-bloom-500 focus:outline-none focus:ring-2 focus:ring-bloom-500/20'
@@ -219,6 +229,11 @@ function EditAssignment({
       setError('Title cannot be empty.')
       return
     }
+    const cleanRubric = rubric == null ? null : validCriteria(rubric)
+    if (rubric != null && !hasRubric(cleanRubric)) {
+      setError('Add at least one rubric criterion with a name and points — or switch to a simple grade.')
+      return
+    }
     setBusy(true)
     setError(null)
     try {
@@ -226,6 +241,7 @@ function EditAssignment({
         title,
         notes: notes || null,
         dueAt: dueAt ? new Date(dueAt).toISOString() : null,
+        rubric: cleanRubric,
       })
       onSaved()
     } catch (e) {
@@ -250,6 +266,7 @@ function EditAssignment({
         <span className="mb-1 block text-xs font-semibold text-bloom-ink/60">Due date</span>
         <input type="date" value={dueAt} onChange={(e) => setDueAt(e.target.value)} className={fieldCls} />
       </label>
+      <RubricEditor value={rubric} onChange={setRubric} />
       {error && <p className="text-sm text-bloom-clay">{error}</p>}
       <div className="flex items-center gap-2">
         <button
@@ -272,11 +289,13 @@ function EditAssignment({
 function EducatorView({
   submissions,
   roster,
+  rubric,
   onPreview,
   onGraded,
 }: {
   submissions: SubmissionMeta[]
   roster: RosterMember[]
+  rubric: Rubric | null
   onPreview: (id: string) => void
   onGraded: () => void
 }) {
@@ -299,7 +318,7 @@ function EducatorView({
       ) : (
         <ul className="space-y-2">
           {submissions.map((s) => (
-            <SubmissionRow key={s.id} submission={s} onPreview={onPreview} onGraded={onGraded} />
+            <SubmissionRow key={s.id} submission={s} rubric={rubric} onPreview={onPreview} onGraded={onGraded} />
           ))}
         </ul>
       )}
@@ -324,24 +343,43 @@ function EducatorView({
 
 function SubmissionRow({
   submission: s,
+  rubric,
   onPreview,
   onGraded,
 }: {
   submission: SubmissionMeta
+  rubric: Rubric | null
   onPreview: (id: string) => void
   onGraded: () => void
 }) {
+  const usingRubric = hasRubric(rubric)
   const [grading, setGrading] = useState(false)
   const [grade, setGrade] = useState(s.grade != null ? String(s.grade) : '')
+  // Seed rubric point inputs from a prior grading, keyed by criterion id.
+  const [points, setPoints] = useState<Record<string, string>>(() =>
+    Object.fromEntries((s.rubric_scores ?? []).map((r) => [r.criterionId, String(r.points)])),
+  )
   const [feedback, setFeedback] = useState(s.feedback ?? '')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  const rubricScores: RubricScore[] = usingRubric
+    ? validCriteria(rubric).map((c) => ({
+        criterionId: c.id,
+        points: Math.max(0, Math.min(c.max, Math.round(Number(points[c.id]) || 0))),
+      }))
+    : []
+  const rubricGrade = usingRubric ? rubricTotal(rubric, rubricScores) : null
 
   const save = async () => {
     setBusy(true)
     setError(null)
     try {
-      await gradeSubmission(s.id, grade ? Number(grade) : 0, feedback)
+      if (usingRubric) {
+        await gradeSubmission(s.id, rubricGrade ?? 0, feedback, rubricScores)
+      } else {
+        await gradeSubmission(s.id, grade ? Number(grade) : 0, feedback)
+      }
       setGrading(false)
       onGraded()
     } catch (e) {
@@ -365,7 +403,7 @@ function SubmissionRow({
           <p className="text-sm font-semibold text-bloom-ink">{s.student_name}</p>
           <p className="text-[11px] text-bloom-ink/50">
             Submitted {new Date(s.submitted_at).toLocaleDateString()}
-            {s.status === 'graded' && s.grade != null ? ` · graded ${s.grade}` : ''}
+            {s.status === 'graded' && s.grade != null ? ` · graded ${s.grade}/100` : ''}
           </p>
         </div>
         <button
@@ -378,18 +416,44 @@ function SubmissionRow({
 
       {grading && (
         <div className="mt-3 border-t border-bloom-100 pt-3">
-          <div className="flex items-center gap-2">
-            <label className="text-xs text-bloom-ink/60">Grade</label>
-            <input
-              type="number"
-              min={0}
-              max={100}
-              value={grade}
-              onChange={(e) => setGrade(e.target.value)}
-              className="w-20 rounded-lg border border-bloom-200 px-2 py-1.5 text-sm"
-            />
-            <span className="text-xs text-bloom-ink/40">/ 100</span>
-          </div>
+          {usingRubric ? (
+            <div className="space-y-2">
+              {validCriteria(rubric).map((c) => (
+                <div key={c.id} className="flex items-center gap-2">
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-xs font-semibold text-bloom-ink">{c.label}</p>
+                    {c.description && <p className="truncate text-[11px] text-bloom-ink/50">{c.description}</p>}
+                  </div>
+                  <input
+                    type="number"
+                    min={0}
+                    max={c.max}
+                    value={points[c.id] ?? ''}
+                    onChange={(e) => setPoints((p) => ({ ...p, [c.id]: e.target.value }))}
+                    className="w-16 rounded-lg border border-bloom-200 px-2 py-1.5 text-center text-sm"
+                  />
+                  <span className="w-10 shrink-0 text-xs text-bloom-ink/40">/ {c.max}</span>
+                </div>
+              ))}
+              <div className="flex items-center justify-end gap-1.5 border-t border-bloom-100 pt-2 text-sm">
+                <span className="text-xs font-medium text-bloom-ink/55">Grade</span>
+                <span className="font-bold text-bloom-700">{rubricGrade}/100</span>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <label className="text-xs text-bloom-ink/60">Grade</label>
+              <input
+                type="number"
+                min={0}
+                max={100}
+                value={grade}
+                onChange={(e) => setGrade(e.target.value)}
+                className="w-20 rounded-lg border border-bloom-200 px-2 py-1.5 text-sm"
+              />
+              <span className="text-xs text-bloom-ink/40">/ 100</span>
+            </div>
+          )}
           <textarea
             value={feedback}
             onChange={(e) => setFeedback(e.target.value)}
@@ -416,17 +480,48 @@ function SubmissionRow({
   )
 }
 
+/** Per-criterion breakdown shown to a student on a rubric-graded submission. */
+function RubricBreakdown({ rubric, scores }: { rubric: Rubric; scores: RubricScore[] }) {
+  const byId = new Map(scores.map((r) => [r.criterionId, r.points]))
+  return (
+    <div className="mt-3 rounded-lg border border-bloom-100 bg-bloom-50/60 p-3">
+      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-bloom-ink/45">Rubric</p>
+      <ul className="space-y-2">
+        {validCriteria(rubric).map((c) => {
+          const pts = Math.max(0, Math.min(c.max, byId.get(c.id) ?? 0))
+          const pct = c.max > 0 ? (pts / c.max) * 100 : 0
+          return (
+            <li key={c.id}>
+              <div className="flex items-baseline justify-between gap-2 text-xs">
+                <span className="truncate font-medium text-bloom-ink/80">{c.label}</span>
+                <span className="shrink-0 tabular-nums text-bloom-ink/60">
+                  {pts}/{c.max}
+                </span>
+              </div>
+              <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-bloom-100">
+                <div className="h-full rounded-full bg-bloom-500" style={{ width: `${pct}%` }} />
+              </div>
+            </li>
+          )
+        })}
+      </ul>
+    </div>
+  )
+}
+
 /* ──────────────────────────────── student ──────────────────────────────── */
 
 function StudentView({
   assignmentId,
   mine,
+  rubric,
   onPreview,
   onSubmitted,
   setError,
 }: {
   assignmentId: string
   mine: SubmissionMeta | null
+  rubric: Rubric | null
   onPreview: (id: string) => void
   onSubmitted: () => void
   setError: (m: string) => void
@@ -477,6 +572,9 @@ function StudentView({
               <span className="rounded-lg bg-bloom-100 px-3 py-1.5 text-sm font-bold text-bloom-700">{mine.grade}/100</span>
             )}
           </div>
+          {mine.status === 'graded' && hasRubric(rubric) && mine.rubric_scores && (
+            <RubricBreakdown rubric={rubric} scores={mine.rubric_scores} />
+          )}
           {mine.feedback && (
             <p className="mt-3 rounded-lg bg-bloom-50 px-3 py-2 text-sm text-bloom-ink/80">
               <span className="font-semibold">Feedback: </span>

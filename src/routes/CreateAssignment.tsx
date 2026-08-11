@@ -4,6 +4,9 @@ import { ClassroomShell } from '../components/ClassroomShell'
 import { useCourse } from '../hooks/useCourse'
 import { BRIEFS, BRIEF_INDEX } from '../education/briefs'
 import { classroomErrorMessage as errMsg, createAssignment } from '../lib/classroomApi'
+import { RubricEditor } from '../components/RubricEditor'
+import { hasRubric, validCriteria } from '../education/rubric'
+import type { Rubric } from '../lib/types'
 
 type Mode = 'brief' | 'custom'
 
@@ -21,6 +24,7 @@ export default function CreateAssignment() {
   const [title, setTitle] = useState('')
   const [notes, setNotes] = useState('')
   const [dueAt, setDueAt] = useState('')
+  const [rubric, setRubric] = useState<Rubric | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -33,6 +37,12 @@ export default function CreateAssignment() {
       setError('Please give the assignment a title.')
       return
     }
+    // Rubric mode requires at least one named, positive-points criterion.
+    const cleanRubric = rubric == null ? null : validCriteria(rubric)
+    if (rubric != null && !hasRubric(cleanRubric)) {
+      setError('Add at least one rubric criterion with a name and points — or switch to a simple grade.')
+      return
+    }
     setBusy(true)
     setError(null)
     try {
@@ -42,6 +52,7 @@ export default function CreateAssignment() {
         title: effectiveTitle,
         notes: notes || null,
         dueAt: dueAt ? new Date(dueAt).toISOString() : null,
+        rubric: cleanRubric,
       })
       navigate(`/classroom/${courseId}/a/${a.id}`)
     } catch (e) {
@@ -137,6 +148,8 @@ export default function CreateAssignment() {
           </span>
           <input type="date" value={dueAt} onChange={(e) => setDueAt(e.target.value)} className={fieldCls} />
         </label>
+
+        <RubricEditor value={rubric} onChange={setRubric} />
 
         {error && <p className="text-sm text-bloom-clay">{error}</p>}
 

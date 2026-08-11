@@ -133,6 +133,24 @@ export interface RosterMember {
   joined_at: string
 }
 
+/** One weighted scoring criterion in an assignment's rubric. */
+export interface RubricCriterion {
+  id: string
+  label: string
+  description: string
+  /** Points this criterion is worth (1–100). */
+  max: number
+}
+
+/** A rubric = an ordered list of criteria. `null`/`[]` ⇒ legacy free 0–100 grade. */
+export type Rubric = RubricCriterion[]
+
+/** An educator's score for one criterion (points earned, 0..max). */
+export interface RubricScore {
+  criterionId: string
+  points: number
+}
+
 /** Coursework: a built-in exercise brief (brief_id set) or a custom one (null). */
 export interface Assignment {
   id: string
@@ -141,6 +159,8 @@ export interface Assignment {
   title: string
   notes: string | null
   due_at: string | null
+  /** Weighted scoring criteria, or null for the free 0–100 grade. */
+  rubric: Rubric | null
   created_at: string
 }
 
@@ -156,6 +176,8 @@ export interface SubmissionMeta {
   status: 'submitted' | 'graded'
   grade: number | null
   feedback: string | null
+  /** Per-criterion breakdown when the assignment was graded on a rubric. */
+  rubric_scores: RubricScore[] | null
   submitted_at: string
   graded_at: string | null
 }

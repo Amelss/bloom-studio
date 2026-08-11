@@ -2,7 +2,7 @@ import { supabase } from './supabase'
 import { migrateDocument } from '../domain/migrate'
 import type { SampleInput } from './progressApi'
 import type { DesignDocument } from '../domain/types'
-import type { Assignment, Course, RosterMember, SubmissionMeta } from './types'
+import type { Assignment, Course, RosterMember, Rubric, RubricScore, SubmissionMeta } from './types'
 
 /**
  * The Classroom (M5): courses, rosters, assignments and submissions. Reads go
@@ -14,7 +14,7 @@ import type { Assignment, Course, RosterMember, SubmissionMeta } from './types'
 
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789' // no I/O/0/1
 const SUBMISSION_COLS =
-  'id, assignment_id, student_id, student_name, design_id, thumbnail_url, auto_score, status, grade, feedback, submitted_at, graded_at'
+  'id, assignment_id, student_id, student_name, design_id, thumbnail_url, auto_score, status, grade, feedback, rubric_scores, submitted_at, graded_at'
 
 /**
  * Turn a raw error into something the UI can show. Only a genuinely missing
@@ -123,6 +123,7 @@ export async function createAssignment(input: {
   title: string
   notes: string | null
   dueAt: string | null
+  rubric: Rubric | null
 }): Promise<Assignment> {
   const { data, error } = await supabase
     .from('assignments')
@@ -132,6 +133,7 @@ export async function createAssignment(input: {
       title: input.title.trim(),
       notes: input.notes?.trim() || null,
       due_at: input.dueAt,
+      rubric: input.rubric,
     })
     .select('*')
     .single()
@@ -142,13 +144,14 @@ export async function createAssignment(input: {
 /** Edit an existing assignment (RPC — a direct UPDATE would be a blocked PATCH). */
 export async function updateAssignment(
   id: string,
-  patch: { title: string; notes: string | null; dueAt: string | null },
+  patch: { title: string; notes: string | null; dueAt: string | null; rubric: Rubric | null },
 ): Promise<void> {
   const { error } = await supabase.rpc('update_assignment', {
     p_id: id,
     p_title: patch.title.trim(),
     p_notes: patch.notes ?? '',
     p_due_at: patch.dueAt,
+    p_rubric: patch.rubric,
   })
   if (error) throw error
 }
@@ -282,16 +285,19 @@ export async function getSubmissionDoc(submissionId: string): Promise<DesignDocu
   return migrateDocument((data as { doc: DesignDocument }).doc)
 }
 
-/** Grade a submission (educator only). */
+/** Grade a submission (educator only). `grade` is the normalised 0–100 rollup;
+ *  `rubricScores` carries the per-criterion breakdown when a rubric was used. */
 export async function gradeSubmission(
   submissionId: string,
   grade: number,
   feedback: string,
+  rubricScores: RubricScore[] | null = null,
 ): Promise<void> {
   const { error } = await supabase.rpc('grade_submission', {
     p_submission_id: submissionId,
     p_grade: grade,
     p_feedback: feedback,
+    p_rubric_scores: rubricScores,
   })
   if (error) throw error
 }

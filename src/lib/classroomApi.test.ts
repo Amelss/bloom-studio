@@ -94,11 +94,20 @@ describe('submitAssignment / gradeSubmission', () => {
     ])
   })
 
-  it('grades through the grade_submission RPC', async () => {
+  it('grades through the grade_submission RPC (simple grade)', async () => {
     await gradeSubmission('s1', 85, 'Lovely balance')
     expect(h.state.rpcCalls[0]).toEqual([
       'grade_submission',
-      { p_submission_id: 's1', p_grade: 85, p_feedback: 'Lovely balance' },
+      { p_submission_id: 's1', p_grade: 85, p_feedback: 'Lovely balance', p_rubric_scores: null },
+    ])
+  })
+
+  it('passes the per-criterion breakdown when grading on a rubric', async () => {
+    const scores = [{ criterionId: 'a', points: 8 }]
+    await gradeSubmission('s1', 80, 'Good', scores)
+    expect(h.state.rpcCalls[0]).toEqual([
+      'grade_submission',
+      { p_submission_id: 's1', p_grade: 80, p_feedback: 'Good', p_rubric_scores: scores },
     ])
   })
 })
