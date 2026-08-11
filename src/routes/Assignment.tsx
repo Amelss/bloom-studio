@@ -25,12 +25,6 @@ import {
 import type { Assignment as AssignmentT, RosterMember, SubmissionMeta } from '../lib/types'
 import type { DesignDocument } from '../domain/types'
 
-function ScoreBadge({ score }: { score: number | null }) {
-  if (score == null) return null
-  const cls = score >= 85 ? 'bg-bloom-100 text-bloom-700' : score >= 55 ? 'bg-amber-50 text-amber-700' : 'bg-orange-50 text-bloom-clay'
-  return <span className={`chip ${cls}`}>{score}</span>
-}
-
 /** One assignment (route `/classroom/:courseId/a/:assignmentId`). Role-aware. */
 export default function Assignment() {
   const { courseId, assignmentId } = useParams<{ courseId: string; assignmentId: string }>()
@@ -373,16 +367,12 @@ function SubmissionRow({
             {s.status === 'graded' && s.grade != null ? ` · graded ${s.grade}` : ''}
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-[11px] text-bloom-ink/45">auto</span>
-          <ScoreBadge score={s.auto_score} />
-          <button
-            onClick={() => setGrading((v) => !v)}
-            className="rounded-lg border border-bloom-200 px-2.5 py-1.5 text-xs font-semibold text-bloom-700 hover:bg-bloom-100"
-          >
-            {s.status === 'graded' ? 'Edit grade' : 'Grade'}
-          </button>
-        </div>
+        <button
+          onClick={() => setGrading((v) => !v)}
+          className="shrink-0 rounded-lg border border-bloom-200 px-2.5 py-1.5 text-xs font-semibold text-bloom-700 hover:bg-bloom-100"
+        >
+          {s.status === 'graded' ? 'Edit grade' : 'Grade'}
+        </button>
       </div>
 
       {grading && (

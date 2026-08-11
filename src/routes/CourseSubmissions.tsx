@@ -109,7 +109,6 @@ export default function CourseSubmissions() {
                     {new Date(s.submitted_at).toLocaleDateString()}
                   </p>
                 </div>
-                {s.auto_score != null && <span className="shrink-0 text-xs text-bloom-ink/50">auto {s.auto_score}</span>}
                 <span className={`chip shrink-0 ${s.status === 'graded' ? 'bg-bloom-100 text-bloom-700' : 'bg-amber-100 text-amber-700'}`}>
                   {s.status === 'graded' ? `Graded ${s.grade ?? ''}` : isOwner ? 'New' : 'Awaiting grade'}
                 </span>
