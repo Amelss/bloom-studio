@@ -14,6 +14,18 @@ export interface ProfilePatch {
   avatar_url?: string | null
 }
 
+/** Shown when a display name collides with the unique index. */
+export const DISPLAY_NAME_TAKEN = 'That display name is already taken — please choose another.'
+
+/** A Postgres unique-violation, however the client surfaced it (code or text). */
+function isDisplayNameTaken(error: { code?: string; message?: string } | null): boolean {
+  if (!error) return false
+  return (
+    error.code === '23505' ||
+    /duplicate key|unique constraint|profiles_display_name_lower_idx/i.test(error.message ?? '')
+  )
+}
+
 function toMessage(e: unknown): string {
   if (e instanceof Error && e.message.includes('fetch')) {
     return 'Could not reach the server. Check your connection and try again.'
@@ -142,10 +154,7 @@ export const useAuth = create<AuthState>((set, get) => ({
 
       const { error } = await supabase.from('profiles').upsert(row)
       if (error) {
-        // Unique index on lower(display_name) → the name is taken.
-        if (error.code === '23505') {
-          return { error: 'That display name is already taken — please choose another.' }
-        }
+        if (isDisplayNameTaken(error)) return { error: DISPLAY_NAME_TAKEN }
         return { error: error.message }
       }
       // Mirror name/role onto auth metadata (shown in the Supabase dashboard,
@@ -214,7 +223,7 @@ export const useAuth = create<AuthState>((set, get) => ({
         onboarded: true,
       })
       if (error) {
-        if (error.code === '23505') return { error: 'That display name is already taken — please try again.' }
+        if (isDisplayNameTaken(error)) return { error: DISPLAY_NAME_TAKEN }
         return { error: error.message }
       }
       await supabase.auth.updateUser({

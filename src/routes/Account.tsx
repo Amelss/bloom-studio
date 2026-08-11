@@ -1,6 +1,6 @@
 import { useRef, useState, type ChangeEvent, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
-import { useAuth } from '../domain/auth'
+import { DISPLAY_NAME_TAKEN, useAuth } from '../domain/auth'
 import { UserMenu } from '../components/auth/UserMenu'
 import { fieldClass, labelClass } from '../components/auth/AuthShell'
 import { EXPERIENCE_LEVELS, SIGNUP_ROLES } from '../lib/profileOptions'
@@ -20,6 +20,8 @@ export default function Account() {
   const [uploading, setUploading] = useState(false)
   const [status, setStatus] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  // A "display name taken" error is shown inline under that field, not form-wide.
+  const [displayNameError, setDisplayNameError] = useState<string | null>(null)
 
   const initial = (profile?.display_name?.trim()[0] ?? '?').toUpperCase()
   // Role + experience are set at sign-up and can't be changed here.
@@ -42,6 +44,7 @@ export default function Account() {
     }
     setSaving(true)
     setError(null)
+    setDisplayNameError(null)
     setStatus(null)
     const org = orgRef.current?.value.trim() ?? ''
     const { error } = await updateProfile({
@@ -51,8 +54,14 @@ export default function Account() {
       organisation: org || null,
     })
     setSaving(false)
-    if (error) setError(error)
-    else setStatus('Saved.')
+    if (error === DISPLAY_NAME_TAKEN) {
+      setDisplayNameError(error)
+      nameRef.current?.focus()
+    } else if (error) {
+      setError(error)
+    } else {
+      setStatus('Saved.')
+    }
   }
 
   const onAvatar = async (e: ChangeEvent<HTMLInputElement>) => {
@@ -141,9 +150,12 @@ export default function Account() {
             ref={nameRef}
             key={`name-${profile?.id ?? ''}`}
             defaultValue={profile?.display_name ?? ''}
-            className={fieldClass}
+            onChange={() => displayNameError && setDisplayNameError(null)}
+            aria-invalid={displayNameError ? true : undefined}
+            className={`${fieldClass} ${displayNameError ? 'ring-2 ring-red-500' : ''}`}
             autoComplete="nickname"
           />
+          {displayNameError && <p className="mt-1 text-xs text-red-700">{displayNameError}</p>}
 
           <label className={`${labelClass} mt-4`} htmlFor="organisation">
             Organisation / college <span className="font-normal text-bloom-ink/40">(optional)</span>
