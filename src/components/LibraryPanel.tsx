@@ -90,17 +90,17 @@ export function LibraryPanel({ onCollapse }: { onCollapse?: () => void }) {
         ))}
       </div>
 
-      <ul className="grid grid-cols-2 gap-2">
+      <ul className="grid auto-rows-fr grid-cols-2 gap-2">
         {flowers.map((flower) => {
           const preview = flower.colorways[0]
           const photo = photoAssetsReady ? photoThumbSrc(flower.id, preview.id) : null
           return (
-            <li key={flower.id}>
+            <li key={flower.id} className="flex">
               <div
                 role="button"
                 tabIndex={0}
                 draggable
-                className="group flex w-full cursor-pointer flex-col items-center rounded-xl bg-white p-2.5 text-center shadow-soft ring-1 ring-bloom-ink/[0.04] transition duration-150 hover:-translate-y-0.5 hover:shadow-panel hover:ring-bloom-500/30"
+                className="group flex h-full w-full cursor-pointer flex-col items-center rounded-xl bg-white p-2.5 text-center shadow-soft ring-1 ring-bloom-ink/[0.04] transition duration-150 hover:-translate-y-0.5 hover:shadow-panel hover:ring-bloom-500/30"
                 onClick={() => addStem(flower.id)}
                 onDragStart={(e) => {
                   e.dataTransfer.setData(
@@ -130,7 +130,7 @@ export function LibraryPanel({ onCollapse }: { onCollapse?: () => void }) {
                 <span className="mt-0.5 text-[10px] text-bloom-ink/60">
                   £{flower.guidePriceGBP.toFixed(2)} · {CATEGORY_LABELS[flower.category]}
                 </span>
-                <span className="mt-1 flex items-center gap-1">
+                <span className="mt-auto flex items-center gap-1 pt-1.5">
                   {flower.colorways.map((c) => (
                     <button
                       key={c.id}
