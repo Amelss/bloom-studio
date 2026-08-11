@@ -37,24 +37,95 @@ function TrendIcon({ trend }: { trend: PrincipleMastery['trend'] }) {
   )
 }
 
-/** A tiny inline sparkline of values (0–100) over time. */
-function Sparkline({ values }: { values: number[] }) {
-  if (values.length < 2) return null
-  const W = 300
-  const H = 72
-  const pad = 8
-  const stepX = (W - pad * 2) / (values.length - 1)
-  const pts = values.map((v, i) => {
-    const x = pad + i * stepX
-    const y = pad + (1 - Math.max(0, Math.min(100, v)) / 100) * (H - pad * 2)
-    return [x, y] as const
-  })
-  const d = pts.map(([x, y], i) => `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`).join(' ')
-  const [lx, ly] = pts[pts.length - 1]
+/** A grade point in time. */
+interface GradePoint {
+  t: number
+  v: number
+  date: Date
+}
+
+/**
+ * Grades over time: a single-series line chart with a 0–100 y-axis and monthly
+ * x-axis. One brand hue, recessive gridlines, axis labels in ink tokens; each
+ * point carries a native tooltip. (No legend — the section title names the series.)
+ */
+function GradeChart({ points }: { points: GradePoint[] }) {
+  if (points.length < 2) return null
+  const W = 760
+  const H = 240
+  const padL = 34
+  const padR = 16
+  const padT = 14
+  const padB = 30
+  const plotW = W - padL - padR
+  const plotH = H - padT - padB
+
+  const tMin = points[0].t
+  const tMax = points[points.length - 1].t
+  const span = tMax - tMin
+  const xOf = (t: number, i: number) =>
+    span > 0
+      ? padL + ((t - tMin) / span) * plotW
+      : padL + (points.length === 1 ? plotW / 2 : (i / (points.length - 1)) * plotW)
+  const yOf = (v: number) => padT + (1 - Math.max(0, Math.min(100, v)) / 100) * plotH
+
+  const coords = points.map((p, i) => ({ ...p, x: xOf(p.t, i), y: yOf(p.v) }))
+  const line = coords.map((c, i) => `${i === 0 ? 'M' : 'L'}${c.x.toFixed(1)},${c.y.toFixed(1)}`).join(' ')
+  const yTicks = [0, 25, 50, 75, 100]
+
+  // Monthly x-axis ticks: one per calendar month spanned (first clamped to the left).
+  const monthTicks: Array<{ x: number; label: string }> = []
+  if (span > 0) {
+    const start = new Date(new Date(tMin).getFullYear(), new Date(tMin).getMonth(), 1)
+    const multiYear = new Date(tMin).getFullYear() !== new Date(tMax).getFullYear()
+    for (let d = start; d.getTime() <= tMax; d = new Date(d.getFullYear(), d.getMonth() + 1, 1)) {
+      const tx = Math.max(tMin, d.getTime())
+      const x = padL + ((tx - tMin) / span) * plotW
+      const label =
+        d.toLocaleDateString(undefined, { month: 'short' }) +
+        (d.getMonth() === 0 || multiYear ? ` ’${String(d.getFullYear()).slice(2)}` : '')
+      monthTicks.push({ x, label })
+    }
+  } else {
+    monthTicks.push({ x: padL + plotW / 2, label: points[0].date.toLocaleDateString(undefined, { month: 'short', year: '2-digit' }) })
+  }
+
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="h-16 w-full text-bloom-600" preserveAspectRatio="none" aria-hidden>
-      <path d={d} fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
-      <circle cx={lx} cy={ly} r={4} fill="currentColor" />
+    <svg viewBox={`0 0 ${W} ${H}`} className="h-auto w-full" role="img" aria-label="Grades over time">
+      {/* Y gridlines + labels (0–100) */}
+      <g className="text-bloom-200">
+        {yTicks.map((t) => (
+          <line key={t} x1={padL} x2={W - padR} y1={yOf(t)} y2={yOf(t)} stroke="currentColor" strokeWidth={1} />
+        ))}
+      </g>
+      <g className="fill-current text-bloom-ink/45 text-[10px]">
+        {yTicks.map((t) => (
+          <text key={t} x={padL - 6} y={yOf(t) + 3} textAnchor="end">
+            {t}
+          </text>
+        ))}
+      </g>
+
+      {/* X axis month labels */}
+      <g className="fill-current text-bloom-ink/45 text-[10px]">
+        {monthTicks.map((m, i) => (
+          <text key={i} x={m.x} y={H - 10} textAnchor="middle">
+            {m.label}
+          </text>
+        ))}
+      </g>
+
+      {/* The grade line + points (brand hue) */}
+      <g className="text-bloom-600">
+        <path d={line} fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+        {coords.map((c, i) => (
+          <circle key={i} cx={c.x} cy={c.y} r={i === coords.length - 1 ? 4.5 : 3.5} fill="currentColor" stroke="#fff" strokeWidth={1.5}>
+            <title>
+              {c.date.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}: {c.v}/100
+            </title>
+          </circle>
+        ))}
+      </g>
     </svg>
   )
 }
@@ -143,6 +214,14 @@ export default function Progress() {
     [submissions],
   )
   const gradeSeries = useMemo(() => gradedChrono.map((s) => s.grade as number), [gradedChrono])
+  const gradePoints = useMemo<GradePoint[]>(
+    () =>
+      gradedChrono.map((s) => {
+        const date = new Date(s.graded_at ?? s.submitted_at)
+        return { t: date.getTime(), v: s.grade as number, date }
+      }),
+    [gradedChrono],
+  )
   const avgGrade = gradeSeries.length ? Math.round(gradeSeries.reduce((a, b) => a + b, 0) / gradeSeries.length) : null
   const bestGrade = gradeSeries.length ? Math.max(...gradeSeries) : null
   const gradeDelta = gradeSeries.length >= 2 ? gradeSeries[gradeSeries.length - 1] - gradeSeries[0] : null
@@ -187,19 +266,22 @@ export default function Progress() {
               </div>
 
               {/* Grade trend — the "how I improved" centrepiece */}
-              {gradeSeries.length >= 2 && (
+              {gradePoints.length >= 2 && (
                 <section className="rounded-2xl border border-bloom-200 bg-white p-5">
-                  <div className="mb-2 flex items-baseline justify-between gap-3">
-                    <h2 className="font-display text-lg font-semibold text-bloom-ink">Grade trend</h2>
+                  <div className="mb-3 flex items-baseline justify-between gap-3">
+                    <div>
+                      <h2 className="font-display text-lg font-semibold text-bloom-ink">Grades over time</h2>
+                      <p className="text-xs text-bloom-ink/50">Each graded assignment, oldest to newest.</p>
+                    </div>
                     <span className={`text-sm font-semibold ${gradeDelta != null && gradeDelta >= 0 ? 'text-bloom-600' : 'text-bloom-clay'}`}>
-                      {gradeDelta != null && gradeDelta >= 0 ? 'Trending up' : 'Keep going'}
+                      {gradeDelta != null && gradeDelta > 0
+                        ? `▲ up ${gradeDelta}`
+                        : gradeDelta === 0
+                          ? 'Steady'
+                          : 'Keep going'}
                     </span>
                   </div>
-                  <Sparkline values={gradeSeries} />
-                  <div className="mt-1 flex justify-between text-[11px] text-bloom-ink/45">
-                    <span>First: {gradeSeries[0]}</span>
-                    <span>Latest: {gradeSeries[gradeSeries.length - 1]}</span>
-                  </div>
+                  <GradeChart points={gradePoints} />
                 </section>
               )}
 
