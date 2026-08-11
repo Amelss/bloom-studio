@@ -63,7 +63,7 @@ function SharedView({ token, design }: { token: string; design: SharedDesignRow 
     <div className="min-h-full bg-bloom-100/40">
       <header className="sticky top-0 z-10 border-b border-bloom-200 bg-white/90 px-4 py-3 backdrop-blur sm:px-5">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-3">
-          <span className="font-display text-lg font-semibold text-bloom-700">Florafo</span>
+          <span className="font-brand text-lg font-semibold text-bloom-700">Florafo</span>
           <span className="chip bg-bloom-100 text-bloom-700">Shared design</span>
         </div>
       </header>

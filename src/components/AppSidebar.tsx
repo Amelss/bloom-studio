@@ -10,7 +10,7 @@ import { UserMenu } from './auth/UserMenu'
 /** The Florafo mark: a styled serif "F" (Fraunces), inheriting its colour. */
 export function FlorafoGlyph({ className }: { className?: string }) {
   return (
-    <span className={`font-display font-semibold leading-none ${className ?? ''}`} aria-hidden>
+    <span className={`font-brand font-semibold leading-none ${className ?? ''}`} aria-hidden>
       F
     </span>
   )
@@ -84,7 +84,7 @@ export function AppSidebar({
     <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-r border-bloom-200 bg-white/70 px-4 py-5 md:flex">
       <Link to="/" className="flex items-center gap-2 px-2">
         <BrandMark />
-        <span className="font-display text-lg font-semibold tracking-tight text-bloom-700">
+        <span className="font-brand text-lg font-semibold tracking-tight text-bloom-700">
           Florafo
         </span>
       </Link>
@@ -175,7 +175,7 @@ export function MobileTopBar() {
     <div className="flex items-center justify-between px-6 py-3 md:hidden">
       <Link to="/" className="flex items-center gap-2">
         <BrandMark />
-        <span className="font-display text-lg font-semibold tracking-tight text-bloom-700">
+        <span className="font-brand text-lg font-semibold tracking-tight text-bloom-700">
           Florafo
         </span>
       </Link>

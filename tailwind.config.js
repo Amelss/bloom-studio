@@ -4,8 +4,11 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        display: ['Fraunces', 'Georgia', 'serif'],
+        // Headings use the same clean sans as body text. `font-brand` keeps
+        // Fraunces exclusively for the Florafo logo lockup.
+        display: ['Inter', 'system-ui', 'sans-serif'],
         sans: ['Inter', 'system-ui', 'sans-serif'],
+        brand: ['Fraunces', 'Georgia', 'serif'],
       },
       colors: {
         bloom: {
