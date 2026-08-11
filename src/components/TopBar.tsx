@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useStudio } from '../domain/store'
 import { useHasCanvasLearning } from '../domain/auth'
@@ -5,6 +6,7 @@ import type { PaperOption } from '../domain/types'
 import { UserMenu } from './auth/UserMenu'
 import { ShareButton } from './ShareButton'
 import { VersionHistory } from './VersionHistory'
+import { ProposalDialog } from './ProposalDialog'
 
 const PAPERS: Array<{ id: PaperOption; label: string }> = [
   { id: 'white', label: 'White' },
@@ -14,6 +16,7 @@ const PAPERS: Array<{ id: PaperOption; label: string }> = [
 ]
 
 export function TopBar() {
+  const [proposalOpen, setProposalOpen] = useState(false)
   const docName = useStudio((s) => s.doc.name)
   const doc = useStudio((s) => s.doc)
   const renameDesign = useStudio((s) => s.renameDesign)
@@ -112,11 +115,17 @@ export function TopBar() {
 
         <VersionHistory />
 
+        <button className="btn" onClick={() => setProposalOpen(true)} title="Build a branded client proposal PDF">
+          Proposal
+        </button>
+
         <ShareButton />
 
         <span className="mx-1 h-6 w-px bg-bloom-200" aria-hidden />
         <UserMenu />
       </div>
+
+      {proposalOpen && <ProposalDialog onClose={() => setProposalOpen(false)} />}
     </header>
   )
 }
