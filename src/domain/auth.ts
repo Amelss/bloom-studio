@@ -141,7 +141,13 @@ export const useAuth = create<AuthState>((set, get) => ({
       if (patch.avatar_url !== undefined) row.avatar_url = patch.avatar_url
 
       const { error } = await supabase.from('profiles').upsert(row)
-      if (error) return { error: error.message }
+      if (error) {
+        // Unique index on lower(display_name) → the name is taken.
+        if (error.code === '23505') {
+          return { error: 'That display name is already taken — please choose another.' }
+        }
+        return { error: error.message }
+      }
       // Mirror name/role onto auth metadata (shown in the Supabase dashboard,
       // and read by the new-user trigger on future sign-ins).
       const meta: Record<string, unknown> = {}
@@ -207,7 +213,10 @@ export const useAuth = create<AuthState>((set, get) => ({
         experience_level: experienceLevel,
         onboarded: true,
       })
-      if (error) return { error: error.message }
+      if (error) {
+        if (error.code === '23505') return { error: 'That display name is already taken — please try again.' }
+        return { error: error.message }
+      }
       await supabase.auth.updateUser({
         data: { display_name: displayName, first_name: firstName, last_name: lastName, role, experience_level: experienceLevel },
       })
