@@ -7,6 +7,7 @@ import { AuthShell, fieldClass, labelClass } from '../components/auth/AuthShell'
 const ROLES: Array<{ id: UserRole; label: string }> = [
   { id: 'student', label: 'Student' },
   { id: 'educator', label: 'Educator' },
+  { id: 'beginner', label: 'Beginner florist' },
   { id: 'professional', label: 'Professional florist' },
 ]
 

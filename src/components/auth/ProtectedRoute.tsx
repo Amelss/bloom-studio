@@ -29,3 +29,17 @@ export function ProtectedRoute() {
   }
   return <Outlet />
 }
+
+/**
+ * Gate for the course/tracking layer (Progress, Classroom): student / educator /
+ * admin only. Beginner florists (self-learners) and professionals are bounced
+ * home. Nested inside ProtectedRoute, so the user is already known here; only
+ * redirect once the profile has loaded so we don't bounce a real student.
+ */
+export function ClassroomRoute() {
+  const profile = useAuth((s) => s.profile)
+  const role = profile?.role
+  const hasClassroom = role === 'student' || role === 'educator' || role === 'admin'
+  if (profile && !hasClassroom) return <Navigate to="/" replace />
+  return <Outlet />
+}

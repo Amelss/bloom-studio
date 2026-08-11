@@ -70,7 +70,6 @@ export function PixiStage() {
           scene.sync(s.doc, s.selectedIds, {
             showFormGuide: s.showFormGuide,
             formGuideKind: s.formGuideKind,
-            learningMode: s.learningMode,
             gridVisible: s.gridVisible,
             gridStepMm: s.gridStepMm,
             hiddenBands: s.hiddenBands,

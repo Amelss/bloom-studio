@@ -216,3 +216,25 @@ export const useAuth = create<AuthState>((set, get) => ({
     set({ session: null, user: null, profile: null })
   },
 }))
+
+/**
+ * Two capability tiers sit on `profiles.role`:
+ *
+ * - Canvas learning (the Learn tab + educational annotations): everyone EXCEPT
+ *   professional florists. Beginner florists get it; pros don't.
+ * - Classroom + Progress (the course/tracking layer): only student / educator /
+ *   admin. Beginner florists self-learn without courses; pros have neither.
+ *
+ * Design overlays (form guide / balance / tilt) are NOT gated here — they're a
+ * plain design tool available to every account, always, from the toolbar.
+ */
+export function useHasCanvasLearning(): boolean {
+  return useAuth((s) => s.profile?.role !== 'professional')
+}
+
+export function useHasClassroom(): boolean {
+  return useAuth((s) => {
+    const role = s.profile?.role
+    return role === 'student' || role === 'educator' || role === 'admin'
+  })
+}

@@ -1,5 +1,5 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
-import { ProtectedRoute } from './components/auth/ProtectedRoute'
+import { ProtectedRoute, ClassroomRoute } from './components/auth/ProtectedRoute'
 import Login from './routes/Login'
 import SignUp from './routes/SignUp'
 import AuthCallback from './routes/AuthCallback'
@@ -33,15 +33,18 @@ export default function App() {
         <Route path="/welcome" element={<Onboarding />} />
         <Route path="/" element={<Dashboard />} />
         <Route path="/designs" element={<Designs />} />
-        <Route path="/progress" element={<Progress />} />
-        <Route path="/classroom" element={<Classroom />} />
-        <Route path="/classroom/:courseId" element={<Course />} />
-        <Route path="/classroom/:courseId/new" element={<CreateAssignment />} />
-        <Route path="/classroom/:courseId/assignments" element={<CourseAssignments />} />
-        <Route path="/classroom/:courseId/submissions" element={<CourseSubmissions />} />
-        <Route path="/classroom/:courseId/students" element={<CourseStudents />} />
-        <Route path="/classroom/:courseId/insights" element={<CourseInsights />} />
-        <Route path="/classroom/:courseId/a/:assignmentId" element={<Assignment />} />
+        {/* Course/tracking layer — student/educator/admin only. */}
+        <Route element={<ClassroomRoute />}>
+          <Route path="/progress" element={<Progress />} />
+          <Route path="/classroom" element={<Classroom />} />
+          <Route path="/classroom/:courseId" element={<Course />} />
+          <Route path="/classroom/:courseId/new" element={<CreateAssignment />} />
+          <Route path="/classroom/:courseId/assignments" element={<CourseAssignments />} />
+          <Route path="/classroom/:courseId/submissions" element={<CourseSubmissions />} />
+          <Route path="/classroom/:courseId/students" element={<CourseStudents />} />
+          <Route path="/classroom/:courseId/insights" element={<CourseInsights />} />
+          <Route path="/classroom/:courseId/a/:assignmentId" element={<Assignment />} />
+        </Route>
         <Route path="/responses" element={<Responses />} />
         <Route path="/account" element={<Account />} />
         <Route path="/design/:id" element={<Editor />} />

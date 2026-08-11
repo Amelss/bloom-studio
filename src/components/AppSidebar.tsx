@@ -40,9 +40,12 @@ export function AppSidebar({
   // (the sidebar remounts), so viewing an item clears it on the next page.
   const role = useAuth((s) => s.profile?.role)
   const isEducator = role === 'educator' || role === 'admin'
+  // Progress + Classroom are the course/tracking layer: student/educator/admin
+  // only. Beginner florists (self-learners) and professionals don't get them.
+  const hasClassroom = role === 'student' || role === 'educator' || role === 'admin'
   const [classroomBadge, setClassroomBadge] = useState(0)
   useEffect(() => {
-    if (!role) {
+    if (!hasClassroom) {
       setClassroomBadge(0)
       return
     }
@@ -66,7 +69,7 @@ export function AppSidebar({
     return () => {
       active = false
     }
-  }, [role, isEducator])
+  }, [role, isEducator, hasClassroom])
 
   const newDesign = async () => {
     setCreating(true)
@@ -107,12 +110,17 @@ export function AppSidebar({
         <NavItem to="/designs" active={active === 'designs'} icon={<path d="M4 10.5 12 4l8 6.5M6 9v10a1 1 0 001 1h10a1 1 0 001-1V9" />}>
           My designs
         </NavItem>
-        <NavItem to="/progress" active={active === 'progress'} icon={<path d="M4 19V5M4 19h16M8 16v-4M12 16V8M16 16v-6" />}>
-          Progress
-        </NavItem>
-        <NavItem to="/classroom" active={active === 'classroom'} badge={classroomBadge} icon={<path d="M3 7l9-4 9 4-9 4-9-4zM7 10v5c0 1 2 2 5 2s5-1 5-2v-5" />}>
-          Classroom
-        </NavItem>
+        {/* Course/tracking layer — student/educator/admin only. */}
+        {hasClassroom && (
+          <>
+            <NavItem to="/progress" active={active === 'progress'} icon={<path d="M4 19V5M4 19h16M8 16v-4M12 16V8M16 16v-6" />}>
+              Progress
+            </NavItem>
+            <NavItem to="/classroom" active={active === 'classroom'} badge={classroomBadge} icon={<path d="M3 7l9-4 9 4-9 4-9-4zM7 10v5c0 1 2 2 5 2s5-1 5-2v-5" />}>
+              Classroom
+            </NavItem>
+          </>
+        )}
         <NavItem to="/responses" active={active === 'responses'} badge={unread} icon={<path d="M4 5h16v11H8l-4 4V5z" />}>
           Responses
         </NavItem>

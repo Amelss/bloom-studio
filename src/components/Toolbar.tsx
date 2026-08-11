@@ -240,7 +240,6 @@ export function Toolbar() {
   const groupSelected = useStudio((s) => s.groupSelected)
   const ungroupSelected = useStudio((s) => s.ungroupSelected)
 
-  const learningMode = useStudio((s) => s.learningMode)
   const gridVisible = useStudio((s) => s.gridVisible)
   const setGridVisible = useStudio((s) => s.setGridVisible)
   const gridSnap = useStudio((s) => s.gridSnap)
@@ -413,15 +412,14 @@ export function Toolbar() {
 
       <Tool
         icon={IconGuides}
-        label="Learning overlays"
-        hint="turn on Learning mode"
+        label="Overlays"
+        hint="form guides, balance & depth tilt"
         hasFlyout
-        disabled={!learningMode}
-        active={learningMode && (showFormGuide || balanceVisible || tiltEnabled)}
+        active={showFormGuide || balanceVisible || tiltEnabled}
         isOpen={open === 'guides'}
         onClick={() => toggle('guides')}
       >
-        <Flyout title="Learning overlays">
+        <Flyout title="Overlays">
           <FlyRow label="Form guide" active={showFormGuide} onClick={() => setShowFormGuide(!showFormGuide)} />
           {showFormGuide && (
             <div className="mb-1 flex gap-1 px-2.5 pb-1" role="group" aria-label="Form guide shape">

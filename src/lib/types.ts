@@ -1,7 +1,7 @@
 import type { DesignDocument } from '../domain/types'
 
 /** Account roles — mirrors the `profiles.role` check in the SQL schema. */
-export type UserRole = 'student' | 'educator' | 'professional' | 'admin'
+export type UserRole = 'student' | 'educator' | 'professional' | 'admin' | 'beginner'
 
 export type ExperienceLevel = 'beginner' | 'intermediate' | 'advanced' | 'professional'
 

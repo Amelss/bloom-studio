@@ -80,12 +80,6 @@ const STEPS: Step[] = [
     title: 'Share with a client',
     body: 'Send a read-only link. Clients can view the design and approve it or request changes — no account needed.',
     placement: 'bottom',
-  },
-  {
-    target: '[data-tour="learning"]',
-    title: 'Learning mode',
-    body: 'Flip this on for live design feedback, a scored report card, and guided exercises as you work.',
-    placement: 'bottom',
     tip: 'Press ? any time to see keyboard shortcuts — or replay this tour from the ? menu at the bottom of the toolbar.',
   },
 ]

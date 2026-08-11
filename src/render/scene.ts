@@ -47,7 +47,6 @@ const TILT_TRAVEL_MM = 7
 export interface ScenePrefs {
   showFormGuide: boolean
   formGuideKind: FormGuideKind
-  learningMode: boolean
   gridVisible: boolean
   gridStepMm: number
   hiddenBands: DepthBand[]
@@ -103,7 +102,6 @@ export class SceneManager {
   private prefs: ScenePrefs = {
     showFormGuide: false,
     formGuideKind: 'round',
-    learningMode: true,
     gridVisible: false,
     gridStepMm: 10,
     hiddenBands: [],
@@ -684,7 +682,7 @@ export class SceneManager {
   private drawFormGuide() {
     const g = this.overlayG
     g.clear()
-    if (!this.prefs.showFormGuide || !this.prefs.learningMode) return
+    if (!this.prefs.showFormGuide) return
     const artboard = this.artboard
     if (!artboard) return
     const px = 1 / this.camera.scale
@@ -723,7 +721,7 @@ export class SceneManager {
   private drawBalance() {
     const g = this.balanceG
     g.clear()
-    if (!this.prefs.balanceVisible || !this.prefs.learningMode || !this.doc) return
+    if (!this.prefs.balanceVisible || !this.doc) return
     const artboard = this.artboard
     if (!artboard) return
     const balance = computeBalancePoint(this.doc)

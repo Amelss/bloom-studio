@@ -333,7 +333,7 @@ export function attachInteractions(
       // 1. Form-guide magnetism: the head snaps onto the silhouette, the stem
       //    turns radial — the splay of a real spiral.
       let formSnapped = false
-      if (state.showFormGuide && state.learningMode) {
+      if (state.showFormGuide) {
         const variety = FLOWER_INDEX[primaryStem.varietyId]
         if (variety) {
           const d = headDistance(variety, primaryStem.scale)

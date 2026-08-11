@@ -20,8 +20,6 @@ export function TopBar() {
   const redo = useStudio((s) => s.redo)
   const canUndo = useStudio((s) => s.past.length > 0)
   const canRedo = useStudio((s) => s.future.length > 0)
-  const learningMode = useStudio((s) => s.learningMode)
-  const setLearningMode = useStudio((s) => s.setLearningMode)
   const newDesign = useStudio((s) => s.newDesign)
   const paper = useStudio((s) => s.doc.artboards[0]?.paper ?? 'white')
   const setPaper = useStudio((s) => s.setPaper)
@@ -83,16 +81,6 @@ export function TopBar() {
               </option>
             ))}
           </select>
-        </label>
-
-        <label data-tour="learning" className="btn cursor-pointer select-none" title="Show live feedback and flower notes while you design">
-          <input
-            type="checkbox"
-            className="accent-bloom-600"
-            checked={learningMode}
-            onChange={(e) => setLearningMode(e.target.checked)}
-          />
-          Learning mode
         </label>
 
         <button className="btn" onClick={confirmNew} title="Start a new blank canvas">

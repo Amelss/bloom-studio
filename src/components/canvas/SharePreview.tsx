@@ -25,7 +25,6 @@ export function SharePreview({ doc }: { doc: DesignDocument }) {
     const readOnlyPrefs = {
       showFormGuide: false,
       formGuideKind: 'round' as const,
-      learningMode: false,
       gridVisible: false,
       gridStepMm: 10,
       hiddenBands: [],

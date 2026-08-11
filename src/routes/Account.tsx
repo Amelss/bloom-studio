@@ -15,6 +15,7 @@ const EXPERIENCE: Array<{ id: ExperienceLevel; label: string }> = [
 const ROLES: Array<{ id: UserRole; label: string }> = [
   { id: 'student', label: 'Student' },
   { id: 'educator', label: 'Educator' },
+  { id: 'beginner', label: 'Beginner florist' },
   { id: 'professional', label: 'Professional' },
 ]
 
@@ -170,7 +171,8 @@ export default function Account() {
             ))}
           </select>
           <p className="mt-1 text-xs text-bloom-ink/45">
-            Educators create courses; students join and submit. Switch to test both sides of the Classroom.
+            Students &amp; educators get the Classroom and Progress tracking. Beginner florists get the
+            canvas learning features without courses. Professionals get neither — just the design studio.
           </p>
 
           {error && <p className="mt-3 text-xs text-red-700">{error}</p>}

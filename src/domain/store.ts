@@ -59,8 +59,7 @@ export interface StudioState {
   libraryOpen: boolean
   /** Right recipe/insights panel visible. */
   insightsOpen: boolean
-  learningMode: boolean
-  /** The active exercise/brief id, or null when free-designing (learning mode). */
+  /** The active exercise/brief id, or null when free-designing. */
   activeBriefId: string | null
   showFormGuide: boolean
   /** Which silhouette the form guide draws and snaps to. */
@@ -125,7 +124,6 @@ export interface StudioState {
   newDesign: (kind: 'starter' | 'blank') => void
   importDesign: (doc: DesignDocument) => void
 
-  setLearningMode: (on: boolean) => void
   setActiveBrief: (id: string | null) => void
   setShowFormGuide: (on: boolean) => void
   setFormGuideKind: (kind: FormGuideKind) => void
@@ -260,7 +258,6 @@ const initializer: StateCreator<StudioState> = (set, get) => {
     tourOpen: false,
     libraryOpen: true,
     insightsOpen: true,
-    learningMode: true,
     activeBriefId: null,
     showFormGuide: false,
     formGuideKind: 'round',
@@ -646,7 +643,6 @@ const initializer: StateCreator<StudioState> = (set, get) => {
       })
     },
 
-    setLearningMode: (on) => set({ learningMode: on }),
     setActiveBrief: (id) => set({ activeBriefId: id }),
     setShowFormGuide: (on) => set({ showFormGuide: on }),
     setFormGuideKind: (kind) => set({ formGuideKind: kind, showFormGuide: true }),
@@ -747,7 +743,6 @@ export function createStudioStore(options: { persistKey?: string } = {}) {
       // The document now lives in the cloud (per design) + a per-design local
       // cache — only UI preferences persist under this key.
       partialize: (state) => ({
-        learningMode: state.learningMode,
         activeBriefId: state.activeBriefId,
         formGuideKind: state.formGuideKind,
         gridVisible: state.gridVisible,
