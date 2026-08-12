@@ -54,6 +54,13 @@ const SPREAD_MM = {
   snapdragon: 55,
   stock: 50,
   sunflower: 150,
+  // New (2026-08-11) — keep in sync with import-cutout.mjs + DB width_mm.
+  chrysanthemum: 95,
+  amaranthus: 110,
+  pampas: 130,
+  scabiosa: 65,
+  'string-of-pearls': 45,
+  veronica: 45,
 }
 
 /**

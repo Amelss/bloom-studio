@@ -1,5 +1,11 @@
 [
   {
+    "file": "amaranthus-green-0.png",
+    "source": "added via add-asset.mjs",
+    "license": null,
+    "note": null
+  },
+  {
     "file": "astilbe-pink-0.png",
     "source": "externally created production asset",
     "license": null,
@@ -8,6 +14,24 @@
   {
     "file": "carnation-dusty-pink-0.png",
     "source": "externally created production asset",
+    "license": null,
+    "note": null
+  },
+  {
+    "file": "chrysanthemum-dark-pink-0.png",
+    "source": "added via add-asset.mjs",
+    "license": null,
+    "note": null
+  },
+  {
+    "file": "chrysanthemum-light-pink-0.png",
+    "source": "added via add-asset.mjs",
+    "license": null,
+    "note": null
+  },
+  {
+    "file": "chrysanthemum-orange-0.png",
+    "source": "added via add-asset.mjs",
     "license": null,
     "note": null
   },
@@ -108,6 +132,12 @@
     "note": null
   },
   {
+    "file": "pampas-natural-0.png",
+    "source": "added via add-asset.mjs",
+    "license": null,
+    "note": null
+  },
+  {
     "file": "peony-pink-0.png",
     "source": "externally created production asset",
     "license": null,
@@ -126,6 +156,12 @@
     "note": null
   },
   {
+    "file": "scabiosa-lavender-0.png",
+    "source": "added via add-asset.mjs",
+    "license": null,
+    "note": null
+  },
+  {
     "file": "snapdragon-pink-0.png",
     "source": "externally created production asset",
     "license": null,
@@ -138,8 +174,20 @@
     "note": null
   },
   {
+    "file": "string-of-pearls-green-0.png",
+    "source": "added via add-asset.mjs",
+    "license": null,
+    "note": null
+  },
+  {
     "file": "sunflower-yellow-0.png",
     "source": "externally created production asset",
+    "license": null,
+    "note": null
+  },
+  {
+    "file": "veronica-purple-0.png",
+    "source": "added via add-asset.mjs",
     "license": null,
     "note": null
   }

@@ -2,6 +2,13 @@
   "version": 1,
   "assets": [
     {
+      "varietyId": "amaranthus",
+      "colorwayId": "green",
+      "variant": 0,
+      "src": "/flowers/amaranthus-green-0.png",
+      "thumb": "/flowers/amaranthus-green-0-thumb.png"
+    },
+    {
       "varietyId": "astilbe",
       "colorwayId": "pink",
       "variant": 0,
@@ -15,6 +22,27 @@
       "src": "/flowers/carnation-dusty-pink-0.png",
       "thumb": "/flowers/carnation-dusty-pink-0-thumb.png",
       "recolorable": true
+    },
+    {
+      "varietyId": "chrysanthemum",
+      "colorwayId": "dark-pink",
+      "variant": 0,
+      "src": "/flowers/chrysanthemum-dark-pink-0.png",
+      "thumb": "/flowers/chrysanthemum-dark-pink-0-thumb.png"
+    },
+    {
+      "varietyId": "chrysanthemum",
+      "colorwayId": "light-pink",
+      "variant": 0,
+      "src": "/flowers/chrysanthemum-light-pink-0.png",
+      "thumb": "/flowers/chrysanthemum-light-pink-0-thumb.png"
+    },
+    {
+      "varietyId": "chrysanthemum",
+      "colorwayId": "orange",
+      "variant": 0,
+      "src": "/flowers/chrysanthemum-orange-0.png",
+      "thumb": "/flowers/chrysanthemum-orange-0-thumb.png"
     },
     {
       "varietyId": "dahlia",
@@ -133,6 +161,13 @@
       "thumb": "/flowers/lisianthus-lilac-0-thumb.png"
     },
     {
+      "varietyId": "pampas",
+      "colorwayId": "natural",
+      "variant": 0,
+      "src": "/flowers/pampas-natural-0.png",
+      "thumb": "/flowers/pampas-natural-0-thumb.png"
+    },
+    {
       "varietyId": "peony",
       "colorwayId": "pink",
       "variant": 0,
@@ -156,6 +191,13 @@
       "thumb": "/flowers/ruscus-green-0-thumb.png"
     },
     {
+      "varietyId": "scabiosa",
+      "colorwayId": "lavender",
+      "variant": 0,
+      "src": "/flowers/scabiosa-lavender-0.png",
+      "thumb": "/flowers/scabiosa-lavender-0-thumb.png"
+    },
+    {
       "varietyId": "snapdragon",
       "colorwayId": "pink",
       "variant": 0,
@@ -171,11 +213,25 @@
       "thumb": "/flowers/stock-lavender-0-thumb.png"
     },
     {
+      "varietyId": "string-of-pearls",
+      "colorwayId": "green",
+      "variant": 0,
+      "src": "/flowers/string-of-pearls-green-0.png",
+      "thumb": "/flowers/string-of-pearls-green-0-thumb.png"
+    },
+    {
       "varietyId": "sunflower",
       "colorwayId": "yellow",
       "variant": 0,
       "src": "/flowers/sunflower-yellow-0.png",
       "thumb": "/flowers/sunflower-yellow-0-thumb.png"
+    },
+    {
+      "varietyId": "veronica",
+      "colorwayId": "purple",
+      "variant": 0,
+      "src": "/flowers/veronica-purple-0.png",
+      "thumb": "/flowers/veronica-purple-0-thumb.png"
     }
   ]
 }

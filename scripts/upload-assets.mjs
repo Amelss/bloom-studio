@@ -30,6 +30,13 @@ if (!url || !key) {
   process.exit(1)
 }
 
+// Node < 22 has no global WebSocket, which supabase-js's realtime client wants
+// at construction. Borrow `ws` (same shim as add-asset.mjs) so this runs on any
+// Node version without the --experimental-websocket flag.
+if (typeof globalThis.WebSocket === 'undefined') {
+  globalThis.WebSocket = (await import('ws')).default
+}
+
 const supabase = createClient(url, key, { auth: { persistSession: false } })
 
 const CONTENT_TYPE = {

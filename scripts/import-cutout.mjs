@@ -38,6 +38,9 @@ const SPREAD_MM = {
   hydrangea: 150, delphinium: 55, gypsophila: 160, astilbe: 70, eucalyptus: 70,
   ruscus: 45, leatherleaf: 110, dahlia: 120, gerbera: 105, lily: 165,
   snapdragon: 55, stock: 50, sunflower: 150,
+  // New (2026-08-11) — keep in sync with each variety's width_mm in the DB.
+  chrysanthemum: 95, amaranthus: 110, pampas: 130, scabiosa: 65,
+  'string-of-pearls': 45, veronica: 45,
 }
 
 function contentBox(data, width, height) {
