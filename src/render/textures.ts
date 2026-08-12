@@ -131,7 +131,11 @@ export async function loadPhotoManifest(): Promise<void> {
   if (manifestLoaded) return
   manifestLoaded = true
   try {
-    const response = await fetch(resolveAssetUrl('manifest.json'))
+    // The manifest is mutable (it changes whenever assets are added), so never
+    // read a stale cached copy — otherwise newly-added flowers stay invisible
+    // until the browser's cache expires. `no-store` bypasses the HTTP cache;
+    // the individual PNGs it points to keep their long cache (their names are stable).
+    const response = await fetch(resolveAssetUrl('manifest.json'), { cache: 'no-store' })
     if (!response.ok) return
     const manifest = (await response.json()) as { assets?: ManifestAsset[] }
     for (const asset of manifest.assets ?? []) {

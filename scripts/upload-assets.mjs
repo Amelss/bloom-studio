@@ -62,11 +62,17 @@ async function main() {
   let ok = 0
   for (const file of files) {
     const body = await readFile(path.join(SRC_DIR, file))
-    const contentType = CONTENT_TYPE[path.extname(file)] ?? 'application/octet-stream'
+    const ext = path.extname(file)
+    const contentType = CONTENT_TYPE[ext] ?? 'application/octet-stream'
+    // Images have stable, unique names → cache hard (1 year). The manifest and
+    // provenance JSON are MUTABLE (they change whenever assets are added), so
+    // they must NOT be long-cached, or newly-added flowers stay invisible until
+    // the browser cache expires. `no-cache` forces revalidation on every use.
+    const cacheControl = ext === '.json' ? 'no-cache' : '31536000'
     const { error } = await supabase.storage.from(BUCKET).upload(file, body, {
       contentType,
       upsert: true,
-      cacheControl: '31536000',
+      cacheControl,
     })
     if (error) {
       console.error(`✗ ${file}: ${error.message}`)
